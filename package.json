@@ -24,5 +24,11 @@
     "eslint-config-next": "15.4.1",
     "prisma": "^6.12.0",
     "tailwindcss": "^4"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "postinstall": "prisma generate"
   }
 }
