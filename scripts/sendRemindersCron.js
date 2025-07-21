@@ -1,0 +1,21 @@
+import cron from 'node-cron';
+import fetch from 'node-fetch'; // If you're using CommonJS, use `require`
+
+// Schedule the job to run every day at 9 AM
+cron.schedule('51,55 16 * * *', async () => {
+    console.log('⏰ Running reminder task...');
+
+    try {
+        const res = await fetch('http://localhost:3000/api/send-reminders', {
+            method: 'POST',
+        });
+
+        const data = await res.json();
+        console.log('✅ Reminders sent:', data);
+    } catch (error) {
+        console.error('❌ Error sending reminders:', error);
+    }
+});
+
+// Keep the script running
+console.log('🚀 Reminder cron started...');

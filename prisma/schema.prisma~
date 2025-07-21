@@ -17,6 +17,7 @@ model User {
   hashedPassword String?  // ← add this line
   accounts      Account[]
   sessions      Session[]
+  debtorRecords Debtor[]
 }
 
 model Debtor {
