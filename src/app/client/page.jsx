@@ -18,6 +18,17 @@ export default function ClientPage() {
     const [editingId, setEditingId] = useState(null);
     const [loading, setLoading] = useState(false);
 
+
+
+    useEffect(() => {
+        if (status === 'loading') return;
+        if (!session) {
+            router.push('/login');
+        } else if (session.user.role !== 'client') {
+            router.push('/login');
+        }
+    }, [status, session, router]);
+
     const fetchDebtors = async () => {
         try {
             const res = await fetch('/api/debtors', {

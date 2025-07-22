@@ -64,3 +64,9 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
+
+model NotificationSettings {
+  id     String  @id @default(cuid())
+  hour   Int     @default(9)
+  minute Int     @default(0)
+}
