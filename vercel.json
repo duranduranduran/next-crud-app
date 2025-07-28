@@ -4,8 +4,8 @@
 
 {
   "crons": [{
-    "path": "/api/send-reminders",
-    "schedule": "30 21 * * *"
+    "path": "/scripts/sendRemindersCron.js",
+    "schedule": "15 22 * * *"
 
   }]
 }
