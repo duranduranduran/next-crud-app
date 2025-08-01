@@ -48,7 +48,7 @@ export default function LoginPage() {
                     placeholder="Email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full p-2 border rounded"
+                    className="w-full p-2 border rounded bg-gray-100 text-red-500"
                     required
                 />
 
@@ -57,7 +57,7 @@ export default function LoginPage() {
                     placeholder="Password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full p-2 border rounded"
+                    className="w-full p-2 border rounded bg-gray-100 text-red-500"
                     required
                 />
 
@@ -72,7 +72,7 @@ export default function LoginPage() {
             </form>
             <p className="text-center text-sm mt-4">
                 Don’t have an account?{' '}
-                <a href="/signup" className="text-blue-600 hover:underline">
+                <a href="/signup" className="text-2xl hover:underline text-red-500">
                     Sign up here
                 </a>
             </p>
