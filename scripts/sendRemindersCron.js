@@ -23,7 +23,8 @@ import cron from 'node-cron';
 import fetch from 'node-fetch';
 import fs from 'fs/promises';
 import path from 'path';
-
+import dotenv from 'dotenv';
+dotenv.config();
 // Read the time from reminderTime.json
 async function getScheduledTime() {
     const filePath = path.join(process.cwd(), 'reminderTime.json');
@@ -48,8 +49,8 @@ async function startReminderJob() {
         console.log('⏰ Running reminder task...');
 
         try {
-            const res = await fetch('http://localhost:3000/api/send-reminders', {
-                method: 'POST',
+            const res = await fetch(`${process.env.BASE_URL}/api/send-reminders`, {
+                method: 'GET',
             });
 
             const data = await res.json();

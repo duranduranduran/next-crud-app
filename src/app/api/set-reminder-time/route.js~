@@ -4,7 +4,7 @@ import path from 'path';
 
 const filePath = path.join(process.cwd(), 'reminderTime.json');
 
-export async function POST(request) {
+export async function GET(request) {
     try {
         const body = await request.json();
         const { hour, minute } = body;

@@ -6,7 +6,7 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export async function POST() {
+export async function GET() {
     try {
         // 1. Get all debtors who are available for notification
         const debtorsToNotify = await prisma.debtor.findMany({
