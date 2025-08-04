@@ -18,7 +18,7 @@ function SendRemindersButton() {
 
         try {
             const res = await fetch('/api/send-reminders', {
-                method: 'POST',
+                method: 'GET',
             });
 
             if (!res.ok) {
