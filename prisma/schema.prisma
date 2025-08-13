@@ -29,6 +29,7 @@ model Debtor {
   user       User     @relation(fields: [userId], references: [id])
   userId     String
   availableForNotify  Boolean  @default(false)
+  documentUrl String?
 }
 
 model Account {
