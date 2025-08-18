@@ -299,15 +299,25 @@ export default function ClientPage() {
     const uploadDocument = async (file) => {
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('upload_preset', 'your_upload_preset'); // you create this on Cloudinary dashboard
+        formData.append(
+            'upload_preset',
+            process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
+        );
+
+        // Decide resource type based on file
+        const isPdf = file.type === 'application/pdf';
+        const resourceType = isPdf ? 'raw' : 'auto'; // 'auto' works for images
 
         try {
-            const res = await fetch('https://api.cloudinary.com/v1_1/' + process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME + '/upload', {
-                method: 'POST',
-                body: formData,
-            });
+            const res = await fetch(
+                `https://api.cloudinary.com/v1_1/${
+                    process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+                }/${resourceType}/upload`,
+                { method: 'POST', body: formData }
+            );
             const data = await res.json();
-            return data.secure_url; // Cloudinary file URL
+            if (!res.ok) throw new Error(data.error?.message || 'Upload failed');
+            return data.secure_url;
         } catch (err) {
             console.error('Cloudinary upload error:', err);
             return null;

@@ -398,7 +398,7 @@ export default function AdminPage() {
 
     return (
         <main className="p-6 max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+            <h1 className="text-3xl font-bold mb-6 text-red-600">Admin Dashboard</h1>
 
             {clients.length === 0 ? (
                 <p>No clients found.</p>
@@ -428,12 +428,12 @@ export default function AdminPage() {
                                                 <p>
                                                     <strong>Document: </strong>
                                                     <a
-                                                        href={debtor.documentUrl}
+                                                        href={debtor.documentUrl.replace('/upload/', '/upload/fl_attachment/')}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         className="text-blue-600 underline"
                                                     >
-                                                        View Document
+                                                        Download Document
                                                     </a>
                                                 </p>
                                             )}
