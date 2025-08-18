@@ -304,8 +304,9 @@ export default function ClientPage() {
             process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
         );
 
+        // Decide resource type based on file
         const isPdf = file.type === 'application/pdf';
-        const resourceType = isPdf ? 'raw' : 'auto';
+        const resourceType = isPdf ? 'raw' : 'auto'; // 'auto' works for images
 
         try {
             const res = await fetch(
@@ -322,7 +323,6 @@ export default function ClientPage() {
             return null;
         }
     };
-
 
     const handleSubmit = async (e) => {
         e.preventDefault();
