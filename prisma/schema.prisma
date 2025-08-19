@@ -25,6 +25,9 @@ model Debtor {
   name       String
   email      String?
   amountOwed Float
+  telephone         String?
+  address           String?
+  cedulaIdentidad   String    @unique
   createdAt  DateTime @default(now())
   user       User     @relation(fields: [userId], references: [id])
   userId     String

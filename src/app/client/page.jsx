@@ -254,12 +254,14 @@ export default function ClientPage() {
     const [amountOwed, setAmountOwed] = useState('');
     const [documentFile, setDocumentFile] = useState(null); // new state
     const [success, setSuccess] = useState('');
+    const [telephone, setTelephone] = useState('');       // NEW
+    const [address, setAddress] = useState('');           // NEW
+    const [cedulaIdentidad, setCedulaIdentidad] = useState(''); // NEW
     const [error, setError] = useState('');
     const [debtors, setDebtors] = useState([]);
     const [editingId, setEditingId] = useState(null);
     const [loading, setLoading] = useState(false);
 
-    // ... your existing useEffect hooks ...
 
     useEffect(() => {
         if (status === 'loading') return;
@@ -295,7 +297,6 @@ export default function ClientPage() {
         }
     }, [status]);
 
-    // New helper to upload document to Cloudinary
     const uploadDocument = async (file) => {
         const formData = new FormData();
         formData.append('file', file);
@@ -348,7 +349,15 @@ export default function ClientPage() {
                 }
             }
 
-            const payload = { name, email, amountOwed };
+            const payload = {
+                name,
+                email,
+                telephone,
+                address,
+                cedulaIdentidad,
+                amountOwed
+            };
+
 
             if (documentUrl) payload.documentUrl = documentUrl;
 
@@ -375,6 +384,9 @@ export default function ClientPage() {
                 setSuccess(editingId ? 'Debtor updated!' : 'Debtor added!');
                 setName('');
                 setEmail('');
+                setTelephone('');
+                setAddress('');
+                setCedulaIdentidad('');
                 setAmountOwed('');
                 setDocumentFile(null);
                 setEditingId(null);
@@ -394,12 +406,14 @@ export default function ClientPage() {
     const handleEdit = (debtor) => {
         setName(debtor.name);
         setEmail(debtor.email || '');
+        setTelephone(debtor.telephone || '');
+        setAddress(debtor.address || '');
+        setCedulaIdentidad(debtor.cedulaIdentidad || '');
         setAmountOwed(debtor.amountOwed);
         setEditingId(debtor.id);
-        setDocumentFile(null); // document won't be reset; you could add URL preview if needed
+        setDocumentFile(null);
     };
 
-    // ... your existing handleDelete ...
 
     const handleDelete = async (id) => {
         const confirmed = confirm('Are you sure you want to delete this debtor?');
@@ -457,6 +471,31 @@ export default function ClientPage() {
                 />
 
                 <input
+                    type="text"
+                    placeholder="Telephone"
+                    value={telephone}
+                    onChange={(e) => setTelephone(e.target.value)}
+                    className="w-full p-2 border rounded"
+                />
+
+                <input
+                    type="text"
+                    placeholder="Address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    className="w-full p-2 border rounded"
+                />
+
+                <input
+                    type="text"
+                    placeholder="Cédula de Identidad"
+                    value={cedulaIdentidad}
+                    onChange={(e) => setCedulaIdentidad(e.target.value)}
+                    className="w-full p-2 border rounded"
+                    required
+                />
+
+                <input
                     type="number"
                     placeholder="Amount Owed"
                     value={amountOwed}
@@ -487,24 +526,23 @@ export default function ClientPage() {
                 {error && <p className="text-red-600">{error}</p>}
             </form>
 
-            {/* ... your existing debtors list and logout button ... */}
+            {/*DEBTOR LIST*/}
 
-            <div className="mt-10 bg-red-500 text-black p-4 rounded  ">
+            <div className="mt-10 bg-red-500 text-black p-4 rounded">
                 <h2 className="text-xl font-bold mb-2">Your Debtors</h2>
-                 {debtors.length === 0 ? (
-                    <p className="text-gray-500 ">No debtors yet.</p>
+                {debtors.length === 0 ? (
+                    <p className="text-gray-500">No debtors yet.</p>
                 ) : (
-                    <ul className="space-y-2 ">
+                    <ul className="space-y-2">
                         {debtors.map((debtor) => (
-                            <li
-                                key={debtor.id}
-                                className="border p-4 rounded bg-white shadow-sm flex justify-between items-start"
-                            >
+                            <li key={debtor.id}
+                                className="border p-4 rounded bg-white shadow-sm flex justify-between items-start">
                                 <div>
                                     <p><strong>Name:</strong> {debtor.name}</p>
-                                    {debtor.email && (
-                                        <p><strong>Email:</strong> {debtor.email}</p>
-                                    )}
+                                    {debtor.email && <p><strong>Email:</strong> {debtor.email}</p>}
+                                    {debtor.telephone && <p><strong>Telephone:</strong> {debtor.telephone}</p>}
+                                    {debtor.address && <p><strong>Address:</strong> {debtor.address}</p>}
+                                    <p><strong>Cédula:</strong> {debtor.cedulaIdentidad}</p>
                                     <p><strong>Amount Owed:</strong> ${debtor.amountOwed}</p>
                                 </div>
                                 <div className="space-x-2">
@@ -528,12 +566,12 @@ export default function ClientPage() {
             </div>
 
             <button
-                onClick={() => signOut({ callbackUrl: '/login' })}
+                onClick={() => signOut({callbackUrl: '/login'})}
                 className="mt-10 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
             >
                 Logout
             </button>
 
         </div>
-                );
-            }
+    );
+}

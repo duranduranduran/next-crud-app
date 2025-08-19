@@ -1,3 +1,4 @@
+
 //
 // import { prisma } from '@/lib/prisma';
 // import { getToken } from 'next-auth/jwt';
@@ -12,7 +13,7 @@
 //     }
 //
 //     const body = await req.json();
-//     const { name, email, amountOwed } = body;
+//     const { name, email, amountOwed, documentUrl } = body;
 //
 //     if (!name || !amountOwed) {
 //         return NextResponse.json({ message: 'Missing fields' }, { status: 400 });
@@ -33,6 +34,7 @@
 //                 email,
 //                 amountOwed: parseFloat(amountOwed),
 //                 userId: user.id,
+//                 documentUrl: documentUrl || null,
 //             },
 //         });
 //
@@ -82,7 +84,7 @@
 //     }
 //
 //     const body = await req.json();
-//     const { id, name, email, amountOwed } = body;
+//     const { id, name, email, amountOwed, documentUrl } = body;
 //
 //     if (!id || !name || !amountOwed) {
 //         return NextResponse.json({ message: 'Missing fields' }, { status: 400 });
@@ -106,6 +108,7 @@
 //                 name,
 //                 email,
 //                 amountOwed: parseFloat(amountOwed),
+//                 documentUrl: documentUrl || null,
 //             },
 //         });
 //
@@ -115,6 +118,7 @@
 //         return NextResponse.json({ message: 'Server error' }, { status: 500 });
 //     }
 // }
+//
 
 
 import { prisma } from '@/lib/prisma';
@@ -130,10 +134,10 @@ export async function POST(req) {
     }
 
     const body = await req.json();
-    const { name, email, amountOwed, documentUrl } = body;
+    const { name, email, amountOwed, documentUrl, telephone, address, cedulaIdentidad } = body;
 
-    if (!name || !amountOwed) {
-        return NextResponse.json({ message: 'Missing fields' }, { status: 400 });
+    if (!name || !amountOwed || !cedulaIdentidad) {
+        return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
     }
 
     try {
@@ -148,7 +152,10 @@ export async function POST(req) {
         const debtor = await prisma.debtor.create({
             data: {
                 name,
-                email,
+                email: email || null,
+                telephone: telephone || null,
+                address: address || null,
+                cedulaIdentidad,
                 amountOwed: parseFloat(amountOwed),
                 userId: user.id,
                 documentUrl: documentUrl || null,
@@ -201,10 +208,10 @@ export async function PATCH(req) {
     }
 
     const body = await req.json();
-    const { id, name, email, amountOwed, documentUrl } = body;
+    const { id, name, email, amountOwed, documentUrl, telephone, address, cedulaIdentidad } = body;
 
-    if (!id || !name || !amountOwed) {
-        return NextResponse.json({ message: 'Missing fields' }, { status: 400 });
+    if (!id || !name || !amountOwed || !cedulaIdentidad) {
+        return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
     }
 
     try {
@@ -218,12 +225,14 @@ export async function PATCH(req) {
 
         const updatedDebtor = await prisma.debtor.update({
             where: {
-                id: id,
-                userId: user.id,
+                id,
             },
             data: {
                 name,
-                email,
+                email: email || null,
+                telephone: telephone || null,
+                address: address || null,
+                cedulaIdentidad,
                 amountOwed: parseFloat(amountOwed),
                 documentUrl: documentUrl || null,
             },
@@ -235,4 +244,3 @@ export async function PATCH(req) {
         return NextResponse.json({ message: 'Server error' }, { status: 500 });
     }
 }
-
