@@ -330,12 +330,31 @@ export default function ClientPage() {
         setSuccess('');
         setError('');
 
-        if (Number(amountOwed) <= 0) {
+        const amount = Number(amountOwed);
+
+        if (isNaN(amount)) {
+            setError('Amount owed must be a valid number');
+            return;
+        }
+
+        if (amount <= 0) {
             setError('Amount owed must be greater than 0');
             return;
         }
 
+        if (amount > 1000000) { // example max limit, adjust as needed
+            setError('Amount owed is unrealistically high');
+            return;
+        }
+
+        // Optional: restrict decimal places
+        if (!/^\d+(\.\d{1,2})?$/.test(amountOwed)) {
+            setError('Amount can have at most 2 decimal places');
+            return;
+        }
+
         setLoading(true);
+
 
         try {
             let documentUrl = null;

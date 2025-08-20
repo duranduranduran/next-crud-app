@@ -330,13 +330,32 @@ export default function ClientPage() {
         setSuccess('');
         setError('');
 
-        if (Number(amountOwed) <= 0) {
+        const amount = Number(amountOwed);
+
+        if (isNaN(amount)) {
+            setError('Amount owed must be a valid number');
+            return;
+        }
+
+        if (amount <= 0) {
             setError('Amount owed must be greater than 0');
+            return;
+        }
+
+        if (amount > 1000000) { // example max limit, adjust as needed
+            setError('Amount owed is unrealistically high');
+            return;
+        }
+
+        // Optional: restrict decimal places
+        if (!/^\d+(\.\d{1,2})?$/.test(amountOwed)) {
+            setError('Amount can have at most 2 decimal places');
             return;
         }
 
         setLoading(true);
 
+        
         try {
             let documentUrl = null;
 
@@ -526,24 +545,23 @@ export default function ClientPage() {
                 {error && <p className="text-red-600">{error}</p>}
             </form>
 
-                          {/*DEBTOR LIST*/}
+            {/*DEBTOR LIST*/}
 
-            <div className="mt-10 bg-red-500 text-black p-4 rounded  ">
+            <div className="mt-10 bg-red-500 text-black p-4 rounded">
                 <h2 className="text-xl font-bold mb-2">Your Debtors</h2>
                 {debtors.length === 0 ? (
-                    <p className="text-gray-500 ">No debtors yet.</p>
+                    <p className="text-gray-500">No debtors yet.</p>
                 ) : (
-                    <ul className="space-y-2 ">
+                    <ul className="space-y-2">
                         {debtors.map((debtor) => (
-                            <li
-                                key={debtor.id}
-                                className="border p-4 rounded bg-white shadow-sm flex justify-between items-start"
-                            >
+                            <li key={debtor.id}
+                                className="border p-4 rounded bg-white shadow-sm flex justify-between items-start">
                                 <div>
                                     <p><strong>Name:</strong> {debtor.name}</p>
-                                    {debtor.email && (
-                                        <p><strong>Email:</strong> {debtor.email}</p>
-                                    )}
+                                    {debtor.email && <p><strong>Email:</strong> {debtor.email}</p>}
+                                    {debtor.telephone && <p><strong>Telephone:</strong> {debtor.telephone}</p>}
+                                    {debtor.address && <p><strong>Address:</strong> {debtor.address}</p>}
+                                    <p><strong>Cédula:</strong> {debtor.cedulaIdentidad}</p>
                                     <p><strong>Amount Owed:</strong> ${debtor.amountOwed}</p>
                                 </div>
                                 <div className="space-x-2">
@@ -567,12 +585,12 @@ export default function ClientPage() {
             </div>
 
             <button
-                onClick={() => signOut({ callbackUrl: '/login' })}
+                onClick={() => signOut({callbackUrl: '/login'})}
                 className="mt-10 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
             >
                 Logout
             </button>
 
         </div>
-                );
-            }
+    );
+}
