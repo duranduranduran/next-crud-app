@@ -20,6 +20,14 @@ model User {
   debtorRecords Debtor[]
 }
 
+enum DebtorStatus {
+  PENDIENTE
+  EN_GESTION
+  ACUERDO_DE_PAGO
+  PAGADO
+  ESCALADO_JUDICIAL
+}
+
 model Debtor {
   id         String   @id @default(uuid())
   name       String
@@ -33,6 +41,7 @@ model Debtor {
   userId     String
   availableForNotify  Boolean  @default(false)
   documentUrl String?
+  status            DebtorStatus  @default(PENDIENTE)
 }
 
 model Account {
@@ -74,3 +83,4 @@ model NotificationSettings {
   hour   Int     @default(9)
   minute Int     @default(0)
 }
+
