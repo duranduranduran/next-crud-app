@@ -71,6 +71,11 @@ export default function AdminPage() {
     const [bulkLoading, setBulkLoading] = useState(false);
     const [bulkMessage, setBulkMessage] = useState(null);
 
+
+// Boton de selct all
+    const [selectAll, setSelectAll] = useState(false);
+
+
     // Auth & client data fetching
     useEffect(() => {
         if (status === 'loading') return;
@@ -160,14 +165,33 @@ export default function AdminPage() {
         }
     };
 
+    const handleSelectAll = () => {
+        if (selectAll) {
+            setSelectedDebtors([]);
+        } else {
+            const allIds = clients.flatMap(client => client.debtorRecords.map(d => d.id));
+            setSelectedDebtors(allIds);
+        }
+        setSelectAll(!selectAll);
+    };
+
+
+
     // ========== Bulk selection (per-debtor only; no select-all yet) ==========
     const handleSelectDebtor = (debtorId) => {
-        setSelectedDebtors((prev) =>
-            prev.includes(debtorId)
-                ? prev.filter((id) => id !== debtorId)
-                : [...prev, debtorId]
-        );
+        setSelectedDebtors((prev) => {
+            const newSelected = prev.includes(debtorId)
+                ? prev.filter(id => id !== debtorId)
+                : [...prev, debtorId];
+
+            // Sync selectAll state
+            const totalDebtors = clients.flatMap(client => client.debtorRecords.map(d => d.id));
+            setSelectAll(newSelected.length === totalDebtors.length);
+
+            return newSelected;
+        });
     };
+
 
     // ========== Bulk update ==========
     const handleBulkUpdate = async () => {
@@ -239,6 +263,18 @@ export default function AdminPage() {
                 >
                     {bulkLoading ? 'Updating...' : 'Apply to Selected'}
                 </button>
+                {/* ✅ Select All checkbox */}
+                <div className="mb-2">
+                    <label className="flex items-center gap-2">
+                        <input
+                            type="checkbox"
+                            checked={selectAll}
+                            onChange={handleSelectAll}
+                        />
+                        Select All
+                    </label>
+                </div>
+
 
                 <span className="text-sm text-gray-600">
           Selected: {selectedDebtors.length}

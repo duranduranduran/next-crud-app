@@ -75,6 +75,12 @@ export default function AdminPage() {
 // Boton de selct all
     const [selectAll, setSelectAll] = useState(false);
 
+// Barra de busqueda y filtros
+    const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState("ALL");
+    const [amountFilter, setAmountFilter] = useState("ALL");
+
+
 
     // Auth & client data fetching
     useEffect(() => {
@@ -118,6 +124,31 @@ export default function AdminPage() {
             alert('Failed to toggle availability');
         }
     };
+
+    const filteredClients = clients.map(client => {
+        const filteredDebtors = client.debtorRecords.filter((debtor) => {
+            // search by name or email
+            const matchesSearch =
+                debtor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (debtor.email && debtor.email.toLowerCase().includes(searchTerm.toLowerCase()));
+
+            // status filter
+            const matchesStatus =
+                statusFilter === "ALL" ? true : debtor.status === statusFilter;
+
+            // amount filter
+            let matchesAmount = true;
+            if (amountFilter === "<500") matchesAmount = debtor.amountOwed < 500;
+            if (amountFilter === "500-1000")
+                matchesAmount = debtor.amountOwed >= 500 && debtor.amountOwed <= 1000;
+            if (amountFilter === ">1000") matchesAmount = debtor.amountOwed > 1000;
+
+            return matchesSearch && matchesStatus && matchesAmount;
+        });
+
+        return { ...client, debtorRecords: filteredDebtors };
+    });
+
 
     const updateDebtorStatus = async (debtorId, newStatus) => {
         try {
@@ -240,9 +271,44 @@ export default function AdminPage() {
     return (
         <main className="p-6 max-w-4xl mx-auto">
             <h1 className="text-3xl font-bold mb-6 text-red-600">Admin Dashboard</h1>
+            {/* 🔍 Search + Filters */}
+            <div className="mb-6 flex flex-wrap gap-4">
+                <input
+                    type="text"
+                    placeholder="Search by name or email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="p-2 border rounded w-64"
+                />
+
+                <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="p-2 border rounded"
+                >
+                    <option value="ALL">All Statuses</option>
+                    <option value="PENDIENTE">Pendiente</option>
+                    <option value="EN_GESTION">En Gestión</option>
+                    <option value="ACUERDO_DE_PAGO">Acuerdo de Pago</option>
+                    <option value="PAGADO">Pagado</option>
+                    <option value="ESCALADO_JUDICIAL">Escalado judicial</option>
+                </select>
+
+                <select
+                    value={amountFilter}
+                    onChange={(e) => setAmountFilter(e.target.value)}
+                    className="p-2 border rounded"
+                >
+                    <option value="ALL">All Amounts</option>
+                    <option value="<500">Less than $500</option>
+                    <option value="500-1000">$500 - $1000</option>
+                    <option value=">1000">More than $1000</option>
+                </select>
+            </div>
 
             {/* ✅ Bulk update controls */}
             <div className="mb-6 flex items-center gap-4">
+
                 <select
                     value={bulkStatus}
                     onChange={(e) => setBulkStatus(e.target.value)}
@@ -255,6 +321,7 @@ export default function AdminPage() {
                     <option value="PAGADO">Pagado</option>
                     <option value="ESCALADO_JUDICIAL">Escalado (Judicial)</option>
                 </select>
+
 
                 <button
                     onClick={handleBulkUpdate}
@@ -292,10 +359,10 @@ export default function AdminPage() {
             )}
 
             {/* Clients and Debtors */}
-            {clients.length === 0 ? (
+            {filteredClients.length === 0 ? (
                 <p>No clients found.</p>
             ) : (
-                clients.map((client) => (
+                filteredClients.map((client) => (
                     <div
                         key={client.id}
                         className="mb-10 p-4 border border-gray-300 rounded shadow-sm"

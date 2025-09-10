@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
+import * as XLSX from 'xlsx';
+
 
 export default function ClientPage() {
     const { data: session, status } = useSession();
@@ -22,7 +24,13 @@ export default function ClientPage() {
     const [debtors, setDebtors] = useState([]);
     const [editingId, setEditingId] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState("");
     const [isTyping, setIsTyping] = useState(false);
+
+    const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState("ALL");
+    const [amountFilter, setAmountFilter] = useState("ALL"); // e.g. "<500", "500-1000", ">1000"
+
 
     // ✅ NEW: State for email validation error
     const [emailError, setEmailError] = useState('');
@@ -59,6 +67,70 @@ export default function ClientPage() {
             fetchDebtors();
         }
     }, [status]);
+
+    const handleDownloadTemplate = () => {
+        const headers = [
+            "name",             // required
+            "email",            // optional
+            "telephone",        // required
+            "address",          // optional
+            "cedulaIdentidad",  // required (10 digits)
+            "amountOwed"        // required
+        ];
+
+        // Optional: include an example row
+        const exampleRow = [
+            "John Doe",          // name
+            "john@example.com",  // email
+            "0991234567",        // telephone
+            "Main Street 123",   // address
+            "0123456789",        // cedulaIdentidad → keep leading zero
+            100.5                 // amountOwed
+        ];
+
+        // Sheet: first row = headers, second row = example
+        const ws = XLSX.utils.aoa_to_sheet([headers, exampleRow]);
+
+        // Set column widths
+        ws['!cols'] = [
+            { wch: 20 }, // name
+            { wch: 28 }, // email
+            { wch: 16 }, // telephone
+            { wch: 28 }, // address
+            { wch: 16 }, // cedulaIdentidad
+            { wch: 14 }, // amountOwed
+        ];
+
+        // Force cedulaIdentidad column to text
+        // cedulaIdentidad is column E → E1, E2
+        ws['E1'].z = "@";
+        ws['E2'].z = "@";
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Debtors");
+
+        XLSX.writeFile(wb, "debtors_template.xlsx");
+    };
+
+    const filteredDebtors = debtors.filter((debtor) => {
+        // Search (by name or email)
+        const matchesSearch =
+            debtor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (debtor.email && debtor.email.toLowerCase().includes(searchTerm.toLowerCase()));
+
+        // Status filter
+        const matchesStatus =
+            statusFilter === "ALL" ? true : debtor.status === statusFilter;
+
+        // Amount filter
+        let matchesAmount = true;
+        if (amountFilter === "<500") matchesAmount = debtor.amountOwed < 500;
+        if (amountFilter === "500-1000") matchesAmount = debtor.amountOwed >= 500 && debtor.amountOwed <= 1000;
+        if (amountFilter === ">1000") matchesAmount = debtor.amountOwed > 1000;
+
+        return matchesSearch && matchesStatus && matchesAmount;
+    });
+
 
     const uploadDocument = async (file) => {
         const formData = new FormData();
@@ -324,6 +396,117 @@ export default function ClientPage() {
         setAmountOwed(rawValue);
     };
 
+
+
+
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const data = new Uint8Array(event.target.result);
+            const workbook = XLSX.read(data, { type: "array" });
+
+            // Get the first sheet
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+
+            // Convert to JSON
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+            console.log("📄 Uploaded Excel data:", jsonData);
+
+            // Arrays to collect results
+            const validRows = [];
+            const errors = [];
+
+            jsonData.forEach((row, index) => {
+                const rowNum = index + 2; // +2 because Excel has header row
+                const { name, amountOwed, cedulaIdentidad, email, telephone } = row;
+
+                // Validate required fields
+                if (!name) {
+                    errors.push(`Row ${rowNum}: "name" is required`);
+                    return;
+                }
+                if (!amountOwed || isNaN(amountOwed) || parseFloat(amountOwed) <= 0) {
+                    errors.push(`Row ${rowNum}: "amountOwed" must be a number > 0`);
+                    return;
+                }
+                if (!cedulaIdentidad) {
+                    errors.push(`Row ${rowNum}: "cedulaIdentidad" is required`);
+                    return;
+                }
+
+                const cedulaStr = String(cedulaIdentidad).padStart(10, "0");
+                if (!/^\d{10}$/.test(cedulaStr)) {
+                    errors.push(`Row ${rowNum}: "cedulaIdentidad" must be 10 digits`);
+                    return;
+                }
+
+                // Validate optional fields
+                if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                    errors.push(`Row ${rowNum}: "email" is invalid`);
+                    return;
+                }
+                if (telephone && !/^\+?\d+$/.test(telephone)) {
+                    errors.push(
+                        `Row ${rowNum}: "telephone" must contain only digits (or start with +)`
+                    );
+                    return;
+                }
+
+                // All validations pass → add to validRows
+                validRows.push({
+                    name,
+                    amountOwed: parseFloat(amountOwed),
+                    cedulaIdentidad: cedulaStr,
+                    email: email || null,
+                    // telephone: telephone || null,
+                    telephone: telephone ? String(telephone) : null,
+                    address: row.address || null,
+                    documentUrl: row.documentUrl || null,
+                });
+            });
+
+            console.log("✅ Valid rows:", validRows);
+            console.log("❌ Errors:", errors);
+
+            if (validRows.length === 0) {
+                console.warn("No valid rows to upload.");
+                return;
+            }
+
+            // Send valid rows to backend
+            try {
+                const response = await fetch("/api/debtors/upload", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(validRows),
+                });
+
+                const result = await response.json();
+                console.log("📤 Upload result:", result);
+
+                if (result.errors && result.errors.length > 0) {
+                    console.warn("Some rows failed to upload:", result.errors);
+                    setMessage(`⚠️ Some rows failed to upload. Check console for details.`);
+                } else {
+                    setMessage(`✅ ${validRows.length} debtor(s) uploaded successfully!`);
+                    console.log("All valid rows uploaded successfully!");
+                }
+                await fetchDebtors();
+            } catch (err) {
+                console.error("Error uploading debtors:", err);
+                setMessage("❌ Error uploading debtors. Please try again.");
+            }
+        };
+
+        reader.readAsArrayBuffer(file);
+    };
+
+
+
     const handleDelete = async (id) => {
         const confirmed = confirm('Are you sure you want to delete this debtor?');
         if (!confirmed) return;
@@ -453,14 +636,73 @@ export default function ClientPage() {
                 {success && <p className="text-green-600">{success}</p>}
                 {error && <p className="text-red-600">{error}</p>}
             </form>
+            <div className="mt-6">
+                <button
+                    onClick={handleDownloadTemplate}
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                >
+                    Download Excel Template
+                </button>
+            </div>
+            <div className="mt-6">
+                <input
+                    type="file"
+                    accept=".xlsx"
+                    onChange={handleFileUpload}
+                    className="block w-full text-sm text-gray-600
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-blue-50 file:text-blue-700
+                            hover:file:bg-blue-100"
+                />
+                {message && (
+                    <p className="mt-2 text-sm font-semibold text-blue-600">{message}</p>
+                )}
+            </div>
 
             <div className="mt-10 bg-red-500 text-black p-4 rounded">
+                <div className="mb-4 flex flex-wrap gap-4">
+                    <input
+                        type="text"
+                        placeholder="Search by name or email..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="p-2 border rounded w-64"
+                    />
+
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="p-2 border rounded"
+                    >
+                        <option value="ALL">All Statuses</option>
+                        <option value="PENDIENTE">Pendiente</option>
+                        <option value="EN_GESTION">En gestión</option>
+                        <option value="ACUERDO_DE_PAGO">Acuerdo de pago</option>
+                        <option value="PAGADO">Pagado</option>
+                        <option value="ESCALADO_JUDICIAL">Escalado judicial</option>
+                    </select>
+
+                    <select
+                        value={amountFilter}
+                        onChange={(e) => setAmountFilter(e.target.value)}
+                        className="p-2 border rounded"
+                    >
+                        <option value="ALL">All Amounts</option>
+                        <option value="<500">Less than $500</option>
+                        <option value="500-1000">$500 - $1000</option>
+                        <option value=">1000">More than $1000</option>
+                    </select>
+                </div>
+
                 <h2 className="text-xl font-bold mb-2">Your Debtors</h2>
                 {debtors.length === 0 ? (
                     <p className="text-gray-500">No debtors yet.</p>
                 ) : (
                     <ul className="space-y-2">
-                        {debtors.map((debtor) => (
+                        {/* {debtors.map((debtor) => ( */}
+                        {filteredDebtors.map((debtor) => (
                             <li key={debtor.id}
                                 className="border p-4 rounded bg-white shadow-sm flex justify-between items-start">
                                 <div>
