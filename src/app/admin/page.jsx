@@ -71,16 +71,21 @@ export default function AdminPage() {
     const [bulkLoading, setBulkLoading] = useState(false);
     const [bulkMessage, setBulkMessage] = useState(null);
 
-
-// Boton de selct all
+    // Boton de select all
     const [selectAll, setSelectAll] = useState(false);
 
-// Barra de busqueda y filtros
-    const [searchTerm, setSearchTerm] = useState("");
-    const [statusFilter, setStatusFilter] = useState("ALL");
-    const [amountFilter, setAmountFilter] = useState("ALL");
+    // Barra de busqueda y filtros
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('ALL');
+    const [amountFilter, setAmountFilter] = useState('ALL');
 
+    // ✅ Pagination state per client
+    const [debtorPages, setDebtorPages] = useState({}); // { clientId: pageNumber }
+    const ITEMS_PER_PAGE = 5;
 
+    const handlePageChange = (clientId, newPage) => {
+        setDebtorPages((prev) => ({ ...prev, [clientId]: newPage }));
+    };
 
     // Auth & client data fetching
     useEffect(() => {
@@ -125,7 +130,7 @@ export default function AdminPage() {
         }
     };
 
-    const filteredClients = clients.map(client => {
+    const filteredClients = clients.map((client) => {
         const filteredDebtors = client.debtorRecords.filter((debtor) => {
             // search by name or email
             const matchesSearch =
@@ -134,21 +139,20 @@ export default function AdminPage() {
 
             // status filter
             const matchesStatus =
-                statusFilter === "ALL" ? true : debtor.status === statusFilter;
+                statusFilter === 'ALL' ? true : debtor.status === statusFilter;
 
             // amount filter
             let matchesAmount = true;
-            if (amountFilter === "<500") matchesAmount = debtor.amountOwed < 500;
-            if (amountFilter === "500-1000")
+            if (amountFilter === '<500') matchesAmount = debtor.amountOwed < 500;
+            if (amountFilter === '500-1000')
                 matchesAmount = debtor.amountOwed >= 500 && debtor.amountOwed <= 1000;
-            if (amountFilter === ">1000") matchesAmount = debtor.amountOwed > 1000;
+            if (amountFilter === '>1000') matchesAmount = debtor.amountOwed > 1000;
 
             return matchesSearch && matchesStatus && matchesAmount;
         });
 
         return { ...client, debtorRecords: filteredDebtors };
     });
-
 
     const updateDebtorStatus = async (debtorId, newStatus) => {
         try {
@@ -200,31 +204,25 @@ export default function AdminPage() {
         if (selectAll) {
             setSelectedDebtors([]);
         } else {
-            const allIds = clients.flatMap(client => client.debtorRecords.map(d => d.id));
+            const allIds = clients.flatMap((client) => client.debtorRecords.map((d) => d.id));
             setSelectedDebtors(allIds);
         }
         setSelectAll(!selectAll);
     };
 
-
-
-    // ========== Bulk selection (per-debtor only; no select-all yet) ==========
     const handleSelectDebtor = (debtorId) => {
         setSelectedDebtors((prev) => {
             const newSelected = prev.includes(debtorId)
-                ? prev.filter(id => id !== debtorId)
+                ? prev.filter((id) => id !== debtorId)
                 : [...prev, debtorId];
 
-            // Sync selectAll state
-            const totalDebtors = clients.flatMap(client => client.debtorRecords.map(d => d.id));
+            const totalDebtors = clients.flatMap((client) => client.debtorRecords.map((d) => d.id));
             setSelectAll(newSelected.length === totalDebtors.length);
 
             return newSelected;
         });
     };
 
-
-    // ========== Bulk update ==========
     const handleBulkUpdate = async () => {
         setBulkMessage(null);
 
@@ -243,8 +241,8 @@ export default function AdminPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    debtorIds: selectedDebtors, // <-- must be an array of IDs
-                    status: bulkStatus,        // <-- must be one of your enum values
+                    debtorIds: selectedDebtors,
+                    status: bulkStatus,
                 }),
             });
 
@@ -254,7 +252,7 @@ export default function AdminPage() {
             }
 
             setBulkMessage({ type: 'success', text: 'Statuses updated successfully' });
-            await fetchClients(); // refresh list
+            await fetchClients();
             setSelectedDebtors([]);
             setBulkStatus('');
         } catch (error) {
@@ -271,6 +269,7 @@ export default function AdminPage() {
     return (
         <main className="p-6 max-w-4xl mx-auto">
             <h1 className="text-3xl font-bold mb-6 text-red-600">Admin Dashboard</h1>
+
             {/* 🔍 Search + Filters */}
             <div className="mb-6 flex flex-wrap gap-4">
                 <input
@@ -308,7 +307,6 @@ export default function AdminPage() {
 
             {/* ✅ Bulk update controls */}
             <div className="mb-6 flex items-center gap-4">
-
                 <select
                     value={bulkStatus}
                     onChange={(e) => setBulkStatus(e.target.value)}
@@ -322,7 +320,6 @@ export default function AdminPage() {
                     <option value="ESCALADO_JUDICIAL">Escalado (Judicial)</option>
                 </select>
 
-
                 <button
                     onClick={handleBulkUpdate}
                     disabled={bulkLoading}
@@ -330,22 +327,15 @@ export default function AdminPage() {
                 >
                     {bulkLoading ? 'Updating...' : 'Apply to Selected'}
                 </button>
-                {/* ✅ Select All checkbox */}
+
                 <div className="mb-2">
                     <label className="flex items-center gap-2">
-                        <input
-                            type="checkbox"
-                            checked={selectAll}
-                            onChange={handleSelectAll}
-                        />
+                        <input type="checkbox" checked={selectAll} onChange={handleSelectAll} />
                         Select All
                     </label>
                 </div>
 
-
-                <span className="text-sm text-gray-600">
-          Selected: {selectedDebtors.length}
-        </span>
+                <span className="text-sm text-gray-600">Selected: {selectedDebtors.length}</span>
             </div>
 
             {bulkMessage && (
@@ -358,88 +348,128 @@ export default function AdminPage() {
                 </p>
             )}
 
-            {/* Clients and Debtors */}
+            {/* Clients and Debtors with Pagination */}
             {filteredClients.length === 0 ? (
                 <p>No clients found.</p>
             ) : (
-                filteredClients.map((client) => (
-                    <div
-                        key={client.id}
-                        className="mb-10 p-4 border border-gray-300 rounded shadow-sm"
-                    >
-                        <h2 className="text-xl font-semibold mb-2">
-                            {client.name} ({client.email})
-                        </h2>
+                filteredClients.map((client) => {
+                    const currentPage = debtorPages[client.id] || 1;
+                    const totalPages = Math.ceil(client.debtorRecords.length / ITEMS_PER_PAGE);
+                    const paginatedDebtors = client.debtorRecords.slice(
+                        (currentPage - 1) * ITEMS_PER_PAGE,
+                        currentPage * ITEMS_PER_PAGE
+                    );
 
-                        {client.debtorRecords.length === 0 ? (
-                            <p className="text-gray-500">No debtors.</p>
-                        ) : (
-                            <ul className="space-y-3">
-                                {client.debtorRecords.map((debtor) => (
-                                    <li
-                                        key={debtor.id}
-                                        className="flex flex-col md:flex-row md:items-center md:justify-between border p-3 rounded space-y-2 md:space-y-0"
-                                    >
-                                        <div className="space-y-1">
-                                            {/* Individual selection (no Select All yet) */}
-                                            <label className="flex items-center gap-2">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedDebtors.includes(debtor.id)}
-                                                    onChange={() => handleSelectDebtor(debtor.id)}
-                                                />
-                                                <span>Select</span>
-                                            </label>
+                    return (
+                        <div
+                            key={client.id}
+                            className="mb-10 p-4 border border-gray-300 rounded shadow-sm"
+                        >
+                            <h2 className="text-xl font-semibold mb-2">
+                                {client.name} ({client.email})
+                            </h2>
 
-                                            <p><strong>Name:</strong> {debtor.name}</p>
-                                            <p><strong>Amount Owed:</strong> ${debtor.amountOwed}</p>
+                            {client.debtorRecords.length === 0 ? (
+                                <p className="text-gray-500">No debtors.</p>
+                            ) : (
+                                <>
+                                    <ul className="space-y-3">
+                                        {paginatedDebtors.map((debtor) => (
+                                            <li
+                                                key={debtor.id}
+                                                className="flex flex-col md:flex-row md:items-center md:justify-between border p-3 rounded space-y-2 md:space-y-0"
+                                            >
+                                                <div className="space-y-1">
+                                                    <label className="flex items-center gap-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedDebtors.includes(debtor.id)}
+                                                            onChange={() => handleSelectDebtor(debtor.id)}
+                                                        />
+                                                        <span>Select</span>
+                                                    </label>
 
-                                            {/* Single-item status selector (still available) */}
-                                            <div className="flex items-center gap-2">
-                                                <p className="m-0"><strong>Status:</strong></p>
-                                                <select
-                                                    value={debtor.status || 'PENDIENTE'}
-                                                    onChange={(e) => updateDebtorStatus(debtor.id, e.target.value)}
-                                                    className="border rounded px-2 py-1"
-                                                >
-                                                    <option value="PENDIENTE">Pendiente</option>
-                                                    <option value="EN_GESTION">En Gestión</option>
-                                                    <option value="ACUERDO_DE_PAGO">Acuerdo de Pago</option>
-                                                    <option value="PAGADO">Pagado</option>
-                                                    <option value="ESCALADO_JUDICIAL">Escalado (Judicial)</option>
-                                                </select>
-                                            </div>
+                                                    <p>
+                                                        <strong>Name:</strong> {debtor.name}
+                                                    </p>
+                                                    <p>
+                                                        <strong>Amount Owed:</strong> ${debtor.amountOwed}
+                                                    </p>
 
-                                            {/* Document link (download) */}
-                                            {debtor.documentUrl && (
-                                                <p className="m-0">
-                                                    <strong>Document: </strong>
-                                                    <a
-                                                        href={debtor.documentUrl.replace('/upload/', '/upload/fl_attachment/')}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-blue-600 underline"
-                                                    >
-                                                        Download Document
-                                                    </a>
-                                                </p>
-                                            )}
-                                        </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="m-0">
+                                                            <strong>Status:</strong>
+                                                        </p>
+                                                        <select
+                                                            value={debtor.status || 'PENDIENTE'}
+                                                            onChange={(e) => updateDebtorStatus(debtor.id, e.target.value)}
+                                                            className="border rounded px-2 py-1"
+                                                        >
+                                                            <option value="PENDIENTE">Pendiente</option>
+                                                            <option value="EN_GESTION">En Gestión</option>
+                                                            <option value="ACUERDO_DE_PAGO">Acuerdo de Pago</option>
+                                                            <option value="PAGADO">Pagado</option>
+                                                            <option value="ESCALADO_JUDICIAL">Escalado (Judicial)</option>
+                                                        </select>
+                                                    </div>
 
-                                        <label className="flex items-center space-x-2">
-                                            <input
-                                                type="checkbox"
-                                                checked={debtor.availableForNotify}
-                                                onChange={() => toggleDebtorAvailability(debtor.id)}
-                                            />
-                                            <span>Notify Allowed</span>
-                                        </label>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </div>
-                ))
+                                                    {debtor.documentUrl && (
+                                                        <p className="m-0">
+                                                            <strong>Document: </strong>
+                                                            <a
+                                                                href={debtor.documentUrl.replace(
+                                                                    '/upload/',
+                                                                    '/upload/fl_attachment/'
+                                                                )}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-blue-600 underline"
+                                                            >
+                                                                Download Document
+                                                            </a>
+                                                        </p>
+                                                    )}
+                                                </div>
+
+                                                <label className="flex items-center space-x-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={debtor.availableForNotify}
+                                                        onChange={() => toggleDebtorAvailability(debtor.id)}
+                                                    />
+                                                    <span>Notify Allowed</span>
+                                                </label>
+                                            </li>
+                                        ))}
+                                    </ul>
+
+                                    {/* Pagination Controls */}
+                                    <div className="flex gap-2 mt-4 items-center">
+                                        <button
+                                            disabled={currentPage === 1}
+                                            onClick={() => handlePageChange(client.id, currentPage - 1)}
+                                            className="px-3 py-1 border rounded disabled:opacity-50"
+                                        >
+                                            Prev
+                                        </button>
+
+                                        <span>
+                      Page {currentPage} of {totalPages}
+                    </span>
+
+                                        <button
+                                            disabled={currentPage === totalPages}
+                                            onClick={() => handlePageChange(client.id, currentPage + 1)}
+                                            className="px-3 py-1 border rounded disabled:opacity-50"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    );
+                })
             )}
 
             {/* ========== Send Reminders Button ========== */}
@@ -479,9 +509,7 @@ export default function AdminPage() {
                     >
                         Save Reminder Time
                     </button>
-                    {statusMessage && (
-                        <p className="mt-2 text-sm">{statusMessage}</p>
-                    )}
+                    {statusMessage && <p className="mt-2 text-sm">{statusMessage}</p>}
                 </form>
             </div>
 
