@@ -1,0 +1,804 @@
+'use client';
+
+import { useSession, signOut } from 'next-auth/react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import PhoneInput from 'react-phone-input-2';
+import 'react-phone-input-2/lib/style.css';
+import * as XLSX from 'xlsx';
+
+export default function ClientPage() {
+    const { data: session, status } = useSession();
+    const router = useRouter();
+
+    // --- original state
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [amountOwed, setAmountOwed] = useState('');
+    const [documentFile, setDocumentFile] = useState(null);
+    const [success, setSuccess] = useState('');
+    const [telephone, setTelephone] = useState('');
+    const [address, setAddress] = useState('');
+    const [cedulaIdentidad, setCedulaIdentidad] = useState('');
+    const [error, setError] = useState('');
+    const [debtors, setDebtors] = useState([]);
+    const [editingId, setEditingId] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState('');
+    const [isTyping, setIsTyping] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('ALL');
+    const [amountFilter, setAmountFilter] = useState('ALL');
+    const [emailError, setEmailError] = useState('');
+
+    // --- pagination state (client-side)
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 6; // adjust as you like
+
+    useEffect(() => {
+        if (status === 'loading') return;
+        if (!session) {
+            router.push('/login');
+        } else if (session.user.role !== 'client') {
+            router.push('/login');
+        }
+    }, [status, session, router]);
+
+    const fetchDebtors = async () => {
+        try {
+            const res = await fetch('/api/debtors', {
+                method: 'GET',
+                credentials: 'include',
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                setDebtors(data);
+            } else {
+                console.error('Failed to fetch debtors:', data);
+            }
+        } catch (err) {
+            console.error('Error fetching debtors:', err);
+        }
+    };
+
+    useEffect(() => {
+        if (status === 'authenticated') {
+            fetchDebtors();
+        }
+    }, [status]);
+
+    // Excel template fn (unchanged)
+    const handleDownloadTemplate = () => {
+        const headers = [
+            'name',
+            'email',
+            'telephone',
+            'address',
+            'cedulaIdentidad',
+            'amountOwed',
+        ];
+
+        const exampleRow = [
+            'John Doe',
+            'john@example.com',
+            '0991234567',
+            'Main Street 123',
+            '0123456789',
+            100.5,
+        ];
+
+        const ws = XLSX.utils.aoa_to_sheet([headers, exampleRow]);
+        ws['!cols'] = [{ wch: 20 }, { wch: 28 }, { wch: 16 }, { wch: 28 }, { wch: 16 }, { wch: 14 }];
+
+        // Force cedula column to text
+        ws['E1'].z = '@';
+        ws['E2'].z = '@';
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Debtors');
+        XLSX.writeFile(wb, 'debtors_template.xlsx');
+    };
+
+    // Filtering logic (same as yours)
+    const filteredDebtors = debtors.filter((debtor) => {
+        const matchesSearch =
+            debtor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (debtor.email && debtor.email.toLowerCase().includes(searchTerm.toLowerCase()));
+
+        const matchesStatus = statusFilter === 'ALL' ? true : debtor.status === statusFilter;
+
+        let matchesAmount = true;
+        if (amountFilter === '<500') matchesAmount = debtor.amountOwed < 500;
+        if (amountFilter === '500-1000')
+            matchesAmount = debtor.amountOwed >= 500 && debtor.amountOwed <= 1000;
+        if (amountFilter === '>1000') matchesAmount = debtor.amountOwed > 1000;
+
+        return matchesSearch && matchesStatus && matchesAmount;
+    });
+
+    // client-side pagination calculations
+    const totalItems = filteredDebtors.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalItems);
+    const paginatedDebtors = filteredDebtors.slice(startIndex, endIndex);
+
+    // keep page in range if filters change and currentPage > totalPages
+    useEffect(() => {
+        if (currentPage > totalPages) setCurrentPage(1);
+    }, [totalPages, currentPage]);
+
+    // Upload to Cloudinary (unchanged)
+    const uploadDocument = async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
+
+        const isPdf = file.type === 'application/pdf';
+        const resourceType = isPdf ? 'raw' : 'auto';
+
+        try {
+            const res = await fetch(
+                `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`,
+                { method: 'POST', body: formData }
+            );
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error?.message || 'Upload failed');
+            return data.secure_url;
+        } catch (err) {
+            console.error('Cloudinary upload error:', err);
+            return null;
+        }
+    };
+
+    // formatting, cedula validation, email validation, handleSubmit, edit, file upload, delete, etc.
+    // I preserved all your original logic exactly; copy/pasting here:
+
+    const formatAmount = (value) => {
+        let cleaned = value.replace(/[^\d.]/g, '');
+        const [integerPart, decimalPart] = cleaned.split('.');
+        const formattedInt = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        const formattedDecimal = decimalPart ? decimalPart.substring(0, 2) : '';
+        return formattedDecimal ? `${formattedInt}.${formattedDecimal}` : formattedInt;
+    };
+
+    const formatAmountAutoDecimal = (value) => {
+        const digits = value.replace(/\D/g, '');
+        if (!digits) return '';
+        let integerPart = digits.slice(0, -2) || '0';
+        let decimalPart = digits.slice(-2);
+        integerPart = parseInt(integerPart, 10).toLocaleString();
+        return `${integerPart}.${decimalPart}`;
+    };
+
+    const isValidCedula = (cedula) => {
+        if (!/^\d{10}$/.test(cedula)) return false;
+        const province = parseInt(cedula.substring(0, 2), 10);
+        if (province < 1 || (province > 24 && province !== 30)) return false;
+        const digits = cedula.split('').map(Number);
+        const checkDigit = digits[9];
+        let sum = 0;
+        for (let i = 0; i < 9; i++) {
+            let value = digits[i];
+            if (i % 2 === 0) {
+                value *= 2;
+                if (value > 9) value -= 9;
+            }
+            sum += value;
+        }
+        const nextTen = Math.ceil(sum / 10) * 10;
+        const calculatedCheckDigit = nextTen - sum === 10 ? 0 : nextTen - sum;
+        return calculatedCheckDigit === checkDigit;
+    };
+
+    const validateEmail = (value) => {
+        if (!value) {
+            setEmailError('');
+            return;
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value)) {
+            setEmailError('Por favor, ingresa un correo válido');
+        } else {
+            setEmailError('');
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setSuccess('');
+        setError('');
+
+        if (email && emailError) {
+            setError('El correo ingresado no es válido');
+            return;
+        }
+
+        const numericAmount = amountOwed.replace(/,/g, '');
+        const amount = Number(numericAmount);
+
+        if (isNaN(amount)) {
+            setError('Amount owed must be a valid number');
+            return;
+        }
+
+        if (!/^\d+(\.\d{1,2})?$/.test(numericAmount)) {
+            setError('Amount can have at most 2 decimal places');
+            return;
+        }
+
+        if (amount <= 0) {
+            setError('Amount owed must be greater than 0');
+            return;
+        }
+
+        if (amount > 1000000) {
+            setError('Amount owed is unrealistically high');
+            return;
+        }
+
+        if (!telephone || telephone.length < 8) {
+            setError('Please enter a valid phone number');
+            return;
+        }
+
+        if (cedulaIdentidad.length !== 10) {
+            setError('La cédula debe tener exactamente 10 dígitos');
+            return;
+        }
+
+        if (!isValidCedula(cedulaIdentidad)) {
+            setError('Cédula inválida. Verifique los 10 dígitos.');
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            let documentUrl = null;
+            if (documentFile) {
+                documentUrl = await uploadDocument(documentFile);
+                if (!documentUrl) {
+                    setError('Failed to upload document');
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            const payload = {
+                name,
+                email,
+                telephone,
+                address,
+                cedulaIdentidad,
+                amountOwed: amount.toFixed(2),
+            };
+
+            if (documentUrl) payload.documentUrl = documentUrl;
+
+            let res;
+            if (editingId) {
+                res = await fetch(`/api/debtors/${editingId}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify(payload),
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                });
+            } else {
+                res = await fetch('/api/debtors', {
+                    method: 'POST',
+                    body: JSON.stringify(payload),
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                });
+            }
+
+            if (res.ok) {
+                setSuccess(editingId ? 'Debtor updated!' : 'Debtor added!');
+                setName('');
+                setEmail('');
+                setTelephone('');
+                setAddress('');
+                setCedulaIdentidad('');
+                setAmountOwed('');
+                setDocumentFile(null);
+                setEditingId(null);
+                await fetchDebtors();
+            } else {
+                const data = await res.json();
+                setError(data.message || 'Error submitting form');
+            }
+        } catch (err) {
+            console.error(err);
+            setError('Unexpected error occurred');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleEdit = (debtor) => {
+        setName(debtor.name);
+        setEmail(debtor.email || '');
+        setTelephone(debtor.telephone || '');
+        setAddress(debtor.address || '');
+        setCedulaIdentidad(debtor.cedulaIdentidad || '');
+        setAmountOwed(debtor.amountOwed);
+        setEditingId(debtor.id);
+        setDocumentFile(null);
+        // keep currentPage unchanged so user sees the item being edited in context
+    };
+
+    const handleAmountChange = (e) => {
+        let input = e.target.value.replace(/\D/g, '');
+        if (!input) {
+            setAmountOwed('');
+            return;
+        }
+        let rawValue = (parseInt(input, 10) / 100).toFixed(2);
+        const formattedValue = new Intl.NumberFormat('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(rawValue);
+        setAmountOwed(formattedValue);
+    };
+
+    const handleBlur = () => {
+        setIsTyping(false);
+        if (amountOwed !== '' && !isNaN(amountOwed)) {
+            const formatted = parseFloat(amountOwed).toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            });
+            setAmountOwed(formatted);
+        }
+    };
+
+    const handleFocus = () => {
+        const rawValue = amountOwed.replace(/,/g, '');
+        setAmountOwed(rawValue);
+    };
+
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const data = new Uint8Array(event.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+            console.log('📄 Uploaded Excel data:', jsonData);
+
+            const validRows = [];
+            const errors = [];
+
+            jsonData.forEach((row, index) => {
+                const rowNum = index + 2;
+                const { name, amountOwed, cedulaIdentidad, email, telephone } = row;
+                if (!name) {
+                    errors.push(`Row ${rowNum}: "name" is required`);
+                    return;
+                }
+                if (!amountOwed || isNaN(amountOwed) || parseFloat(amountOwed) <= 0) {
+                    errors.push(`Row ${rowNum}: "amountOwed" must be a number > 0`);
+                    return;
+                }
+                if (!cedulaIdentidad) {
+                    errors.push(`Row ${rowNum}: "cedulaIdentidad" is required`);
+                    return;
+                }
+                const cedulaStr = String(cedulaIdentidad).padStart(10, '0');
+                if (!/^\d{10}$/.test(cedulaStr)) {
+                    errors.push(`Row ${rowNum}: "cedulaIdentidad" must be 10 digits`);
+                    return;
+                }
+                if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                    errors.push(`Row ${rowNum}: "email" is invalid`);
+                    return;
+                }
+                if (telephone && !/^\+?\d+$/.test(telephone)) {
+                    errors.push(`Row ${rowNum}: "telephone" must contain only digits (or start with +)`);
+                    return;
+                }
+                validRows.push({
+                    name,
+                    amountOwed: parseFloat(amountOwed),
+                    cedulaIdentidad: cedulaStr,
+                    email: email || null,
+                    telephone: telephone ? String(telephone) : null,
+                    address: row.address || null,
+                    documentUrl: row.documentUrl || null,
+                });
+            });
+
+            console.log('✅ Valid rows:', validRows);
+            console.log('❌ Errors:', errors);
+
+            if (validRows.length === 0) {
+                console.warn('No valid rows to upload.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/debtors/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(validRows),
+                });
+
+                const result = await response.json();
+                console.log('📤 Upload result:', result);
+
+                if (result.errors && result.errors.length > 0) {
+                    console.warn('Some rows failed to upload:', result.errors);
+                    setMessage('⚠️ Some rows failed to upload. Check console for details.');
+                } else {
+                    setMessage(`✅ ${validRows.length} debtor(s) uploaded successfully!`);
+                    console.log('All valid rows uploaded successfully!');
+                }
+                await fetchDebtors();
+            } catch (err) {
+                console.error('Error uploading debtors:', err);
+                setMessage('❌ Error uploading debtors. Please try again.');
+            }
+        };
+
+        reader.readAsArrayBuffer(file);
+    };
+
+    const handleDelete = async (id) => {
+        const confirmed = confirm('Are you sure you want to delete this debtor?');
+        if (!confirmed) return;
+
+        try {
+            const res = await fetch(`/api/debtors/${id}`, {
+                method: 'DELETE',
+                credentials: 'include',
+            });
+
+            if (res.ok) {
+                await fetchDebtors();
+            } else {
+                let data;
+                try {
+                    data = await res.json();
+                } catch (err) {
+                    data = { message: 'Unknown error occurred' };
+                }
+                setError(data.message || 'Error deleting debtor');
+            }
+        } catch (err) {
+            setError('Unexpected error occurred while deleting');
+        }
+    };
+
+    if (status === 'loading') return <p>Loading session...</p>;
+    if (!session || session.user.role !== 'client') return null;
+
+    return (
+        <div className="min-h-screen bg-[#443CA3] text-[#443CA3] p-10">
+            {/* Header */}
+            <div className="max-w-6xl mx-auto">
+                <h1
+                    className="text-3xl font-extrabold mb-2"
+                    style={{ fontFamily: 'Neulis Alt', color: '#FFFF76' }}
+                >
+                    Welcome, {session.user.name || 'Client'}!
+                </h1>
+                <p className="text-base text-[#CCE8FF]" style={{ fontFamily: 'Avenir Next' }}>
+                    Email: <span className="font-bold text-[#21FE83]">{session.user.email}</span>
+                </p>
+
+                {/* Debtor Form (Card) */}
+                <form
+                    onSubmit={handleSubmit}
+                    className="mt-8 space-y-4 max-w-lg bg-[#CCE8FF] p-6 rounded-2xl shadow-md"
+                >
+                    <h2
+                        className="text-xl font-semibold text-[#443CA3]"
+                        style={{ fontFamily: 'Neulis Alt' }}
+                    >
+                        {editingId ? 'Edit Debtor' : 'Add a Debtor'}
+                    </h2>
+
+                    <input
+                        type="text"
+                        placeholder="Debtor Name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full p-3 border border-[#9E9E9E] rounded-lg focus:ring-2 focus:ring-[#21FE83]"
+                        style={{ fontFamily: 'Avenir Next' }}
+                        required
+                    />
+
+                    <input
+                        type="email"
+                        placeholder="Debtor Email (optional)"
+                        value={email}
+                        onChange={(e) => {
+                            setEmail(e.target.value);
+                            validateEmail(e.target.value);
+                        }}
+                        className="w-full p-3 border border-[#9E9E9E] rounded-lg focus:ring-2 focus:ring-[#21FE83]"
+                        style={{ fontFamily: 'Avenir Next' }}
+                    />
+                    {emailError && <p className="text-[#F2CA08] text-sm mt-1">{emailError}</p>}
+
+                    <PhoneInput
+                        country={'ec'}
+                        value={telephone}
+                        onChange={(phone) => setTelephone(phone)}
+                        enableSearch={true}
+                        inputClass="!w-full !p-3 !border !border-[#9E9E9E] !rounded-lg"
+                        containerClass="w-full"
+                    />
+
+                    <input
+                        type="text"
+                        placeholder="Address"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        className="w-full p-3 border border-[#9E9E9E] rounded-lg"
+                        style={{ fontFamily: 'Avenir Next' }}
+                    />
+
+                    <input
+                        type="text"
+                        placeholder="Cédula de Identidad"
+                        value={cedulaIdentidad}
+                        onChange={(e) => {
+                            const v = e.target.value.replace(/\D/g, '');
+                            if (v.length <= 10) setCedulaIdentidad(v);
+                        }}
+                        className="w-full p-3 border border-[#9E9E9E] rounded-lg"
+                        required
+                    />
+                    {cedulaIdentidad.length > 0 && cedulaIdentidad.length < 10 && (
+                        <p className="text-[#F2CA08] text-sm mt-1">La cédula debe tener 10 dígitos.</p>
+                    )}
+
+                    <input
+                        type="text"
+                        placeholder="Amount Owed"
+                        value={amountOwed}
+                        onChange={handleAmountChange}
+                        onBlur={handleBlur}
+                        onFocus={handleFocus}
+                        className="w-full p-3 border border-[#9E9E9E] rounded-lg"
+                        required
+                    />
+
+                    <label className="block text-sm" style={{ fontFamily: 'Avenir Next', color: '#443CA3' }}>
+                        Attach Document (photo or PDF, optional):
+                        <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            onChange={(e) => setDocumentFile(e.target.files[0])}
+                            className="mt-2 block w-full text-sm"
+                        />
+                    </label>
+
+                    <button
+                        type="submit"
+                        className="w-full bg-[#21FE83] text-[#443CA3] font-bold py-3 rounded-lg shadow hover:bg-[#1edb70] transition disabled:opacity-50"
+                        disabled={loading}
+                        style={{ fontFamily: 'Neulis Alt' }}
+                    >
+                        {loading ? 'Submitting...' : editingId ? 'Update Debtor' : 'Add Debtor'}
+                    </button>
+
+                    {success && <p className="text-[#21FE83]">{success}</p>}
+                    {error && <p className="text-red-400">{error}</p>}
+                </form>
+
+                {/* Template + Upload */}
+                <div className="mt-8 flex gap-4 items-center">
+                    <button
+                        onClick={handleDownloadTemplate}
+                        className="bg-[#443CA3] text-white px-5 py-2 rounded-lg shadow hover:bg-[#352f85] transition"
+                        style={{ fontFamily: 'Avenir Next' }}
+                    >
+                        Download Excel Template
+                    </button>
+
+                    <input
+                        type="file"
+                        accept=".xlsx"
+                        onChange={handleFileUpload}
+                        className="block w-64 text-sm text-[#443CA3]
+              file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
+              file:text-sm file:font-semibold file:bg-[#CCE8FF] file:text-[#443CA3]
+              hover:file:bg-[#b8ddff]"
+                    />
+                </div>
+                {message && (
+                    <p className="mt-2 text-sm font-semibold text-[#CCE8FF]" style={{ fontFamily: 'Avenir Next' }}>
+                        {message}
+                    </p>
+                )}
+
+                {/* Debtor List + Filters */}
+                <div className="mt-10">
+                    <div className="flex flex-wrap gap-4 mb-6">
+                        <input
+                            type="text"
+                            placeholder="Search by name or email..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="p-3 border border-[#9E9E9E] rounded-lg w-64"
+                        />
+
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="p-3 border border-[#9E9E9E] rounded-lg"
+                        >
+                            <option value="ALL">All Statuses</option>
+                            <option value="PENDIENTE">Pendiente</option>
+                            <option value="EN_GESTION">En gestión</option>
+                            <option value="ACUERDO_DE_PAGO">Acuerdo de pago</option>
+                            <option value="PAGADO">Pagado</option>
+                            <option value="ESCALADO_JUDICIAL">Escalado judicial</option>
+                        </select>
+
+                        <select
+                            value={amountFilter}
+                            onChange={(e) => setAmountFilter(e.target.value)}
+                            className="p-3 border border-[#9E9E9E] rounded-lg"
+                        >
+                            <option value="ALL">All Amounts</option>
+                            <option value="<500">Less than $500</option>
+                            <option value="500-1000">$500 - $1000</option>
+                            <option value=">1000">More than $1000</option>
+                        </select>
+                    </div>
+
+                    <h2 className="text-xl font-bold mb-4" style={{ fontFamily: 'Neulis Alt', color: '#FFFF76' }}>
+                        Your Debtors
+                    </h2>
+
+                    {totalItems === 0 ? (
+                        <p className="text-[#CCE8FF]">No debtors yet.</p>
+                    ) : (
+                        <>
+                            <ul className="space-y-3">
+                                {paginatedDebtors.map((debtor) => (
+                                    <li
+                                        key={debtor.id}
+                                        className="border border-[#CCE8FF] p-4 rounded-xl bg-white shadow-md flex justify-between items-start"
+                                    >
+                                        <div className="space-y-1 text-sm" style={{ fontFamily: 'Avenir Next', color: '#443CA3' }}>
+                                            <p>
+                                                <span className="font-bold">Name:</span> {debtor.name}
+                                            </p>
+                                            {debtor.email && (
+                                                <p>
+                                                    <span className="font-bold">Email:</span> {debtor.email}
+                                                </p>
+                                            )}
+                                            {debtor.telephone && (
+                                                <p>
+                                                    <span className="font-bold">Telephone:</span> {debtor.telephone}
+                                                </p>
+                                            )}
+                                            {debtor.address && (
+                                                <p>
+                                                    <span className="font-bold">Address:</span> {debtor.address}
+                                                </p>
+                                            )}
+                                            <p>
+                                                <span className="font-bold">Cédula:</span> {debtor.cedulaIdentidad}
+                                            </p>
+                                            <p>
+                                                <span className="font-bold">Amount Owed:</span>{' '}
+                                                <span className="text-[#F2CA08]">${debtor.amountOwed}</span>
+                                            </p>
+                                        </div>
+
+                                        <div className="flex flex-col items-end gap-2">
+                      <span
+                          className={`px-2 py-1 rounded text-xs font-bold ${
+                              debtor.status === 'PENDIENTE'
+                                  ? 'bg-[#FFFF76] text-[#443CA3]'
+                                  : debtor.status === 'EN_GESTION'
+                                      ? 'bg-[#CCE8FF] text-[#443CA3]'
+                                      : debtor.status === 'ACUERDO_DE_PAGO'
+                                          ? 'bg-[#443CA3] text-white'
+                                          : debtor.status === 'PAGADO'
+                                              ? 'bg-[#21FE83] text-[#443CA3]'
+                                              : debtor.status === 'ESCALADO_JUDICIAL'
+                                                  ? 'bg-red-600 text-white'
+                                                  : 'bg-[#9E9E9E] text-white'
+                          }`}
+                      >
+                        {debtor.status.replace(/_/g, ' ')}
+                      </span>
+
+                                            <div className="space-x-3 text-sm">
+                                                <button onClick={() => handleEdit(debtor)} className="text-[#443CA3] hover:underline">
+                                                    Edit
+                                                </button>
+                                                <button onClick={() => handleDelete(debtor.id)} className="text-red-500 hover:underline">
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+
+                            {/* Pagination UI */}
+                            <div className="mt-6 flex items-center justify-between bg-transparent pt-4">
+                                <div>
+                                    <p className="text-sm" style={{ color: '#CCE8FF', fontFamily: 'Avenir Next' }}>
+                                        Showing <span className="font-bold text-[#F2CA08]">{startIndex + 1}</span> to{' '}
+                                        <span className="font-bold text-[#F2CA08]">{endIndex}</span> of{' '}
+                                        <span className="font-bold text-[#F2CA08]">{totalItems}</span> results
+                                    </p>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                        disabled={currentPage === 1}
+                                        className="px-3 py-1 rounded-lg bg-[#443CA3] text-white hover:bg-[#352f85] disabled:opacity-50"
+                                    >
+                                        Prev
+                                    </button>
+
+                                    {/* simple page buttons (limits to first 7 for readability) */}
+                                    <div className="flex gap-1 items-center">
+                                        {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => i + 1).map((p) => (
+                                            <button
+                                                key={p}
+                                                onClick={() => setCurrentPage(p)}
+                                                className={`px-3 py-1 rounded-lg ${
+                                                    p === currentPage
+                                                        ? 'bg-[#21FE83] text-[#443CA3] font-bold'
+                                                        : 'bg-white text-[#443CA3] ring-1 ring-[#CCE8FF]'
+                                                }`}
+                                            >
+                                                {p}
+                                            </button>
+                                        ))}
+
+                                        {totalPages > 7 && <span className="text-[#CCE8FF] px-2">…</span>}
+                                        {totalPages > 7 && (
+                                            <button
+                                                onClick={() => setCurrentPage(totalPages)}
+                                                className="px-3 py-1 rounded-lg bg-white text-[#443CA3] ring-1 ring-[#CCE8FF]"
+                                            >
+                                                {totalPages}
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <button
+                                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                        disabled={currentPage === totalPages}
+                                        className="px-3 py-1 rounded-lg bg-[#443CA3] text-white hover:bg-[#352f85] disabled:opacity-50"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                {/* Logout */}
+                <div className="mt-12">
+                    <button
+                        onClick={() => signOut({ callbackUrl: '/login' })}
+                        className="bg-[#443CA3] text-white px-6 py-3 rounded-xl shadow hover:bg-[#352f85] transition"
+                        style={{ fontFamily: 'Avenir Next' }}
+                    >
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}

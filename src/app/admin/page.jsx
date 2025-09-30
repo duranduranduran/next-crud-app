@@ -476,42 +476,42 @@ export default function AdminPage() {
             <SendRemindersButton />
 
             {/* ========== Set Reminder Time Form ========== */}
-            <div className="mt-10 border-t pt-6">
-                <h2 className="text-xl font-semibold mb-4">Automated Reminder Time</h2>
-                <form onSubmit={handleCronTimeSubmit} className="space-y-4 max-w-sm">
-                    <div>
-                        <label className="block mb-1 font-medium">Hour (0–23)</label>
-                        <input
-                            type="number"
-                            value={hour}
-                            onChange={(e) => setHour(e.target.value)}
-                            min="0"
-                            max="23"
-                            required
-                            className="border rounded px-3 py-2 w-full"
-                        />
-                    </div>
-                    <div>
-                        <label className="block mb-1 font-medium">Minute (0–59)</label>
-                        <input
-                            type="number"
-                            value={minute}
-                            onChange={(e) => setMinute(e.target.value)}
-                            min="0"
-                            max="59"
-                            required
-                            className="border rounded px-3 py-2 w-full"
-                        />
-                    </div>
-                    <button
-                        type="submit"
-                        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                    >
-                        Save Reminder Time
-                    </button>
-                    {statusMessage && <p className="mt-2 text-sm">{statusMessage}</p>}
-                </form>
-            </div>
+            {/*<div className="mt-10 border-t pt-6">*/}
+            {/*    <h2 className="text-xl font-semibold mb-4">Automated Reminder Time</h2>*/}
+            {/*    <form onSubmit={handleCronTimeSubmit} className="space-y-4 max-w-sm">*/}
+            {/*        <div>*/}
+            {/*            <label className="block mb-1 font-medium">Hour (0–23)</label>*/}
+            {/*            <input*/}
+            {/*                type="number"*/}
+            {/*                value={hour}*/}
+            {/*                onChange={(e) => setHour(e.target.value)}*/}
+            {/*                min="0"*/}
+            {/*                max="23"*/}
+            {/*                required*/}
+            {/*                className="border rounded px-3 py-2 w-full"*/}
+            {/*            />*/}
+            {/*        </div>*/}
+            {/*        <div>*/}
+            {/*            <label className="block mb-1 font-medium">Minute (0–59)</label>*/}
+            {/*            <input*/}
+            {/*                type="number"*/}
+            {/*                value={minute}*/}
+            {/*                onChange={(e) => setMinute(e.target.value)}*/}
+            {/*                min="0"*/}
+            {/*                max="59"*/}
+            {/*                required*/}
+            {/*                className="border rounded px-3 py-2 w-full"*/}
+            {/*            />*/}
+            {/*        </div>*/}
+            {/*        <button*/}
+            {/*            type="submit"*/}
+            {/*            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"*/}
+            {/*        >*/}
+            {/*            Save Reminder Time*/}
+            {/*        </button>*/}
+            {/*        {statusMessage && <p className="mt-2 text-sm">{statusMessage}</p>}*/}
+            {/*    </form>*/}
+            {/*</div>*/}
 
             <button
                 onClick={() => signOut({ callbackUrl: '/login' })}

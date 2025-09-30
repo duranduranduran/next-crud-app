@@ -21,10 +21,8 @@ export default function LoginPage() {
         if (res?.error) {
             setError('Invalid credentials');
         } else {
-            // Fetch the session to check role
             const response = await fetch('/api/auth/session');
             const session = await response.json();
-
             const role = session?.user?.role;
 
             if (role === 'admin') {
@@ -36,46 +34,113 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100">
-            <form
-                onSubmit={handleLogin}
-                className="bg-white p-8 rounded-lg shadow-md w-96 space-y-4"
-            >
-                <h2 className="text-2xl text-red-500 font-bold text-center">Login</h2>
+        <div className="min-h-screen bg-[#443CA3] text-white flex flex-col">
+            {/* NAVBAR */}
+            <nav className="bg-[#2E2875] shadow-md">
+                <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+                    <h1
+                        className="text-xl font-extrabold text-[#F2CA08]"
+                        style={{ fontFamily: 'Neulis Alt' }}
+                    >
+                        RECUPERA
+                    </h1>
+                    <ul className="flex space-x-6">
+                        <li>
+                            <a
+                                href="/"
+                                className="hover:text-[#21FE83] transition"
+                                style={{ fontFamily: 'Avenir Next' }}
+                            >
+                                Home
+                            </a>
+                        </li>
+                        <li>
+                            <a
+                                href="/about"
+                                className="hover:text-[#21FE83] transition"
+                                style={{ fontFamily: 'Avenir Next' }}
+                            >
+                                About
+                            </a>
+                        </li>
+                        <li>
+                            <a
+                                href="/contact"
+                                className="hover:text-[#21FE83] transition"
+                                style={{ fontFamily: 'Avenir Next' }}
+                            >
+                                Contact
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
 
-                <input
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full p-2 border rounded bg-gray-100 text-yellow-500"
-                    required
-                />
-
-                <input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full p-2 border rounded bg-gray-100 text-red-500"
-                    required
-                />
-
-                {error && <p className="text-red-500">{error}</p>}
-
-                <button
-                    type="submit"
-                    className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
+            {/* LOGIN FORM */}
+            <div className="flex flex-grow items-center justify-center py-12">
+                <form
+                    onSubmit={handleLogin}
+                    className="bg-[#2E2875] p-8 rounded-2xl shadow-lg w-96 space-y-5"
                 >
-                    Login
-                </button>
-            </form>
-            <p className="text-center text-sm mt-4">
-                Don’t have an account?{' '}
-                <a href="/signup" className="text-2xl hover:underline text-red-500">
-                    Sign up here
-                </a>
-            </p>
+                    <h2
+                        className="text-3xl text-center font-extrabold text-white"
+                        style={{ fontFamily: 'Neulis Alt' }}
+                    >
+                        Login
+                    </h2>
+
+                    <input
+                        type="email"
+                        placeholder="Email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        className="w-full p-3 border border-[#9E9E9E] rounded bg-[#CCE8FF] text-black placeholder-[#9E9E9E] focus:outline-none focus:ring-2 focus:ring-[#21FE83]"
+                        style={{ fontFamily: 'Avenir Next' }}
+                    />
+
+                    <input
+                        type="password"
+                        placeholder="Password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        className="w-full p-3 border border-[#9E9E9E] rounded bg-[#CCE8FF] text-black placeholder-[#9E9E9E] focus:outline-none focus:ring-2 focus:ring-[#21FE83]"
+                        style={{ fontFamily: 'Avenir Next' }}
+                    />
+
+                    {error && (
+                        <p
+                            className="text-[#F2CA08] text-sm"
+                            style={{ fontFamily: 'Avenir Next', fontWeight: '700' }}
+                        >
+                            {error}
+                        </p>
+                    )}
+
+                    <button
+                        type="submit"
+                        className="w-full py-3 rounded-lg text-white font-extrabold transition bg-[#21FE83] hover:bg-[#FFFF76]"
+                        style={{ fontFamily: 'Neulis Alt' }}
+                    >
+                        Login
+                    </button>
+
+                    <p
+                        className="text-sm text-center text-white"
+                        style={{ fontFamily: 'Avenir Next' }}
+                    >
+                        Don’t have an account?{' '}
+                        <a
+                            href="/signup"
+                            className="hover:underline text-[#21FE83]"
+                            style={{ fontFamily: 'Avenir Next' }}
+                        >
+                            Sign up here
+                        </a>
+                    </p>
+                </form>
+            </div>
         </div>
     );
 }

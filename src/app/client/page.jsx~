@@ -24,6 +24,7 @@ export default function ClientPage() {
     const [debtors, setDebtors] = useState([]);
     const [editingId, setEditingId] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState("");
     const [isTyping, setIsTyping] = useState(false);
 
     const [searchTerm, setSearchTerm] = useState("");
@@ -538,140 +539,97 @@ export default function ClientPage() {
     if (!session || session.user.role !== 'client') return null;
 
     return (
-        <div className="p-10">
-            <h1 className="text-2xl font-bold mb-4">Welcome, {session.user.name || 'Client'}!</h1>
-            <p>Email: {session.user.email}</p>
+        <div className="min-h-screen bg-white text-[#443CA3] p-10">
+            {/* Header */}
+            <h1 className="text-3xl font-extrabold mb-2 font-[Neulis Alt]">
+                Welcome, {session.user.name || 'Client'}!
+            </h1>
+            <p className="text-base text-[#9E9E9E] font-[Avenir Next]">
+                Email: <span className="font-bold text-[#21FE83]">{session.user.email}</span>
+            </p>
 
-            <form onSubmit={handleSubmit} className="mt-6 space-y-4 max-w-md">
-                <h2 className="text-xl font-semibold">{editingId ? 'Edit Debtor' : 'Add a Debtor'}</h2>
+            {/* Debtor Form */}
+            <form onSubmit={handleSubmit} className="mt-8 space-y-4 max-w-lg bg-[#CCE8FF] p-6 rounded-2xl shadow-md">
+                <h2 className="text-xl font-semibold text-[#443CA3] font-[Neulis Alt]">
+                    {editingId ? 'Edit Debtor' : 'Add a Debtor'}
+                </h2>
 
-                <input
-                    type="text"
-                    placeholder="Debtor Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full p-2 border rounded"
-                    required
-                />
+                <input type="text" placeholder="Debtor Name"
+                       value={name} onChange={(e) => setName(e.target.value)}
+                       className="w-full p-3 border border-[#9E9E9E] rounded-lg focus:ring-2 focus:ring-[#21FE83]"
+                       required/>
 
-                <input
-                    type="email"
-                    placeholder="Debtor Email (optional)"
-                    value={email}
-                    onChange={(e) => {
-                        setEmail(e.target.value);
-                        validateEmail(e.target.value);
-                    }}
-                    className="w-full p-2 border rounded"
-                />
-                {emailError && (
-                    <p className="text-red-500 text-sm mt-1">{emailError}</p>
-                )}
+                <input type="email" placeholder="Debtor Email (optional)"
+                       value={email} onChange={(e) => {
+                    setEmail(e.target.value);
+                    validateEmail(e.target.value);
+                }}
+                       className="w-full p-3 border border-[#9E9E9E] rounded-lg focus:ring-2 focus:ring-[#21FE83]"/>
+                {emailError && <p className="text-red-500 text-sm mt-1">{emailError}</p>}
 
-                <PhoneInput
-                    country={'ec'}
-                    value={telephone}
-                    onChange={(phone) => setTelephone(phone)}
-                    enableSearch={true}
-                    inputClass="w-full p-2 border rounded"
-                />
+                <PhoneInput country={'ec'} value={telephone} onChange={(phone) => setTelephone(phone)}
+                            enableSearch={true}
+                            inputClass="!w-full !p-3 !border !border-[#9E9E9E] !rounded-lg"/>
 
-                <input
-                    type="text"
-                    placeholder="Address"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    className="w-full p-2 border rounded"
-                />
+                <input type="text" placeholder="Address" value={address}
+                       onChange={(e) => setAddress(e.target.value)}
+                       className="w-full p-3 border border-[#9E9E9E] rounded-lg"/>
 
-                <input
-                    type="text"
-                    placeholder="Cédula de Identidad"
-                    value={cedulaIdentidad}
-                    onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, ''); // only digits
-                        if (value.length <= 10) {
-                            setCedulaIdentidad(value);
-                        }
-                    }}
-                    className="w-full p-2 border rounded"
-                    required
-                />
+                <input type="text" placeholder="Cédula de Identidad" value={cedulaIdentidad}
+                       onChange={(e) => {
+                           const v = e.target.value.replace(/\D/g, '');
+                           if (v.length <= 10) setCedulaIdentidad(v);
+                       }}
+                       className="w-full p-3 border border-[#9E9E9E] rounded-lg" required/>
                 {cedulaIdentidad.length > 0 && cedulaIdentidad.length < 10 && (
-                    <p className="text-red-500 text-sm mt-1">
-                        La cédula debe tener 10 dígitos.
-                    </p>
+                    <p className="text-red-500 text-sm mt-1">La cédula debe tener 10 dígitos.</p>
                 )}
 
-                <input
-                    type="text"
-                    placeholder="Amount Owed"
-                    value={amountOwed}
-                    onChange={handleAmountChange}
-                    onBlur={handleBlur}
-                    onFocus={handleFocus}
-                    className="w-full p-2 border rounded"
-                    required
-                />
+                <input type="text" placeholder="Amount Owed" value={amountOwed}
+                       onChange={handleAmountChange} onBlur={handleBlur} onFocus={handleFocus}
+                       className="w-full p-3 border border-[#9E9E9E] rounded-lg" required/>
 
-                <label className="block">
-                    <span className="text-gray-700">Attach Document (photo or PDF, optional):</span>
-                    <input
-                        type="file"
-                        accept="image/*,application/pdf"
-                        onChange={(e) => setDocumentFile(e.target.files[0])}
-                        className="mt-1"
-                    />
+                <label
+                    className="w-full bg-[#21FE83] text-[#443CA3] font-bold py-3 rounded-lg shadow hover:bg-[#1edb70] transition disabled:opacity-50 rounded">
+                    Attach Document (photo or PDF, optional):
+                    <input type="file" accept="image/*,application/pdf"
+                           onChange={(e) => setDocumentFile(e.target.files[0])}
+                           className="mt-2 block w-full text-sm"/>
                 </label>
 
-                <button
-                    type="submit"
-                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
-                    disabled={loading}
-                >
+                <button type="submit"
+                        className="w-full bg-[#21FE83] text-[#443CA3] font-bold py-3 rounded-lg shadow hover:bg-[#1edb70] transition disabled:opacity-50"
+                        disabled={loading}>
                     {loading ? 'Submitting...' : editingId ? 'Update Debtor' : 'Add Debtor'}
                 </button>
 
                 {success && <p className="text-green-600">{success}</p>}
                 {error && <p className="text-red-600">{error}</p>}
             </form>
-            <div className="mt-6">
-                <button
-                    onClick={handleDownloadTemplate}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
+
+            {/* Template + Upload */}
+            <div className="mt-8 flex gap-4">
+                <button onClick={handleDownloadTemplate}
+                        className="bg-[#443CA3] text-white px-5 py-2 rounded-lg shadow hover:bg-[#352f85] transition">
                     Download Excel Template
                 </button>
+                <input type="file" accept=".xlsx" onChange={handleFileUpload}
+                       className="block w-64 text-sm text-gray-600
+            file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
+            file:text-sm file:font-semibold file:bg-[#CCE8FF] file:text-[#443CA3]
+            hover:file:bg-[#b8ddff]" />
             </div>
-            <div className="mt-6">
-                <input
-                    type="file"
-                    accept=".xlsx"
-                    onChange={handleFileUpload}
-                    className="block w-full text-sm text-gray-600
-                            file:mr-4 file:py-2 file:px-4
-                            file:rounded file:border-0
-                            file:text-sm file:font-semibold
-                            file:bg-blue-50 file:text-blue-700
-                            hover:file:bg-blue-100"
-                />
-            </div>
+            {message && <p className="mt-2 text-sm font-semibold text-[#443CA3]">{message}</p>}
 
-            <div className="mt-10 bg-red-500 text-black p-4 rounded">
-                <div className="mb-4 flex flex-wrap gap-4">
-                    <input
-                        type="text"
-                        placeholder="Search by name or email..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="p-2 border rounded w-64"
-                    />
+            {/* Debtor List */}
+            <div className="mt-10">
+                <div className="flex flex-wrap gap-4 mb-6">
+                    <input type="text" placeholder="Search by name or email..." value={searchTerm}
+                           onChange={(e) => setSearchTerm(e.target.value)}
+                           className="p-3 border border-[#9E9E9E] rounded-lg w-64" />
 
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="p-2 border rounded"
-                    >
+                    <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+                            className="p-3 border border-[#9E9E9E] rounded-lg">
                         <option value="ALL">All Statuses</option>
                         <option value="PENDIENTE">Pendiente</option>
                         <option value="EN_GESTION">En gestión</option>
@@ -680,11 +638,8 @@ export default function ClientPage() {
                         <option value="ESCALADO_JUDICIAL">Escalado judicial</option>
                     </select>
 
-                    <select
-                        value={amountFilter}
-                        onChange={(e) => setAmountFilter(e.target.value)}
-                        className="p-2 border rounded"
-                    >
+                    <select value={amountFilter} onChange={(e) => setAmountFilter(e.target.value)}
+                            className="p-3 border border-[#9E9E9E] rounded-lg">
                         <option value="ALL">All Amounts</option>
                         <option value="<500">Less than $500</option>
                         <option value="500-1000">$500 - $1000</option>
@@ -692,49 +647,37 @@ export default function ClientPage() {
                     </select>
                 </div>
 
-                <h2 className="text-xl font-bold mb-2">Your Debtors</h2>
+                <h2 className="text-xl font-bold font-[Neulis Alt] mb-4">Your Debtors</h2>
                 {debtors.length === 0 ? (
-                    <p className="text-gray-500">No debtors yet.</p>
+                    <p className="text-[#9E9E9E]">No debtors yet.</p>
                 ) : (
-                    <ul className="space-y-2">
-                        {/* {debtors.map((debtor) => ( */}
+                    <ul className="space-y-3">
                         {filteredDebtors.map((debtor) => (
                             <li key={debtor.id}
-                                className="border p-4 rounded bg-white shadow-sm flex justify-between items-start">
-                                <div>
-                                    <p><strong>Name:</strong> {debtor.name}</p>
-                                    {debtor.email && <p><strong>Email:</strong> {debtor.email}</p>}
-                                    {debtor.telephone && <p><strong>Telephone:</strong> {debtor.telephone}</p>}
-                                    {debtor.address && <p><strong>Address:</strong> {debtor.address}</p>}
-                                    <p><strong>Cédula:</strong> {debtor.cedulaIdentidad}</p>
-                                    <p><strong>Amount Owed:</strong> ${debtor.amountOwed}</p>
+                                className="border border-[#CCE8FF] p-4 rounded-xl bg-white shadow-md flex justify-between items-start">
+                                <div className="space-y-1 text-sm font-[Avenir Next] text-[#443CA3]">
+                                    <p><span className="font-bold">Name:</span> {debtor.name}</p>
+                                    {debtor.email && <p><span className="font-bold">Email:</span> {debtor.email}</p>}
+                                    {debtor.telephone && <p><span className="font-bold">Telephone:</span> {debtor.telephone}</p>}
+                                    {debtor.address && <p><span className="font-bold">Address:</span> {debtor.address}</p>}
+                                    <p><span className="font-bold">Cédula:</span> {debtor.cedulaIdentidad}</p>
+                                    <p><span className="font-bold">Amount Owed:</span> ${debtor.amountOwed}</p>
                                 </div>
-                                <p className="mt-2">
-                                    <strong>Status:</strong>{' '}
-                                    <span className={`px-2 py-1 rounded text-white text-sm ${
-                                        debtor.status === 'PENDIENTE' ? 'bg-yellow-500' :
-                                            debtor.status === 'EN_GESTION' ? 'bg-blue-500' :
-                                                debtor.status === 'ACUERDO_DE_PAGO' ? 'bg-purple-500' :
-                                                    debtor.status === 'PAGADO' ? 'bg-green-600' :
-                                                        debtor.status === 'ESCALADO_JUDICIAL' ? 'bg-red-600' :
-                                                            'bg-gray-500'
-                                    }`}>
-                                        {debtor.status.replace(/_/g, ' ')}
-                                    </span>
-                                </p>
-                                <div className="space-x-2">
-                                    <button
-                                        onClick={() => handleEdit(debtor)}
-                                        className="text-blue-600 hover:underline"
-                                    >
-                                        Edit
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(debtor.id)}
-                                        className="text-red-600 hover:underline"
-                                    >
-                                        Delete
-                                    </button>
+                                <div className="flex flex-col items-end gap-2">
+                  <span className={`px-2 py-1 rounded text-white text-xs font-bold ${
+                      debtor.status === 'PENDIENTE' ? 'bg-[#FFFF76] text-[#443CA3]' :
+                          debtor.status === 'EN_GESTION' ? 'bg-[#CCE8FF] text-[#443CA3]' :
+                              debtor.status === 'ACUERDO_DE_PAGO' ? 'bg-[#443CA3]' :
+                                  debtor.status === 'PAGADO' ? 'bg-[#21FE83] text-[#443CA3]' :
+                                      debtor.status === 'ESCALADO_JUDICIAL' ? 'bg-red-600' :
+                                          'bg-[#9E9E9E]'
+                  }`}>
+                    {debtor.status.replace(/_/g, ' ')}
+                  </span>
+                                    <div className="space-x-3 text-sm">
+                                        <button onClick={() => handleEdit(debtor)} className="text-[#443CA3] hover:underline">Edit</button>
+                                        <button onClick={() => handleDelete(debtor.id)} className="text-red-500 hover:underline">Delete</button>
+                                    </div>
                                 </div>
                             </li>
                         ))}
@@ -742,10 +685,9 @@ export default function ClientPage() {
                 )}
             </div>
 
-            <button
-                onClick={() => signOut({callbackUrl: '/login'})}
-                className="mt-10 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-            >
+            {/* Logout */}
+            <button onClick={() => signOut({ callbackUrl: '/login' })}
+                    className="mt-12 bg-[#443CA3] text-white px-6 py-3 rounded-xl shadow hover:bg-[#352f85] transition">
                 Logout
             </button>
         </div>
