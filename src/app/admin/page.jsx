@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
-// ========== Send Reminders Button ==========
+// --------------------------------------
+// Send Reminders Button (kept same logic)
+// --------------------------------------
 function SendRemindersButton() {
     const [sending, setSending] = useState(false);
     const [message, setMessage] = useState(null);
@@ -12,7 +14,6 @@ function SendRemindersButton() {
     const handleSendReminders = async () => {
         setSending(true);
         setMessage(null);
-
         try {
             const res = await fetch('/api/send-reminders', { method: 'GET' });
             if (!res.ok) {
@@ -28,11 +29,11 @@ function SendRemindersButton() {
     };
 
     return (
-        <div className="mt-6">
+        <div className="mt-10">
             <button
                 onClick={handleSendReminders}
                 disabled={sending}
-                className={`bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 ${
+                className={`bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 shadow-sm ${
                     sending ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
             >
@@ -40,11 +41,7 @@ function SendRemindersButton() {
             </button>
 
             {message && (
-                <p
-                    className={`mt-2 ${
-                        message.type === 'success' ? 'text-green-600' : 'text-red-600'
-                    }`}
-                >
+                <p className={`mt-2 text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
                     {message.text}
                 </p>
             )}
@@ -52,7 +49,9 @@ function SendRemindersButton() {
     );
 }
 
-// ========== Admin Page ==========
+// ----------------------------------------------------
+//                      MAIN PAGE
+// ----------------------------------------------------
 export default function AdminPage() {
     const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -60,43 +59,39 @@ export default function AdminPage() {
     const { data: session, status } = useSession();
     const router = useRouter();
 
-    // Cron form state
-    const [hour, setHour] = useState('');
-    const [minute, setMinute] = useState('');
-    const [statusMessage, setStatusMessage] = useState('');
-
-    // ✅ Bulk status update state
-    const [selectedDebtors, setSelectedDebtors] = useState([]);
-    const [bulkStatus, setBulkStatus] = useState('');
-    const [bulkLoading, setBulkLoading] = useState(false);
-    const [bulkMessage, setBulkMessage] = useState(null);
-
-    // Boton de select all
-    const [selectAll, setSelectAll] = useState(false);
-
-    // Barra de busqueda y filtros
+    // Filters
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [amountFilter, setAmountFilter] = useState('ALL');
 
-    // ✅ Pagination state per client
-    const [debtorPages, setDebtorPages] = useState({}); // { clientId: pageNumber }
-    const ITEMS_PER_PAGE = 5;
+    // Bulk update
+    const [selectedDebtors, setSelectedDebtors] = useState([]);
+    const [bulkStatus, setBulkStatus] = useState('');
+    const [bulkLoading, setBulkLoading] = useState(false);
+    const [bulkMessage, setBulkMessage] = useState(null);
+    const [selectAll, setSelectAll] = useState(false);
+
+    // Pagination
+    const [debtorPages, setDebtorPages] = useState({});
+    const ITEMS_PER_PAGE = 8;
 
     const handlePageChange = (clientId, newPage) => {
         setDebtorPages((prev) => ({ ...prev, [clientId]: newPage }));
     };
 
-    // Auth & client data fetching
+    // --------------------------------------
+    // AUTH CHECK
+    // --------------------------------------
     useEffect(() => {
         if (status === 'loading') return;
-
         if (!session) {
             router.push('/login');
         } else if (session.user.role !== 'admin') {
             router.push('/client');
         }
     }, [status, session, router]);
+
+
 
     const fetchClients = async () => {
         try {
@@ -114,34 +109,51 @@ export default function AdminPage() {
 
     useEffect(() => {
         fetchClients();
-        fetchReminderTime();
     }, []);
 
+    // --------------------------------------
+    // Availability Toggle
+    // --------------------------------------
     const toggleDebtorAvailability = async (debtorId) => {
         try {
             const res = await fetch(`/api/admin/debtors/${debtorId}/toggle-availability`, {
                 method: 'PATCH',
             });
             if (!res.ok) throw new Error('Failed to toggle');
-            await fetchClients(); // refresh data
+            await fetchClients();
         } catch (err) {
             console.error(err);
             alert('Failed to toggle availability');
         }
     };
 
+    const updateDebtorStatus = async (debtorId, newStatus) => {
+        try {
+            const res = await fetch(`/api/admin/debtors/${debtorId}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus }),
+            });
+            if (!res.ok) throw new Error('Failed to update status');
+            await fetchClients();
+        } catch (err) {
+            console.error(err);
+            alert('Failed to update status');
+        }
+    };
+
+    // ----------------------------------------------------
+    // Filter logic
+    // ----------------------------------------------------
     const filteredClients = clients.map((client) => {
         const filteredDebtors = client.debtorRecords.filter((debtor) => {
-            // search by name or email
             const matchesSearch =
                 debtor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (debtor.email && debtor.email.toLowerCase().includes(searchTerm.toLowerCase()));
 
-            // status filter
             const matchesStatus =
                 statusFilter === 'ALL' ? true : debtor.status === statusFilter;
 
-            // amount filter
             let matchesAmount = true;
             if (amountFilter === '<500') matchesAmount = debtor.amountOwed < 500;
             if (amountFilter === '500-1000')
@@ -154,371 +166,383 @@ export default function AdminPage() {
         return { ...client, debtorRecords: filteredDebtors };
     });
 
-    const updateDebtorStatus = async (debtorId, newStatus) => {
-        try {
-            const res = await fetch(`/api/admin/debtors/${debtorId}/status`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: newStatus }),
-            });
-            if (!res.ok) throw new Error('Failed to update status');
-            await fetchClients(); // refresh
-        } catch (err) {
-            console.error(err);
-            alert('Failed to update status');
-        }
-    };
-
-    const fetchReminderTime = async () => {
-        try {
-            const res = await fetch('/api/get-reminder-time');
-            const data = await res.json().catch(() => ({}));
-            setHour(data.hour || '');
-            setMinute(data.minute || '');
-        } catch (err) {
-            console.error('Failed to fetch reminder time');
-        }
-    };
-
-    const handleCronTimeSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            const res = await fetch('/api/set-reminder-time', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ hour, minute }),
-            });
-            const data = await res.json().catch(() => ({}));
-            if (res.ok) {
-                setStatusMessage('✅ Reminder time updated!');
-            } else {
-                setStatusMessage(`❌ Error: ${data.message || 'Unknown error'}`);
-            }
-        } catch (err) {
-            console.error(err);
-            setStatusMessage('❌ Failed to update reminder time');
-        }
-    };
-
-    const handleSelectAll = () => {
-        if (selectAll) {
-            setSelectedDebtors([]);
-        } else {
-            const allIds = clients.flatMap((client) => client.debtorRecords.map((d) => d.id));
-            setSelectedDebtors(allIds);
-        }
-        setSelectAll(!selectAll);
-    };
-
-    const handleSelectDebtor = (debtorId) => {
-        setSelectedDebtors((prev) => {
-            const newSelected = prev.includes(debtorId)
-                ? prev.filter((id) => id !== debtorId)
-                : [...prev, debtorId];
-
-            const totalDebtors = clients.flatMap((client) => client.debtorRecords.map((d) => d.id));
-            setSelectAll(newSelected.length === totalDebtors.length);
-
-            return newSelected;
-        });
-    };
-
-    const handleBulkUpdate = async () => {
-        setBulkMessage(null);
-
-        if (!bulkStatus) {
-            setBulkMessage({ type: 'error', text: 'Please select a status' });
-            return;
-        }
-        if (selectedDebtors.length === 0) {
-            setBulkMessage({ type: 'error', text: 'Please select at least one debtor' });
-            return;
-        }
-
-        setBulkLoading(true);
-        try {
-            const res = await fetch('/api/admin/debtors/bulk-status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    debtorIds: selectedDebtors,
-                    status: bulkStatus,
-                }),
-            });
-
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) {
-                throw new Error(data.message || data.error || 'Failed to update status');
-            }
-
-            setBulkMessage({ type: 'success', text: 'Statuses updated successfully' });
-            await fetchClients();
-            setSelectedDebtors([]);
-            setBulkStatus('');
-        } catch (error) {
-            console.error(error);
-            setBulkMessage({ type: 'error', text: error.message || 'Error updating statuses' });
-        } finally {
-            setBulkLoading(false);
-        }
-    };
-
-    if (loading) return <p>Loading...</p>;
+    if (loading) return <p className="text-center mt-20">Loading...</p>;
     if (error) return <p className="text-red-500">{error}</p>;
 
     return (
-        <main className="p-6 max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold mb-6 text-red-600">Admin Dashboard</h1>
+        <main className="min-h-screen bg-gray-50 px-8 py-6">
+            {/* Top bar */}
+            <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow mb-8">
+                <img src="/logo-recupera-purple.png" alt="recupera" className="h-20" />
 
-            {/* 🔍 Search + Filters */}
-            <div className="mb-6 flex flex-wrap gap-4">
-                <input
-                    type="text"
-                    placeholder="Search by name or email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="p-2 border rounded w-64"
-                />
-
-                <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="p-2 border rounded"
-                >
-                    <option value="ALL">All Statuses</option>
-                    <option value="PENDIENTE">Pendiente</option>
-                    <option value="EN_GESTION">En Gestión</option>
-                    <option value="ACUERDO_DE_PAGO">Acuerdo de Pago</option>
-                    <option value="PAGADO">Pagado</option>
-                    <option value="ESCALADO_JUDICIAL">Escalado judicial</option>
-                </select>
-
-                <select
-                    value={amountFilter}
-                    onChange={(e) => setAmountFilter(e.target.value)}
-                    className="p-2 border rounded"
-                >
-                    <option value="ALL">All Amounts</option>
-                    <option value="<500">Less than $500</option>
-                    <option value="500-1000">$500 - $1000</option>
-                    <option value=">1000">More than $1000</option>
-                </select>
+                <div className="flex items-center gap-3 text-gray-700">
+                    <div className="w-10 h-10 rounded-full bg-black-200"></div>
+                    <span className="font-medium">Admin Dashboard</span>
+                </div>
             </div>
 
-            {/* ✅ Bulk update controls */}
-            <div className="mb-6 flex items-center gap-4">
-                <select
-                    value={bulkStatus}
-                    onChange={(e) => setBulkStatus(e.target.value)}
-                    className="border rounded px-2 py-1"
-                >
-                    <option value="">Select Status</option>
-                    <option value="PENDIENTE">Pendiente</option>
-                    <option value="EN_GESTION">En Gestión</option>
-                    <option value="ACUERDO_DE_PAGO">Acuerdo de Pago</option>
-                    <option value="PAGADO">Pagado</option>
-                    <option value="ESCALADO_JUDICIAL">Escalado (Judicial)</option>
-                </select>
+            <h1 className="text-3xl font-semibold text-gray-700 mb-6">My Debtors</h1>
 
-                <button
-                    onClick={handleBulkUpdate}
-                    disabled={bulkLoading}
-                    className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
-                >
-                    {bulkLoading ? 'Updating...' : 'Apply to Selected'}
-                </button>
+            {/* ---------------------- FILTER BAR ------------------------ */}
+            <section className="bg-white p-4 rounded-xl shadow mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-4">
 
-                <div className="mb-2">
-                    <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={selectAll} onChange={handleSelectAll} />
-                        Select All
+                    <input
+                        type="text"
+                        placeholder="Search..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="border rounded-lg px-3 py-2 shadow-sm"
+                    />
+
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="border rounded-lg px-3 py-2 shadow-sm"
+                    >
+                        <option value="ALL">All Statuses</option>
+                        <option value="PENDIENTE">Pendiente</option>
+                        <option value="EN_GESTION">En Gestión</option>
+                        <option value="ACUERDO_DE_PAGO">Acuerdo de Pago</option>
+                        <option value="PAGADO">Pagado</option>
+                        <option value="ESCALADO_JUDICIAL">Escalado Judicial</option>
+                    </select>
+
+                    <select
+                        value={amountFilter}
+                        onChange={(e) => setAmountFilter(e.target.value)}
+                        className="border rounded-lg px-3 py-2 shadow-sm"
+                    >
+                        <option value="ALL">All Amounts</option>
+                        <option value="<500">Less than $500</option>
+                        <option value="500-1000">$500 - $1000</option>
+                        <option value=">1000">More than $1000</option>
+                    </select>
+
+                    {/* Bulk select */}
+                    <select
+                        value={bulkStatus}
+                        onChange={(e) => setBulkStatus(e.target.value)}
+                        className="border rounded-lg px-3 py-2 shadow-sm"
+                    >
+                        <option value="">Bulk Status</option>
+                        <option value="PENDIENTE">Pendiente</option>
+                        <option value="EN_GESTION">En Gestión</option>
+                        <option value="ACUERDO_DE_PAGO">Acuerdo de Pago</option>
+                        <option value="PAGADO">Pagado</option>
+                        <option value="ESCALADO_JUDICIAL">Escalado Judicial</option>
+                    </select>
+                </div>
+            </section>
+            {/* Bulk actions row (top of list) */}
+            <section className="mb-6 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 text-sm">
+                        <input
+                            type="checkbox"
+                            checked={selectAll}
+                            onChange={() => {
+                                const currently = !selectAll;
+                                setSelectAll(currently);
+                                if (currently) {
+                                    const allIds = clients.flatMap((c) => c.debtorRecords.map((d) => d.id));
+                                    setSelectedDebtors(allIds);
+                                } else {
+                                    setSelectedDebtors([]);
+                                }
+                            }}
+                        />
+                        <span>Select all</span>
                     </label>
+
+                    <span className="text-sm text-gray-600">Selected: {selectedDebtors.length}</span>
                 </div>
 
-                <span className="text-sm text-gray-600">Selected: {selectedDebtors.length}</span>
-            </div>
+                <div className="flex items-center gap-3">
+                    <select
+                        value={bulkStatus}
+                        onChange={(e) => setBulkStatus(e.target.value)}
+                        className="border rounded-lg px-3 py-2"
+                    >
+                        <option value="">Select Status</option>
+                        <option value="PENDIENTE">Pendiente</option>
+                        <option value="EN_GESTION">En Gestión</option>
+                        <option value="ACUERDO_DE_PAGO">Acuerdo de Pago</option>
+                        <option value="PAGADO">Pagado</option>
+                        <option value="ESCALADO_JUDICIAL">Escalado Judicial</option>
+                    </select>
+
+                    <button
+                        onClick={async () => {
+                            setBulkMessage(null);
+                            if (!bulkStatus) {
+                                setBulkMessage({ type: 'error', text: 'Please select a status' });
+                                return;
+                            }
+                            if (selectedDebtors.length === 0) {
+                                setBulkMessage({ type: 'error', text: 'Please select at least one debtor' });
+                                return;
+                            }
+                            setBulkLoading(true);
+                            try {
+                                const res = await fetch('/api/admin/debtors/bulk-status', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ debtorIds: selectedDebtors, status: bulkStatus }),
+                                });
+                                const data = await res.json().catch(() => ({}));
+                                if (!res.ok) throw new Error(data.message || 'Failed to update status');
+                                setBulkMessage({ type: 'success', text: 'Statuses updated successfully' });
+                                await fetchClients();
+                                setSelectedDebtors([]);
+                                setBulkStatus('');
+                                setSelectAll(false);
+                            } catch (err) {
+                                console.error(err);
+                                setBulkMessage({ type: 'error', text: err.message || 'Error updating statuses' });
+                            } finally {
+                                setBulkLoading(false);
+                            }
+                        }}
+                        disabled={bulkLoading}
+                        className="bg-indigo-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+                    >
+                        {bulkLoading ? 'Updating...' : 'Apply to Selected'}
+                    </button>
+                </div>
+            </section>
 
             {bulkMessage && (
-                <p
-                    className={`mb-4 ${
-                        bulkMessage.type === 'success' ? 'text-green-600' : 'text-red-600'
-                    }`}
-                >
+                <div className={`mb-4 ${bulkMessage.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
                     {bulkMessage.text}
-                </p>
+                </div>
             )}
 
-            {/* Clients and Debtors with Pagination */}
-            {filteredClients.length === 0 ? (
-                <p>No clients found.</p>
-            ) : (
-                filteredClients.map((client) => {
-                    const currentPage = debtorPages[client.id] || 1;
-                    const totalPages = Math.ceil(client.debtorRecords.length / ITEMS_PER_PAGE);
-                    const paginatedDebtors = client.debtorRecords.slice(
-                        (currentPage - 1) * ITEMS_PER_PAGE,
-                        currentPage * ITEMS_PER_PAGE
-                    );
+            {/* Clients list (cards + grid of debtor cards) */}
+            <section className="space-y-8">
+                {filteredClients.length === 0 ? (
+                    <p className="text-gray-500">No clients found.</p>
+                ) : (
+                    filteredClients.map((client) => {
+                        const currentPage = debtorPages[client.id] || 1;
+                        const totalPages = Math.max(1, Math.ceil(client.debtorRecords.length / ITEMS_PER_PAGE));
+                        const paginatedDebtors = client.debtorRecords.slice(
+                            (currentPage - 1) * ITEMS_PER_PAGE,
+                            currentPage * ITEMS_PER_PAGE
+                        );
 
-                    return (
-                        <div
-                            key={client.id}
-                            className="mb-10 p-4 border border-gray-300 rounded shadow-sm"
-                        >
-                            <h2 className="text-xl font-semibold mb-2">
-                                {client.name} ({client.email})
-                            </h2>
+                        return (
+                            <div key={client.id} className="bg-white rounded-lg shadow p-6 border border-gray-200">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-gray-800">{client.name}</h3>
+                                        <p className="text-sm text-gray-500">{client.email}</p>
+                                    </div>
+                                    <div className="text-sm text-gray-600">Debtors: {client.debtorRecords.length}</div>
+                                </div>
 
-                            {client.debtorRecords.length === 0 ? (
-                                <p className="text-gray-500">No debtors.</p>
-                            ) : (
-                                <>
-                                    <ul className="space-y-3">
-                                        {paginatedDebtors.map((debtor) => (
-                                            <li
-                                                key={debtor.id}
-                                                className="flex flex-col md:flex-row md:items-center md:justify-between border p-3 rounded space-y-2 md:space-y-0"
-                                            >
-                                                <div className="space-y-1">
-                                                    <label className="flex items-center gap-2">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedDebtors.includes(debtor.id)}
-                                                            onChange={() => handleSelectDebtor(debtor.id)}
-                                                        />
-                                                        <span>Select</span>
-                                                    </label>
+                                {client.debtorRecords.length === 0 ? (
+                                    <p className="text-gray-500">No debtors.</p>
+                                ) : (
+                                    <>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {paginatedDebtors.map((debtor) => (
+                                                <div
+                                                    key={debtor.id}
+                                                    className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 relative"
+                                                >
+                                                    {/* top row: name + amount */}
+                                                    <div className="flex items-start justify-between mb-3">
+                                                        <div>
+                                                            <p className="text-sm text-gray-800 font-semibold">
+                                                                {debtor.name}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500 mt-1">
+                                                                Email: {debtor.email || '—'}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500">
+                                                                Cédula: {debtor.cedulaIdentidad || '—'}
+                                                            </p>
 
-                                                    <p>
-                                                        <strong>Name:</strong> {debtor.name}
-                                                    </p>
-                                                    <p>
-                                                        <strong>Amount Owed:</strong> ${debtor.amountOwed}
-                                                    </p>
+                                                            {debtor.documentUrl && (
+                                                                <div className="mt-2">
+                                                                    <a
+                                                                        href={debtor.documentUrl.replace(
+                                                                            "/upload/",
+                                                                            "/upload/fl_attachment/"
+                                                                        )}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition"
+                                                                    >
+                                                                        Download Document
+                                                                    </a>
+                                                                </div>
+                                                            )}
+                                                        </div>
 
-                                                    <div className="flex items-center gap-2">
-                                                        <p className="m-0">
-                                                            <strong>Status:</strong>
-                                                        </p>
-                                                        <select
-                                                            value={debtor.status || 'PENDIENTE'}
-                                                            onChange={(e) => updateDebtorStatus(debtor.id, e.target.value)}
-                                                            className="border rounded px-2 py-1"
-                                                        >
-                                                            <option value="PENDIENTE">Pendiente</option>
-                                                            <option value="EN_GESTION">En Gestión</option>
-                                                            <option value="ACUERDO_DE_PAGO">Acuerdo de Pago</option>
-                                                            <option value="PAGADO">Pagado</option>
-                                                            <option value="ESCALADO_JUDICIAL">Escalado (Judicial)</option>
-                                                        </select>
+
+                                                        <div className="text-right">
+                                                            <div className="text-sm font-medium text-gray-800">
+                                                                USD {Number(debtor.amountOwed).toLocaleString(undefined, {
+                                                                minimumFractionDigits: 2,
+                                                                maximumFractionDigits: 2,
+                                                            })}
+                                                            </div>
+
+                                                            {/* status badge */}
+                                                            <div className="mt-2">
+                                                                <span
+                                                                    className={`inline-block text-xs font-semibold px-2 py-1 rounded ${
+                                                                        debtor.status === 'PAGADO'
+                                                                            ? 'bg-green-100 text-green-700'
+                                                                            : debtor.status === 'EN_GESTION'
+                                                                                ? 'bg-emerald-100 text-emerald-700'
+                                                                                : debtor.status === 'ACUERDO_DE_PAGO'
+                                                                                    ? 'bg-indigo-100 text-indigo-700'
+                                                                                    : debtor.status === 'ESCALADO_JUDICIAL'
+                                                                                        ? 'bg-red-100 text-red-700'
+                                                                                        : 'bg-yellow-100 text-yellow-700'
+                                                                    }`}
+                                                                >
+                                                                    {debtor.status ? debtor.status.replace(/_/g, ' ') : 'PENDIENTE'}
+                                                                </span>
+                                                            </div>
+                                                        </div>
                                                     </div>
 
-                                                    {debtor.documentUrl && (
-                                                        <p className="m-0">
-                                                            <strong>Document: </strong>
-                                                            <a
-                                                                href={debtor.documentUrl.replace(
-                                                                    '/upload/',
-                                                                    '/upload/fl_attachment/'
-                                                                )}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="text-blue-600 underline"
+                                                    {/* middle row: sublevel + actions */}
+                                                    <div className="flex items-center justify-between mt-4">
+                                                        <div className="text-sm text-gray-500">Subnivel Gestión</div>
+
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                onClick={() => {
+                                                                    // Edit / view management — keep your existing routing or handler here
+                                                                    // If you have a modal or page, call it here. Placeholder:
+                                                                    console.log('View management for', debtor.id);
+                                                                }}
+                                                                className="text-sm px-3 py-1 border rounded text-indigo-600 hover:bg-indigo-50"
                                                             >
-                                                                Download Document
-                                                            </a>
-                                                        </p>
-                                                    )}
+                                                                View
+                                                            </button>
+
+                                                            <button
+                                                                onClick={() => {
+                                                                    // Edit action placeholder (preserve existing edit handler if any)
+                                                                    console.log('Edit', debtor.id);
+                                                                }}
+                                                                className="text-sm px-3 py-1 border rounded text-gray-700 hover:bg-gray-50"
+                                                            >
+                                                                Edit
+                                                            </button>
+
+                                                            <button
+                                                                onClick={() => {
+                                                                    // Delete placeholder - preserve original delete behavior if you want
+                                                                    (async () => {
+                                                                        if (!confirm('Are you sure you want to delete this debtor?')) return;
+                                                                        try {
+                                                                            const res = await fetch(`/api/debtors/${debtor.id}`, {
+                                                                                method: 'DELETE',
+                                                                                credentials: 'include',
+                                                                            });
+                                                                            if (!res.ok) {
+                                                                                const data = await res.json().catch(() => ({}));
+                                                                                throw new Error(data.message || 'Failed to delete');
+                                                                            }
+                                                                            await fetchClients();
+                                                                        } catch (err) {
+                                                                            console.error(err);
+                                                                            alert('Failed to delete');
+                                                                        }
+                                                                    })();
+                                                                }}
+                                                                className="text-sm px-3 py-1 border rounded text-red-600 hover:bg-red-50"
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* bottom row: notify toggle and select box */}
+                                                    <div className="flex items-center justify-between mt-4">
+                                                        <label className="flex items-center gap-2 text-sm">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={!!debtor.availableForNotify}
+                                                                onChange={() => {
+                                                                    toggleDebtorAvailability(debtor.id);
+                                                                }}
+                                                            />
+                                                            <span>Notify Allowed</span>
+                                                        </label>
+
+                                                        <label className="flex items-center gap-2 text-sm">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedDebtors.includes(debtor.id)}
+                                                                onChange={() => {
+                                                                    setSelectedDebtors((prev) => {
+                                                                        const exists = prev.includes(debtor.id);
+                                                                        const newSelected = exists ? prev.filter((id) => id !== debtor.id) : [...prev, debtor.id];
+                                                                        const totalDebtors = clients.flatMap((c) => c.debtorRecords.map((d) => d.id));
+                                                                        setSelectAll(newSelected.length === totalDebtors.length);
+                                                                        return newSelected;
+                                                                    });
+                                                                }}
+                                                            />
+                                                            <span>Select</span>
+                                                        </label>
+                                                    </div>
                                                 </div>
+                                            ))}
+                                        </div>
 
-                                                <label className="flex items-center space-x-2">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={debtor.availableForNotify}
-                                                        onChange={() => toggleDebtorAvailability(debtor.id)}
-                                                    />
-                                                    <span>Notify Allowed</span>
-                                                </label>
-                                            </li>
-                                        ))}
-                                    </ul>
+                                        {/* Pagination controls for this client */}
+                                        <div className="flex items-center justify-center gap-3 mt-6">
+                                            <button
+                                                onClick={() => handlePageChange(client.id, Math.max(1, currentPage - 1))}
+                                                disabled={currentPage === 1}
+                                                className="px-3 py-1 border rounded disabled:opacity-50"
+                                            >
+                                                Prev
+                                            </button>
 
-                                    {/* Pagination Controls */}
-                                    <div className="flex gap-2 mt-4 items-center">
-                                        <button
-                                            disabled={currentPage === 1}
-                                            onClick={() => handlePageChange(client.id, currentPage - 1)}
-                                            className="px-3 py-1 border rounded disabled:opacity-50"
-                                        >
-                                            Prev
-                                        </button>
+                                            <div className="text-sm text-gray-600">
+                                                Page {currentPage} of {totalPages}
+                                            </div>
 
-                                        <span>
-                      Page {currentPage} of {totalPages}
-                    </span>
+                                            <button
+                                                onClick={() => handlePageChange(client.id, Math.min(totalPages, currentPage + 1))}
+                                                disabled={currentPage === totalPages}
+                                                className="px-3 py-1 border rounded disabled:opacity-50"
+                                            >
+                                                Next
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        );
+                    })
+                )}
+            </section>
 
-                                        <button
-                                            disabled={currentPage === totalPages}
-                                            onClick={() => handlePageChange(client.id, currentPage + 1)}
-                                            className="px-3 py-1 border rounded disabled:opacity-50"
-                                        >
-                                            Next
-                                        </button>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    );
-                })
-            )}
+            {/* Send reminders action */}
+            <div className="mt-8">
+                <SendRemindersButton />
+            </div>
 
-            {/* ========== Send Reminders Button ========== */}
-            <SendRemindersButton />
-
-            {/* ========== Set Reminder Time Form ========== */}
-            {/*<div className="mt-10 border-t pt-6">*/}
-            {/*    <h2 className="text-xl font-semibold mb-4">Automated Reminder Time</h2>*/}
-            {/*    <form onSubmit={handleCronTimeSubmit} className="space-y-4 max-w-sm">*/}
-            {/*        <div>*/}
-            {/*            <label className="block mb-1 font-medium">Hour (0–23)</label>*/}
-            {/*            <input*/}
-            {/*                type="number"*/}
-            {/*                value={hour}*/}
-            {/*                onChange={(e) => setHour(e.target.value)}*/}
-            {/*                min="0"*/}
-            {/*                max="23"*/}
-            {/*                required*/}
-            {/*                className="border rounded px-3 py-2 w-full"*/}
-            {/*            />*/}
-            {/*        </div>*/}
-            {/*        <div>*/}
-            {/*            <label className="block mb-1 font-medium">Minute (0–59)</label>*/}
-            {/*            <input*/}
-            {/*                type="number"*/}
-            {/*                value={minute}*/}
-            {/*                onChange={(e) => setMinute(e.target.value)}*/}
-            {/*                min="0"*/}
-            {/*                max="59"*/}
-            {/*                required*/}
-            {/*                className="border rounded px-3 py-2 w-full"*/}
-            {/*            />*/}
-            {/*        </div>*/}
-            {/*        <button*/}
-            {/*            type="submit"*/}
-            {/*            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"*/}
-            {/*        >*/}
-            {/*            Save Reminder Time*/}
-            {/*        </button>*/}
-            {/*        {statusMessage && <p className="mt-2 text-sm">{statusMessage}</p>}*/}
-            {/*    </form>*/}
-            {/*</div>*/}
-
-            <button
-                onClick={() => signOut({ callbackUrl: '/login' })}
-                className="mt-10 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-            >
-                Logout
-            </button>
+            {/* Footer / logout */}
+            <div className="mt-12 flex justify-end">
+                <button
+                    onClick={() => signOut({ callbackUrl: '/login' })}
+                    className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+                >
+                    Logout
+                </button>
+            </div>
         </main>
     );
 }

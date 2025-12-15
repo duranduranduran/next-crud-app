@@ -1,804 +1,548 @@
 'use client';
 
-import { useSession, signOut } from 'next-auth/react';
 import { useEffect, useState } from 'react';
+import { signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import PhoneInput from 'react-phone-input-2';
-import 'react-phone-input-2/lib/style.css';
-import * as XLSX from 'xlsx';
 
-export default function ClientPage() {
+// --------------------------------------
+// Send Reminders Button (kept same logic)
+// --------------------------------------
+function SendRemindersButton() {
+    const [sending, setSending] = useState(false);
+    const [message, setMessage] = useState(null);
+
+    const handleSendReminders = async () => {
+        setSending(true);
+        setMessage(null);
+        try {
+            const res = await fetch('/api/send-reminders', { method: 'GET' });
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Something went wrong.');
+            }
+            setMessage({ type: 'success', text: 'Reminders sent successfully!' });
+        } catch (err) {
+            setMessage({ type: 'error', text: err.message });
+        } finally {
+            setSending(false);
+        }
+    };
+
+    return (
+        <div className="mt-10">
+            <button
+                onClick={handleSendReminders}
+                disabled={sending}
+                className={`bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 shadow-sm ${
+                    sending ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+            >
+                {sending ? 'Sending Reminders...' : 'Send Reminders'}
+            </button>
+
+            {message && (
+                <p className={`mt-2 text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                    {message.text}
+                </p>
+            )}
+        </div>
+    );
+}
+
+// ----------------------------------------------------
+//                      MAIN PAGE
+// ----------------------------------------------------
+export default function AdminPage() {
+    const [clients, setClients] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
     const { data: session, status } = useSession();
     const router = useRouter();
 
-    // --- original state
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [amountOwed, setAmountOwed] = useState('');
-    const [documentFile, setDocumentFile] = useState(null);
-    const [success, setSuccess] = useState('');
-    const [telephone, setTelephone] = useState('');
-    const [address, setAddress] = useState('');
-    const [cedulaIdentidad, setCedulaIdentidad] = useState('');
-    const [error, setError] = useState('');
-    const [debtors, setDebtors] = useState([]);
-    const [editingId, setEditingId] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState('');
-    const [isTyping, setIsTyping] = useState(false);
+    // Filters
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [amountFilter, setAmountFilter] = useState('ALL');
-    const [emailError, setEmailError] = useState('');
 
-    // --- pagination state (client-side)
-    const [currentPage, setCurrentPage] = useState(1);
-    const ITEMS_PER_PAGE = 6; // adjust as you like
+    // Bulk update
+    const [selectedDebtors, setSelectedDebtors] = useState([]);
+    const [bulkStatus, setBulkStatus] = useState('');
+    const [bulkLoading, setBulkLoading] = useState(false);
+    const [bulkMessage, setBulkMessage] = useState(null);
+    const [selectAll, setSelectAll] = useState(false);
 
+    // Pagination
+    const [debtorPages, setDebtorPages] = useState({});
+    const ITEMS_PER_PAGE = 8;
+
+    const handlePageChange = (clientId, newPage) => {
+        setDebtorPages((prev) => ({ ...prev, [clientId]: newPage }));
+    };
+
+    // --------------------------------------
+    // AUTH CHECK
+    // --------------------------------------
     useEffect(() => {
         if (status === 'loading') return;
         if (!session) {
             router.push('/login');
-        } else if (session.user.role !== 'client') {
-            router.push('/login');
+        } else if (session.user.role !== 'admin') {
+            router.push('/client');
         }
     }, [status, session, router]);
 
-    const fetchDebtors = async () => {
+
+
+    const fetchClients = async () => {
         try {
-            const res = await fetch('/api/debtors', {
-                method: 'GET',
-                credentials: 'include',
-            });
-
-            const data = await res.json();
-            if (res.ok) {
-                setDebtors(data);
-            } else {
-                console.error('Failed to fetch debtors:', data);
-            }
+            const res = await fetch('/api/admin/clients');
+            const data = await res.json().catch(() => ({}));
+            const clientData = Array.isArray(data) ? data : data.clients;
+            setClients(clientData || []);
         } catch (err) {
-            console.error('Error fetching debtors:', err);
-        }
-    };
-
-    useEffect(() => {
-        if (status === 'authenticated') {
-            fetchDebtors();
-        }
-    }, [status]);
-
-    // Excel template fn (unchanged)
-    const handleDownloadTemplate = () => {
-        const headers = [
-            'name',
-            'email',
-            'telephone',
-            'address',
-            'cedulaIdentidad',
-            'amountOwed',
-        ];
-
-        const exampleRow = [
-            'John Doe',
-            'john@example.com',
-            '0991234567',
-            'Main Street 123',
-            '0123456789',
-            100.5,
-        ];
-
-        const ws = XLSX.utils.aoa_to_sheet([headers, exampleRow]);
-        ws['!cols'] = [{ wch: 20 }, { wch: 28 }, { wch: 16 }, { wch: 28 }, { wch: 16 }, { wch: 14 }];
-
-        // Force cedula column to text
-        ws['E1'].z = '@';
-        ws['E2'].z = '@';
-
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Debtors');
-        XLSX.writeFile(wb, 'debtors_template.xlsx');
-    };
-
-    // Filtering logic (same as yours)
-    const filteredDebtors = debtors.filter((debtor) => {
-        const matchesSearch =
-            debtor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (debtor.email && debtor.email.toLowerCase().includes(searchTerm.toLowerCase()));
-
-        const matchesStatus = statusFilter === 'ALL' ? true : debtor.status === statusFilter;
-
-        let matchesAmount = true;
-        if (amountFilter === '<500') matchesAmount = debtor.amountOwed < 500;
-        if (amountFilter === '500-1000')
-            matchesAmount = debtor.amountOwed >= 500 && debtor.amountOwed <= 1000;
-        if (amountFilter === '>1000') matchesAmount = debtor.amountOwed > 1000;
-
-        return matchesSearch && matchesStatus && matchesAmount;
-    });
-
-    // client-side pagination calculations
-    const totalItems = filteredDebtors.length;
-    const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalItems);
-    const paginatedDebtors = filteredDebtors.slice(startIndex, endIndex);
-
-    // keep page in range if filters change and currentPage > totalPages
-    useEffect(() => {
-        if (currentPage > totalPages) setCurrentPage(1);
-    }, [totalPages, currentPage]);
-
-    // Upload to Cloudinary (unchanged)
-    const uploadDocument = async (file) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
-
-        const isPdf = file.type === 'application/pdf';
-        const resourceType = isPdf ? 'raw' : 'auto';
-
-        try {
-            const res = await fetch(
-                `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`,
-                { method: 'POST', body: formData }
-            );
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error?.message || 'Upload failed');
-            return data.secure_url;
-        } catch (err) {
-            console.error('Cloudinary upload error:', err);
-            return null;
-        }
-    };
-
-    // formatting, cedula validation, email validation, handleSubmit, edit, file upload, delete, etc.
-    // I preserved all your original logic exactly; copy/pasting here:
-
-    const formatAmount = (value) => {
-        let cleaned = value.replace(/[^\d.]/g, '');
-        const [integerPart, decimalPart] = cleaned.split('.');
-        const formattedInt = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-        const formattedDecimal = decimalPart ? decimalPart.substring(0, 2) : '';
-        return formattedDecimal ? `${formattedInt}.${formattedDecimal}` : formattedInt;
-    };
-
-    const formatAmountAutoDecimal = (value) => {
-        const digits = value.replace(/\D/g, '');
-        if (!digits) return '';
-        let integerPart = digits.slice(0, -2) || '0';
-        let decimalPart = digits.slice(-2);
-        integerPart = parseInt(integerPart, 10).toLocaleString();
-        return `${integerPart}.${decimalPart}`;
-    };
-
-    const isValidCedula = (cedula) => {
-        if (!/^\d{10}$/.test(cedula)) return false;
-        const province = parseInt(cedula.substring(0, 2), 10);
-        if (province < 1 || (province > 24 && province !== 30)) return false;
-        const digits = cedula.split('').map(Number);
-        const checkDigit = digits[9];
-        let sum = 0;
-        for (let i = 0; i < 9; i++) {
-            let value = digits[i];
-            if (i % 2 === 0) {
-                value *= 2;
-                if (value > 9) value -= 9;
-            }
-            sum += value;
-        }
-        const nextTen = Math.ceil(sum / 10) * 10;
-        const calculatedCheckDigit = nextTen - sum === 10 ? 0 : nextTen - sum;
-        return calculatedCheckDigit === checkDigit;
-    };
-
-    const validateEmail = (value) => {
-        if (!value) {
-            setEmailError('');
-            return;
-        }
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(value)) {
-            setEmailError('Por favor, ingresa un correo válido');
-        } else {
-            setEmailError('');
-        }
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setSuccess('');
-        setError('');
-
-        if (email && emailError) {
-            setError('El correo ingresado no es válido');
-            return;
-        }
-
-        const numericAmount = amountOwed.replace(/,/g, '');
-        const amount = Number(numericAmount);
-
-        if (isNaN(amount)) {
-            setError('Amount owed must be a valid number');
-            return;
-        }
-
-        if (!/^\d+(\.\d{1,2})?$/.test(numericAmount)) {
-            setError('Amount can have at most 2 decimal places');
-            return;
-        }
-
-        if (amount <= 0) {
-            setError('Amount owed must be greater than 0');
-            return;
-        }
-
-        if (amount > 1000000) {
-            setError('Amount owed is unrealistically high');
-            return;
-        }
-
-        if (!telephone || telephone.length < 8) {
-            setError('Please enter a valid phone number');
-            return;
-        }
-
-        if (cedulaIdentidad.length !== 10) {
-            setError('La cédula debe tener exactamente 10 dígitos');
-            return;
-        }
-
-        if (!isValidCedula(cedulaIdentidad)) {
-            setError('Cédula inválida. Verifique los 10 dígitos.');
-            return;
-        }
-
-        setLoading(true);
-
-        try {
-            let documentUrl = null;
-            if (documentFile) {
-                documentUrl = await uploadDocument(documentFile);
-                if (!documentUrl) {
-                    setError('Failed to upload document');
-                    setLoading(false);
-                    return;
-                }
-            }
-
-            const payload = {
-                name,
-                email,
-                telephone,
-                address,
-                cedulaIdentidad,
-                amountOwed: amount.toFixed(2),
-            };
-
-            if (documentUrl) payload.documentUrl = documentUrl;
-
-            let res;
-            if (editingId) {
-                res = await fetch(`/api/debtors/${editingId}`, {
-                    method: 'PATCH',
-                    body: JSON.stringify(payload),
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                });
-            } else {
-                res = await fetch('/api/debtors', {
-                    method: 'POST',
-                    body: JSON.stringify(payload),
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                });
-            }
-
-            if (res.ok) {
-                setSuccess(editingId ? 'Debtor updated!' : 'Debtor added!');
-                setName('');
-                setEmail('');
-                setTelephone('');
-                setAddress('');
-                setCedulaIdentidad('');
-                setAmountOwed('');
-                setDocumentFile(null);
-                setEditingId(null);
-                await fetchDebtors();
-            } else {
-                const data = await res.json();
-                setError(data.message || 'Error submitting form');
-            }
-        } catch (err) {
-            console.error(err);
-            setError('Unexpected error occurred');
+            console.error('Error fetching clients:', err);
+            setError('Failed to load clients.');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleEdit = (debtor) => {
-        setName(debtor.name);
-        setEmail(debtor.email || '');
-        setTelephone(debtor.telephone || '');
-        setAddress(debtor.address || '');
-        setCedulaIdentidad(debtor.cedulaIdentidad || '');
-        setAmountOwed(debtor.amountOwed);
-        setEditingId(debtor.id);
-        setDocumentFile(null);
-        // keep currentPage unchanged so user sees the item being edited in context
-    };
+    useEffect(() => {
+        fetchClients();
+    }, []);
 
-    const handleAmountChange = (e) => {
-        let input = e.target.value.replace(/\D/g, '');
-        if (!input) {
-            setAmountOwed('');
-            return;
-        }
-        let rawValue = (parseInt(input, 10) / 100).toFixed(2);
-        const formattedValue = new Intl.NumberFormat('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        }).format(rawValue);
-        setAmountOwed(formattedValue);
-    };
-
-    const handleBlur = () => {
-        setIsTyping(false);
-        if (amountOwed !== '' && !isNaN(amountOwed)) {
-            const formatted = parseFloat(amountOwed).toLocaleString('en-US', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-            });
-            setAmountOwed(formatted);
-        }
-    };
-
-    const handleFocus = () => {
-        const rawValue = amountOwed.replace(/,/g, '');
-        setAmountOwed(rawValue);
-    };
-
-    const handleFileUpload = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-            const data = new Uint8Array(event.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
-            console.log('📄 Uploaded Excel data:', jsonData);
-
-            const validRows = [];
-            const errors = [];
-
-            jsonData.forEach((row, index) => {
-                const rowNum = index + 2;
-                const { name, amountOwed, cedulaIdentidad, email, telephone } = row;
-                if (!name) {
-                    errors.push(`Row ${rowNum}: "name" is required`);
-                    return;
-                }
-                if (!amountOwed || isNaN(amountOwed) || parseFloat(amountOwed) <= 0) {
-                    errors.push(`Row ${rowNum}: "amountOwed" must be a number > 0`);
-                    return;
-                }
-                if (!cedulaIdentidad) {
-                    errors.push(`Row ${rowNum}: "cedulaIdentidad" is required`);
-                    return;
-                }
-                const cedulaStr = String(cedulaIdentidad).padStart(10, '0');
-                if (!/^\d{10}$/.test(cedulaStr)) {
-                    errors.push(`Row ${rowNum}: "cedulaIdentidad" must be 10 digits`);
-                    return;
-                }
-                if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                    errors.push(`Row ${rowNum}: "email" is invalid`);
-                    return;
-                }
-                if (telephone && !/^\+?\d+$/.test(telephone)) {
-                    errors.push(`Row ${rowNum}: "telephone" must contain only digits (or start with +)`);
-                    return;
-                }
-                validRows.push({
-                    name,
-                    amountOwed: parseFloat(amountOwed),
-                    cedulaIdentidad: cedulaStr,
-                    email: email || null,
-                    telephone: telephone ? String(telephone) : null,
-                    address: row.address || null,
-                    documentUrl: row.documentUrl || null,
-                });
-            });
-
-            console.log('✅ Valid rows:', validRows);
-            console.log('❌ Errors:', errors);
-
-            if (validRows.length === 0) {
-                console.warn('No valid rows to upload.');
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/debtors/upload', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(validRows),
-                });
-
-                const result = await response.json();
-                console.log('📤 Upload result:', result);
-
-                if (result.errors && result.errors.length > 0) {
-                    console.warn('Some rows failed to upload:', result.errors);
-                    setMessage('⚠️ Some rows failed to upload. Check console for details.');
-                } else {
-                    setMessage(`✅ ${validRows.length} debtor(s) uploaded successfully!`);
-                    console.log('All valid rows uploaded successfully!');
-                }
-                await fetchDebtors();
-            } catch (err) {
-                console.error('Error uploading debtors:', err);
-                setMessage('❌ Error uploading debtors. Please try again.');
-            }
-        };
-
-        reader.readAsArrayBuffer(file);
-    };
-
-    const handleDelete = async (id) => {
-        const confirmed = confirm('Are you sure you want to delete this debtor?');
-        if (!confirmed) return;
-
+    // --------------------------------------
+    // Availability Toggle
+    // --------------------------------------
+    const toggleDebtorAvailability = async (debtorId) => {
         try {
-            const res = await fetch(`/api/debtors/${id}`, {
-                method: 'DELETE',
-                credentials: 'include',
+            const res = await fetch(`/api/admin/debtors/${debtorId}/toggle-availability`, {
+                method: 'PATCH',
             });
-
-            if (res.ok) {
-                await fetchDebtors();
-            } else {
-                let data;
-                try {
-                    data = await res.json();
-                } catch (err) {
-                    data = { message: 'Unknown error occurred' };
-                }
-                setError(data.message || 'Error deleting debtor');
-            }
+            if (!res.ok) throw new Error('Failed to toggle');
+            await fetchClients();
         } catch (err) {
-            setError('Unexpected error occurred while deleting');
+            console.error(err);
+            alert('Failed to toggle availability');
         }
     };
 
-    if (status === 'loading') return <p>Loading session...</p>;
-    if (!session || session.user.role !== 'client') return null;
+    const updateDebtorStatus = async (debtorId, newStatus) => {
+        try {
+            const res = await fetch(`/api/admin/debtors/${debtorId}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus }),
+            });
+            if (!res.ok) throw new Error('Failed to update status');
+            await fetchClients();
+        } catch (err) {
+            console.error(err);
+            alert('Failed to update status');
+        }
+    };
+
+    // ----------------------------------------------------
+    // Filter logic
+    // ----------------------------------------------------
+    const filteredClients = clients.map((client) => {
+        const filteredDebtors = client.debtorRecords.filter((debtor) => {
+            const matchesSearch =
+                debtor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (debtor.email && debtor.email.toLowerCase().includes(searchTerm.toLowerCase()));
+
+            const matchesStatus =
+                statusFilter === 'ALL' ? true : debtor.status === statusFilter;
+
+            let matchesAmount = true;
+            if (amountFilter === '<500') matchesAmount = debtor.amountOwed < 500;
+            if (amountFilter === '500-1000')
+                matchesAmount = debtor.amountOwed >= 500 && debtor.amountOwed <= 1000;
+            if (amountFilter === '>1000') matchesAmount = debtor.amountOwed > 1000;
+
+            return matchesSearch && matchesStatus && matchesAmount;
+        });
+
+        return { ...client, debtorRecords: filteredDebtors };
+    });
+
+    if (loading) return <p className="text-center mt-20">Loading...</p>;
+    if (error) return <p className="text-red-500">{error}</p>;
 
     return (
-        <div className="min-h-screen bg-[#443CA3] text-[#443CA3] p-10">
-            {/* Header */}
-            <div className="max-w-6xl mx-auto">
-                <h1
-                    className="text-3xl font-extrabold mb-2"
-                    style={{ fontFamily: 'Neulis Alt', color: '#FFFF76' }}
-                >
-                    Welcome, {session.user.name || 'Client'}!
-                </h1>
-                <p className="text-base text-[#CCE8FF]" style={{ fontFamily: 'Avenir Next' }}>
-                    Email: <span className="font-bold text-[#21FE83]">{session.user.email}</span>
-                </p>
+        <main className="min-h-screen bg-gray-50 px-8 py-6">
+            {/* Top bar */}
+            <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow mb-8">
+                <img src="/logo-recupera-purple.png" alt="recupera" className="h-20" />
 
-                {/* Debtor Form (Card) */}
-                <form
-                    onSubmit={handleSubmit}
-                    className="mt-8 space-y-4 max-w-lg bg-[#CCE8FF] p-6 rounded-2xl shadow-md"
-                >
-                    <h2
-                        className="text-xl font-semibold text-[#443CA3]"
-                        style={{ fontFamily: 'Neulis Alt' }}
-                    >
-                        {editingId ? 'Edit Debtor' : 'Add a Debtor'}
-                    </h2>
-
-                    <input
-                        type="text"
-                        placeholder="Debtor Name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full p-3 border border-[#9E9E9E] rounded-lg focus:ring-2 focus:ring-[#21FE83]"
-                        style={{ fontFamily: 'Avenir Next' }}
-                        required
-                    />
-
-                    <input
-                        type="email"
-                        placeholder="Debtor Email (optional)"
-                        value={email}
-                        onChange={(e) => {
-                            setEmail(e.target.value);
-                            validateEmail(e.target.value);
-                        }}
-                        className="w-full p-3 border border-[#9E9E9E] rounded-lg focus:ring-2 focus:ring-[#21FE83]"
-                        style={{ fontFamily: 'Avenir Next' }}
-                    />
-                    {emailError && <p className="text-[#F2CA08] text-sm mt-1">{emailError}</p>}
-
-                    <PhoneInput
-                        country={'ec'}
-                        value={telephone}
-                        onChange={(phone) => setTelephone(phone)}
-                        enableSearch={true}
-                        inputClass="!w-full !p-3 !border !border-[#9E9E9E] !rounded-lg"
-                        containerClass="w-full"
-                    />
-
-                    <input
-                        type="text"
-                        placeholder="Address"
-                        value={address}
-                        onChange={(e) => setAddress(e.target.value)}
-                        className="w-full p-3 border border-[#9E9E9E] rounded-lg"
-                        style={{ fontFamily: 'Avenir Next' }}
-                    />
-
-                    <input
-                        type="text"
-                        placeholder="Cédula de Identidad"
-                        value={cedulaIdentidad}
-                        onChange={(e) => {
-                            const v = e.target.value.replace(/\D/g, '');
-                            if (v.length <= 10) setCedulaIdentidad(v);
-                        }}
-                        className="w-full p-3 border border-[#9E9E9E] rounded-lg"
-                        required
-                    />
-                    {cedulaIdentidad.length > 0 && cedulaIdentidad.length < 10 && (
-                        <p className="text-[#F2CA08] text-sm mt-1">La cédula debe tener 10 dígitos.</p>
-                    )}
-
-                    <input
-                        type="text"
-                        placeholder="Amount Owed"
-                        value={amountOwed}
-                        onChange={handleAmountChange}
-                        onBlur={handleBlur}
-                        onFocus={handleFocus}
-                        className="w-full p-3 border border-[#9E9E9E] rounded-lg"
-                        required
-                    />
-
-                    <label className="block text-sm" style={{ fontFamily: 'Avenir Next', color: '#443CA3' }}>
-                        Attach Document (photo or PDF, optional):
-                        <input
-                            type="file"
-                            accept="image/*,application/pdf"
-                            onChange={(e) => setDocumentFile(e.target.files[0])}
-                            className="mt-2 block w-full text-sm"
-                        />
-                    </label>
-
-                    <button
-                        type="submit"
-                        className="w-full bg-[#21FE83] text-[#443CA3] font-bold py-3 rounded-lg shadow hover:bg-[#1edb70] transition disabled:opacity-50"
-                        disabled={loading}
-                        style={{ fontFamily: 'Neulis Alt' }}
-                    >
-                        {loading ? 'Submitting...' : editingId ? 'Update Debtor' : 'Add Debtor'}
-                    </button>
-
-                    {success && <p className="text-[#21FE83]">{success}</p>}
-                    {error && <p className="text-red-400">{error}</p>}
-                </form>
-
-                {/* Template + Upload */}
-                <div className="mt-8 flex gap-4 items-center">
-                    <button
-                        onClick={handleDownloadTemplate}
-                        className="bg-[#443CA3] text-white px-5 py-2 rounded-lg shadow hover:bg-[#352f85] transition"
-                        style={{ fontFamily: 'Avenir Next' }}
-                    >
-                        Download Excel Template
-                    </button>
-
-                    <input
-                        type="file"
-                        accept=".xlsx"
-                        onChange={handleFileUpload}
-                        className="block w-64 text-sm text-[#443CA3]
-              file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
-              file:text-sm file:font-semibold file:bg-[#CCE8FF] file:text-[#443CA3]
-              hover:file:bg-[#b8ddff]"
-                    />
-                </div>
-                {message && (
-                    <p className="mt-2 text-sm font-semibold text-[#CCE8FF]" style={{ fontFamily: 'Avenir Next' }}>
-                        {message}
-                    </p>
-                )}
-
-                {/* Debtor List + Filters */}
-                <div className="mt-10">
-                    <div className="flex flex-wrap gap-4 mb-6">
-                        <input
-                            type="text"
-                            placeholder="Search by name or email..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="p-3 border border-[#9E9E9E] rounded-lg w-64"
-                        />
-
-                        <select
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                            className="p-3 border border-[#9E9E9E] rounded-lg"
-                        >
-                            <option value="ALL">All Statuses</option>
-                            <option value="PENDIENTE">Pendiente</option>
-                            <option value="EN_GESTION">En gestión</option>
-                            <option value="ACUERDO_DE_PAGO">Acuerdo de pago</option>
-                            <option value="PAGADO">Pagado</option>
-                            <option value="ESCALADO_JUDICIAL">Escalado judicial</option>
-                        </select>
-
-                        <select
-                            value={amountFilter}
-                            onChange={(e) => setAmountFilter(e.target.value)}
-                            className="p-3 border border-[#9E9E9E] rounded-lg"
-                        >
-                            <option value="ALL">All Amounts</option>
-                            <option value="<500">Less than $500</option>
-                            <option value="500-1000">$500 - $1000</option>
-                            <option value=">1000">More than $1000</option>
-                        </select>
-                    </div>
-
-                    <h2 className="text-xl font-bold mb-4" style={{ fontFamily: 'Neulis Alt', color: '#FFFF76' }}>
-                        Your Debtors
-                    </h2>
-
-                    {totalItems === 0 ? (
-                        <p className="text-[#CCE8FF]">No debtors yet.</p>
-                    ) : (
-                        <>
-                            <ul className="space-y-3">
-                                {paginatedDebtors.map((debtor) => (
-                                    <li
-                                        key={debtor.id}
-                                        className="border border-[#CCE8FF] p-4 rounded-xl bg-white shadow-md flex justify-between items-start"
-                                    >
-                                        <div className="space-y-1 text-sm" style={{ fontFamily: 'Avenir Next', color: '#443CA3' }}>
-                                            <p>
-                                                <span className="font-bold">Name:</span> {debtor.name}
-                                            </p>
-                                            {debtor.email && (
-                                                <p>
-                                                    <span className="font-bold">Email:</span> {debtor.email}
-                                                </p>
-                                            )}
-                                            {debtor.telephone && (
-                                                <p>
-                                                    <span className="font-bold">Telephone:</span> {debtor.telephone}
-                                                </p>
-                                            )}
-                                            {debtor.address && (
-                                                <p>
-                                                    <span className="font-bold">Address:</span> {debtor.address}
-                                                </p>
-                                            )}
-                                            <p>
-                                                <span className="font-bold">Cédula:</span> {debtor.cedulaIdentidad}
-                                            </p>
-                                            <p>
-                                                <span className="font-bold">Amount Owed:</span>{' '}
-                                                <span className="text-[#F2CA08]">${debtor.amountOwed}</span>
-                                            </p>
-                                        </div>
-
-                                        <div className="flex flex-col items-end gap-2">
-                      <span
-                          className={`px-2 py-1 rounded text-xs font-bold ${
-                              debtor.status === 'PENDIENTE'
-                                  ? 'bg-[#FFFF76] text-[#443CA3]'
-                                  : debtor.status === 'EN_GESTION'
-                                      ? 'bg-[#CCE8FF] text-[#443CA3]'
-                                      : debtor.status === 'ACUERDO_DE_PAGO'
-                                          ? 'bg-[#443CA3] text-white'
-                                          : debtor.status === 'PAGADO'
-                                              ? 'bg-[#21FE83] text-[#443CA3]'
-                                              : debtor.status === 'ESCALADO_JUDICIAL'
-                                                  ? 'bg-red-600 text-white'
-                                                  : 'bg-[#9E9E9E] text-white'
-                          }`}
-                      >
-                        {debtor.status.replace(/_/g, ' ')}
-                      </span>
-
-                                            <div className="space-x-3 text-sm">
-                                                <button onClick={() => handleEdit(debtor)} className="text-[#443CA3] hover:underline">
-                                                    Edit
-                                                </button>
-                                                <button onClick={() => handleDelete(debtor.id)} className="text-red-500 hover:underline">
-                                                    Delete
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-
-                            {/* Pagination UI */}
-                            <div className="mt-6 flex items-center justify-between bg-transparent pt-4">
-                                <div>
-                                    <p className="text-sm" style={{ color: '#CCE8FF', fontFamily: 'Avenir Next' }}>
-                                        Showing <span className="font-bold text-[#F2CA08]">{startIndex + 1}</span> to{' '}
-                                        <span className="font-bold text-[#F2CA08]">{endIndex}</span> of{' '}
-                                        <span className="font-bold text-[#F2CA08]">{totalItems}</span> results
-                                    </p>
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                                        disabled={currentPage === 1}
-                                        className="px-3 py-1 rounded-lg bg-[#443CA3] text-white hover:bg-[#352f85] disabled:opacity-50"
-                                    >
-                                        Prev
-                                    </button>
-
-                                    {/* simple page buttons (limits to first 7 for readability) */}
-                                    <div className="flex gap-1 items-center">
-                                        {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => i + 1).map((p) => (
-                                            <button
-                                                key={p}
-                                                onClick={() => setCurrentPage(p)}
-                                                className={`px-3 py-1 rounded-lg ${
-                                                    p === currentPage
-                                                        ? 'bg-[#21FE83] text-[#443CA3] font-bold'
-                                                        : 'bg-white text-[#443CA3] ring-1 ring-[#CCE8FF]'
-                                                }`}
-                                            >
-                                                {p}
-                                            </button>
-                                        ))}
-
-                                        {totalPages > 7 && <span className="text-[#CCE8FF] px-2">…</span>}
-                                        {totalPages > 7 && (
-                                            <button
-                                                onClick={() => setCurrentPage(totalPages)}
-                                                className="px-3 py-1 rounded-lg bg-white text-[#443CA3] ring-1 ring-[#CCE8FF]"
-                                            >
-                                                {totalPages}
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    <button
-                                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                                        disabled={currentPage === totalPages}
-                                        className="px-3 py-1 rounded-lg bg-[#443CA3] text-white hover:bg-[#352f85] disabled:opacity-50"
-                                    >
-                                        Next
-                                    </button>
-                                </div>
-                            </div>
-                        </>
-                    )}
-                </div>
-
-                {/* Logout */}
-                <div className="mt-12">
-                    <button
-                        onClick={() => signOut({ callbackUrl: '/login' })}
-                        className="bg-[#443CA3] text-white px-6 py-3 rounded-xl shadow hover:bg-[#352f85] transition"
-                        style={{ fontFamily: 'Avenir Next' }}
-                    >
-                        Logout
-                    </button>
+                <div className="flex items-center gap-3 text-gray-700">
+                    <div className="w-10 h-10 rounded-full bg-gray-200"></div>
+                    <span className="font-medium">Admin Dashboard</span>
                 </div>
             </div>
-        </div>
+
+            <h1 className="text-3xl font-semibold text-gray-700 mb-6">My Debtors</h1>
+
+            {/* ---------------------- FILTER BAR ------------------------ */}
+            <section className="bg-white p-4 rounded-xl shadow mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-4">
+
+                    <input
+                        type="text"
+                        placeholder="Search..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="border rounded-lg px-3 py-2 shadow-sm"
+                    />
+
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="border rounded-lg px-3 py-2 shadow-sm"
+                    >
+                        <option value="ALL">All Statuses</option>
+                        <option value="PENDIENTE">Pendiente</option>
+                        <option value="EN_GESTION">En Gestión</option>
+                        <option value="ACUERDO_DE_PAGO">Acuerdo de Pago</option>
+                        <option value="PAGADO">Pagado</option>
+                        <option value="ESCALADO_JUDICIAL">Escalado Judicial</option>
+                    </select>
+
+                    <select
+                        value={amountFilter}
+                        onChange={(e) => setAmountFilter(e.target.value)}
+                        className="border rounded-lg px-3 py-2 shadow-sm"
+                    >
+                        <option value="ALL">All Amounts</option>
+                        <option value="<500">Less than $500</option>
+                        <option value="500-1000">$500 - $1000</option>
+                        <option value=">1000">More than $1000</option>
+                    </select>
+
+                    {/* Bulk select */}
+                    <select
+                        value={bulkStatus}
+                        onChange={(e) => setBulkStatus(e.target.value)}
+                        className="border rounded-lg px-3 py-2 shadow-sm"
+                    >
+                        <option value="">Bulk Status</option>
+                        <option value="PENDIENTE">Pendiente</option>
+                        <option value="EN_GESTION">En Gestión</option>
+                        <option value="ACUERDO_DE_PAGO">Acuerdo de Pago</option>
+                        <option value="PAGADO">Pagado</option>
+                        <option value="ESCALADO_JUDICIAL">Escalado Judicial</option>
+                    </select>
+                </div>
+            </section>
+            {/* Bulk actions row (top of list) */}
+            <section className="mb-6 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 text-sm">
+                        <input
+                            type="checkbox"
+                            checked={selectAll}
+                            onChange={() => {
+                                const currently = !selectAll;
+                                setSelectAll(currently);
+                                if (currently) {
+                                    const allIds = clients.flatMap((c) => c.debtorRecords.map((d) => d.id));
+                                    setSelectedDebtors(allIds);
+                                } else {
+                                    setSelectedDebtors([]);
+                                }
+                            }}
+                        />
+                        <span>Select all</span>
+                    </label>
+
+                    <span className="text-sm text-gray-600">Selected: {selectedDebtors.length}</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <select
+                        value={bulkStatus}
+                        onChange={(e) => setBulkStatus(e.target.value)}
+                        className="border rounded-lg px-3 py-2"
+                    >
+                        <option value="">Select Status</option>
+                        <option value="PENDIENTE">Pendiente</option>
+                        <option value="EN_GESTION">En Gestión</option>
+                        <option value="ACUERDO_DE_PAGO">Acuerdo de Pago</option>
+                        <option value="PAGADO">Pagado</option>
+                        <option value="ESCALADO_JUDICIAL">Escalado Judicial</option>
+                    </select>
+
+                    <button
+                        onClick={async () => {
+                            setBulkMessage(null);
+                            if (!bulkStatus) {
+                                setBulkMessage({ type: 'error', text: 'Please select a status' });
+                                return;
+                            }
+                            if (selectedDebtors.length === 0) {
+                                setBulkMessage({ type: 'error', text: 'Please select at least one debtor' });
+                                return;
+                            }
+                            setBulkLoading(true);
+                            try {
+                                const res = await fetch('/api/admin/debtors/bulk-status', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ debtorIds: selectedDebtors, status: bulkStatus }),
+                                });
+                                const data = await res.json().catch(() => ({}));
+                                if (!res.ok) throw new Error(data.message || 'Failed to update status');
+                                setBulkMessage({ type: 'success', text: 'Statuses updated successfully' });
+                                await fetchClients();
+                                setSelectedDebtors([]);
+                                setBulkStatus('');
+                                setSelectAll(false);
+                            } catch (err) {
+                                console.error(err);
+                                setBulkMessage({ type: 'error', text: err.message || 'Error updating statuses' });
+                            } finally {
+                                setBulkLoading(false);
+                            }
+                        }}
+                        disabled={bulkLoading}
+                        className="bg-indigo-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+                    >
+                        {bulkLoading ? 'Updating...' : 'Apply to Selected'}
+                    </button>
+                </div>
+            </section>
+
+            {bulkMessage && (
+                <div className={`mb-4 ${bulkMessage.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                    {bulkMessage.text}
+                </div>
+            )}
+
+            {/* Clients list (cards + grid of debtor cards) */}
+            <section className="space-y-8">
+                {filteredClients.length === 0 ? (
+                    <p className="text-gray-500">No clients found.</p>
+                ) : (
+                    filteredClients.map((client) => {
+                        const currentPage = debtorPages[client.id] || 1;
+                        const totalPages = Math.max(1, Math.ceil(client.debtorRecords.length / ITEMS_PER_PAGE));
+                        const paginatedDebtors = client.debtorRecords.slice(
+                            (currentPage - 1) * ITEMS_PER_PAGE,
+                            currentPage * ITEMS_PER_PAGE
+                        );
+
+                        return (
+                            <div key={client.id} className="bg-white rounded-lg shadow p-6 border border-gray-200">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-gray-800">{client.name}</h3>
+                                        <p className="text-sm text-gray-500">{client.email}</p>
+                                    </div>
+                                    <div className="text-sm text-gray-600">Debtors: {client.debtorRecords.length}</div>
+                                </div>
+
+                                {client.debtorRecords.length === 0 ? (
+                                    <p className="text-gray-500">No debtors.</p>
+                                ) : (
+                                    <>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {paginatedDebtors.map((debtor) => (
+                                                <div
+                                                    key={debtor.id}
+                                                    className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 relative"
+                                                >
+                                                    {/* top row: name + amount */}
+                                                    <div className="flex items-start justify-between mb-3">
+                                                        <div>
+                                                            <p className="text-sm text-gray-800 font-semibold">
+                                                                {debtor.name}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500 mt-1">
+                                                                Email: {debtor.email || '—'}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500">
+                                                                Cédula: {debtor.cedulaIdentidad || '—'}
+                                                            </p>
+
+                                                            {debtor.documentUrl && (
+                                                                <div className="mt-2">
+                                                                    <a
+                                                                        href={debtor.documentUrl.replace(
+                                                                            "/upload/",
+                                                                            "/upload/fl_attachment/"
+                                                                        )}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition"
+                                                                    >
+                                                                        Download Document
+                                                                    </a>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+
+                                                        <div className="text-right">
+                                                            <div className="text-sm font-medium text-gray-800">
+                                                                USD {Number(debtor.amountOwed).toLocaleString(undefined, {
+                                                                minimumFractionDigits: 2,
+                                                                maximumFractionDigits: 2,
+                                                            })}
+                                                            </div>
+
+                                                            {/* status badge */}
+                                                            <div className="mt-2">
+                                                                <span
+                                                                    className={`inline-block text-xs font-semibold px-2 py-1 rounded ${
+                                                                        debtor.status === 'PAGADO'
+                                                                            ? 'bg-green-100 text-green-700'
+                                                                            : debtor.status === 'EN_GESTION'
+                                                                                ? 'bg-emerald-100 text-emerald-700'
+                                                                                : debtor.status === 'ACUERDO_DE_PAGO'
+                                                                                    ? 'bg-indigo-100 text-indigo-700'
+                                                                                    : debtor.status === 'ESCALADO_JUDICIAL'
+                                                                                        ? 'bg-red-100 text-red-700'
+                                                                                        : 'bg-yellow-100 text-yellow-700'
+                                                                    }`}
+                                                                >
+                                                                    {debtor.status ? debtor.status.replace(/_/g, ' ') : 'PENDIENTE'}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* middle row: sublevel + actions */}
+                                                    <div className="flex items-center justify-between mt-4">
+                                                        <div className="text-sm text-gray-500">Subnivel Gestión</div>
+
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                onClick={() => {
+                                                                    // Edit / view management — keep your existing routing or handler here
+                                                                    // If you have a modal or page, call it here. Placeholder:
+                                                                    console.log('View management for', debtor.id);
+                                                                }}
+                                                                className="text-sm px-3 py-1 border rounded text-indigo-600 hover:bg-indigo-50"
+                                                            >
+                                                                View
+                                                            </button>
+
+                                                            <button
+                                                                onClick={() => {
+                                                                    // Edit action placeholder (preserve existing edit handler if any)
+                                                                    console.log('Edit', debtor.id);
+                                                                }}
+                                                                className="text-sm px-3 py-1 border rounded text-gray-700 hover:bg-gray-50"
+                                                            >
+                                                                Edit
+                                                            </button>
+
+                                                            <button
+                                                                onClick={() => {
+                                                                    // Delete placeholder - preserve original delete behavior if you want
+                                                                    (async () => {
+                                                                        if (!confirm('Are you sure you want to delete this debtor?')) return;
+                                                                        try {
+                                                                            const res = await fetch(`/api/debtors/${debtor.id}`, {
+                                                                                method: 'DELETE',
+                                                                                credentials: 'include',
+                                                                            });
+                                                                            if (!res.ok) {
+                                                                                const data = await res.json().catch(() => ({}));
+                                                                                throw new Error(data.message || 'Failed to delete');
+                                                                            }
+                                                                            await fetchClients();
+                                                                        } catch (err) {
+                                                                            console.error(err);
+                                                                            alert('Failed to delete');
+                                                                        }
+                                                                    })();
+                                                                }}
+                                                                className="text-sm px-3 py-1 border rounded text-red-600 hover:bg-red-50"
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* bottom row: notify toggle and select box */}
+                                                    <div className="flex items-center justify-between mt-4">
+                                                        <label className="flex items-center gap-2 text-sm">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={!!debtor.availableForNotify}
+                                                                onChange={() => {
+                                                                    toggleDebtorAvailability(debtor.id);
+                                                                }}
+                                                            />
+                                                            <span>Notify Allowed</span>
+                                                        </label>
+
+                                                        <label className="flex items-center gap-2 text-sm">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedDebtors.includes(debtor.id)}
+                                                                onChange={() => {
+                                                                    setSelectedDebtors((prev) => {
+                                                                        const exists = prev.includes(debtor.id);
+                                                                        const newSelected = exists ? prev.filter((id) => id !== debtor.id) : [...prev, debtor.id];
+                                                                        const totalDebtors = clients.flatMap((c) => c.debtorRecords.map((d) => d.id));
+                                                                        setSelectAll(newSelected.length === totalDebtors.length);
+                                                                        return newSelected;
+                                                                    });
+                                                                }}
+                                                            />
+                                                            <span>Select</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Pagination controls for this client */}
+                                        <div className="flex items-center justify-center gap-3 mt-6">
+                                            <button
+                                                onClick={() => handlePageChange(client.id, Math.max(1, currentPage - 1))}
+                                                disabled={currentPage === 1}
+                                                className="px-3 py-1 border rounded disabled:opacity-50"
+                                            >
+                                                Prev
+                                            </button>
+
+                                            <div className="text-sm text-gray-600">
+                                                Page {currentPage} of {totalPages}
+                                            </div>
+
+                                            <button
+                                                onClick={() => handlePageChange(client.id, Math.min(totalPages, currentPage + 1))}
+                                                disabled={currentPage === totalPages}
+                                                className="px-3 py-1 border rounded disabled:opacity-50"
+                                            >
+                                                Next
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        );
+                    })
+                )}
+            </section>
+
+            {/* Send reminders action */}
+            <div className="mt-8">
+                <SendRemindersButton />
+            </div>
+
+            {/* Footer / logout */}
+            <div className="mt-12 flex justify-end">
+                <button
+                    onClick={() => signOut({ callbackUrl: '/login' })}
+                    className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+                >
+                    Logout
+                </button>
+            </div>
+        </main>
     );
 }
