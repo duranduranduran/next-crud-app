@@ -1,6 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import ClientProvider from "./client-provider";
+import { ClerkProvider } from "@clerk/nextjs";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -20,8 +20,13 @@ export const metadata = {
 export default function RootLayout({ children }) {
     return (
         <html lang="en">
-        <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <ClientProvider>{children}</ClientProvider>
+        <body
+            className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        >
+        {/* ✅ ClerkProvider MUST be inside <body> */}
+        <ClerkProvider>
+            {children}
+        </ClerkProvider>
         </body>
         </html>
     );

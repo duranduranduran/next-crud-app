@@ -1,0 +1,16 @@
+"use client";
+
+import { useEffect } from "react";
+import { useClerk } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+
+export default function SignOutPage() {
+    const { signOut } = useClerk();
+    const router = useRouter();
+
+    useEffect(() => {
+        signOut(() => router.replace("/sign-in"));
+    }, [signOut, router]);
+
+    return <p>Signing out...</p>;
+}

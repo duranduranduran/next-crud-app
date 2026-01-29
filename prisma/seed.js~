@@ -28,7 +28,6 @@ async function main() {
             name: "Client User",
             role: "client",
             hashedPassword: hashedClientPassword,
-            clerkId: "user_36koxjynGVeToZsg0BcjTsg8cek",
         },
     });
 

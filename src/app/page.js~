@@ -1,8 +1,8 @@
-import LoginPage from "@/app/login/page";
+import LoginPage from "@/app/sign-in/[[...rest]]/page";
 
 export default function Home() {
   return (
-    <div className="text-3xl font-bold text-red-500">
+    <div >
       <LoginPage />
     </div>
   );

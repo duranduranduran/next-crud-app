@@ -1,28 +1,29 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { signOut, useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useUser, SignOutButton } from "@clerk/nextjs";
 
-// --------------------------------------
-// Send Reminders Button (kept same logic)
-// --------------------------------------
+/* --------------------------------------
+   Send Reminders Button (sin cambios)
+-------------------------------------- */
 function SendRemindersButton() {
     const [sending, setSending] = useState(false);
     const [message, setMessage] = useState(null);
+    const [searchTerm, setSearchTerm] = useState("");
 
     const handleSendReminders = async () => {
         setSending(true);
         setMessage(null);
         try {
-            const res = await fetch('/api/send-reminders', { method: 'GET' });
+            const res = await fetch("/api/send-reminders", { method: "GET" });
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.message || 'Something went wrong.');
+                throw new Error(errorData.message || "Something went wrong.");
             }
-            setMessage({ type: 'success', text: 'Reminders sent successfully!' });
+            setMessage({ type: "success", text: "Reminders sent successfully!" });
         } catch (err) {
-            setMessage({ type: 'error', text: err.message });
+            setMessage({ type: "error", text: err.message });
         } finally {
             setSending(false);
         }
@@ -34,14 +35,18 @@ function SendRemindersButton() {
                 onClick={handleSendReminders}
                 disabled={sending}
                 className={`bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 shadow-sm ${
-                    sending ? 'opacity-50 cursor-not-allowed' : ''
+                    sending ? "opacity-50 cursor-not-allowed" : ""
                 }`}
             >
-                {sending ? 'Sending Reminders...' : 'Send Reminders'}
+                {sending ? "Sending Reminders..." : "Send Reminders"}
             </button>
 
             {message && (
-                <p className={`mt-2 text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                <p
+                    className={`mt-2 text-sm ${
+                        message.type === "success" ? "text-green-600" : "text-red-600"
+                    }`}
+                >
                     {message.text}
                 </p>
             )}
@@ -49,63 +54,77 @@ function SendRemindersButton() {
     );
 }
 
-// ----------------------------------------------------
-//                      MAIN PAGE
-// ----------------------------------------------------
+/* --------------------------------------
+            MAIN PAGE
+-------------------------------------- */
 export default function AdminPage() {
-    const [clients, setClients] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const { data: session, status } = useSession();
+    const { user, isLoaded } = useUser();
     const router = useRouter();
 
-    // Filters
-    const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState('ALL');
-    const [amountFilter, setAmountFilter] = useState('ALL');
+    // 🔎 Filters
+    const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState("ALL");
+    const [amountFilter, setAmountFilter] = useState("ALL");
 
-    // Bulk update
+// 🔘 Bulk actions
+    const [bulkStatus, setBulkStatus] = useState("");
     const [selectedDebtors, setSelectedDebtors] = useState([]);
-    const [bulkStatus, setBulkStatus] = useState('');
-    const [bulkLoading, setBulkLoading] = useState(false);
-    const [bulkMessage, setBulkMessage] = useState(null);
     const [selectAll, setSelectAll] = useState(false);
+    const [bulkMessage, setBulkMessage] = useState(null);
+    const [bulkLoading, setBulkLoading] = useState(false);
 
-    // Pagination
+// 📄 Pagination
+    const ITEMS_PER_PAGE = 6;
     const [debtorPages, setDebtorPages] = useState({});
-    const ITEMS_PER_PAGE = 8;
 
-    const handlePageChange = (clientId, newPage) => {
-        setDebtorPages((prev) => ({ ...prev, [clientId]: newPage }));
+    const handlePageChange = (clientId, page) => {
+        setDebtorPages((prev) => ({
+            ...prev,
+            [clientId]: page,
+        }));
     };
 
-    // --------------------------------------
-    // AUTH CHECK
-    // --------------------------------------
+    const [clients, setClients] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    // AUTH CHECK (Clerk)
     useEffect(() => {
-        if (status === 'loading') return;
-        if (!session) {
-            router.push('/login');
-        } else if (session.user.role !== 'admin') {
-            router.push('/client');
+        if (!isLoaded) return;
+
+        if (!user) {
+            router.push("/sign-in");
+            return;
         }
-    }, [status, session, router]);
 
-
+        const role = user.publicMetadata?.role;
+        if (role !== "admin") {
+            router.push("/client");
+        }
+    }, [isLoaded, user, router]);
 
     const fetchClients = async () => {
         try {
-            const res = await fetch('/api/admin/clients');
-            const data = await res.json().catch(() => ({}));
+            const res = await fetch("/api/admin/clients", {
+                credentials: "include",
+            });
+
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(text || "Unauthorized");
+            }
+
+            const data = await res.json();
             const clientData = Array.isArray(data) ? data : data.clients;
             setClients(clientData || []);
         } catch (err) {
-            console.error('Error fetching clients:', err);
-            setError('Failed to load clients.');
+            console.error("Error fetching clients:", err);
+            setError("Failed to load clients.");
         } finally {
             setLoading(false);
         }
     };
+
 
     useEffect(() => {
         fetchClients();
@@ -536,12 +555,12 @@ export default function AdminPage() {
 
             {/* Footer / logout */}
             <div className="mt-12 flex justify-end">
-                <button
-                    onClick={() => signOut({ callbackUrl: '/login' })}
-                    className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
-                >
-                    Logout
-                </button>
+                <SignOutButton redirectUrl="/sign-in">
+                    <button className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">
+                        Logout
+                    </button>
+                </SignOutButton>
+                Logout
             </div>
         </main>
     );
