@@ -193,17 +193,21 @@ export default function ClientPage() {
             const res = editingId
                 ? await fetch(`/api/debtors/${editingId}`, {
                     method: "PATCH",
+                    credentials: "include",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload),
                 })
                 : await fetch("/api/debtors", {
                     method: "POST",
+                    credentials: "include",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload),
                 });
 
-            if (!res.ok) throw new Error("Submit failed");
-
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "Submit failed");
+            }
             setSuccess(editingId ? "Debtor updated!" : "Debtor added!");
             setEditingId(null);
             setName("");
@@ -222,12 +226,22 @@ export default function ClientPage() {
             setLoading(false);
         }
     };
-
     const handleDelete = async (id) => {
         if (!confirm("Delete debtor?")) return;
-        await fetch(`/api/debtors/${id}`, { method: "DELETE" });
+
+        const res = await fetch(`/api/debtors/${id}`, {
+            method: "DELETE",
+            credentials: "include",   // 🔥 THIS WAS MISSING
+        });
+
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            console.error("Delete failed:", data);
+            return;
+        }
+
         fetchDebtors();
-    };
+    }
     // ---------------- SAFE RENDER GUARD ----------------
     if (!isLoaded || !isSignedIn) {
         return null;
@@ -375,7 +389,8 @@ export default function ClientPage() {
                                             setTelephone(debtor.telephone || "");
                                             setAddress(debtor.address || "");
                                             setCedulaIdentidad(debtor.cedulaIdentidad || "");
-                                            setAmountOwed(debtor.amountOwed);
+                                            setAmountOwed(String(debtor.amountOwed));
+
                                         }}
                                         className="text-indigo-600"
                                     >

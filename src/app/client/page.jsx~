@@ -193,17 +193,21 @@ export default function ClientPage() {
             const res = editingId
                 ? await fetch(`/api/debtors/${editingId}`, {
                     method: "PATCH",
+                    credentials: "include",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload),
                 })
                 : await fetch("/api/debtors", {
                     method: "POST",
+                    credentials: "include",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload),
                 });
 
-            if (!res.ok) throw new Error("Submit failed");
-
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "Submit failed");
+            }
             setSuccess(editingId ? "Debtor updated!" : "Debtor added!");
             setEditingId(null);
             setName("");
@@ -235,25 +239,175 @@ export default function ClientPage() {
 
     return (
         <div className="min-h-screen bg-white text-[#443CA3] p-10">
-            <h1 className="text-3xl font-extrabold mb-2">
+            {/* Header */}
+            <h1 className="text-3xl font-extrabold mb-2 font-[Neulis Alt]">
                 Welcome, {user?.fullName || "Client"}!
             </h1>
-
-            <p className="text-base text-gray-500">
+            <p className="text-base text-[#9E9E9E] font-[Avenir Next]">
                 Email:{" "}
-                <span className="font-bold text-green-500">
-                    {user?.primaryEmailAddress?.emailAddress}
-                </span>
+                <span className="font-bold text-[#21FE83]">
+        {user?.primaryEmailAddress?.emailAddress}
+      </span>
             </p>
 
-            {/* YOUR EXISTING FORM / TABLE JSX CAN STAY HERE */}
+            {/* Debtor Form */}
+            <form
+                onSubmit={handleSubmit}
+                className="mt-8 space-y-4 max-w-lg bg-[#CCE8FF] p-6 rounded-2xl shadow-md"
+            >
+                <h2 className="text-xl font-semibold text-[#443CA3] font-[Neulis Alt]">
+                    {editingId ? "Edit Debtor" : "Add a Debtor"}
+                </h2>
 
+                <input
+                    type="text"
+                    placeholder="Debtor Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full p-3 border border-[#9E9E9E] rounded-lg"
+                    required
+                />
+
+                <input
+                    type="email"
+                    placeholder="Debtor Email (optional)"
+                    value={email}
+                    onChange={(e) => {
+                        setEmail(e.target.value);
+                        validateEmail(e.target.value);
+                    }}
+                    className="w-full p-3 border border-[#9E9E9E] rounded-lg"
+                />
+                {emailError && <p className="text-red-500 text-sm">{emailError}</p>}
+
+                <PhoneInput
+                    country={"ec"}
+                    value={telephone}
+                    onChange={(phone) => setTelephone(phone)}
+                    enableSearch={true}
+                    inputClass="!w-full !p-3 !border !border-[#9E9E9E] !rounded-lg"
+                />
+
+                <input
+                    type="text"
+                    placeholder="Address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    className="w-full p-3 border border-[#9E9E9E] rounded-lg"
+                />
+
+                <input
+                    type="text"
+                    placeholder="Cédula de Identidad"
+                    value={cedulaIdentidad}
+                    onChange={(e) => {
+                        const v = e.target.value.replace(/\D/g, "");
+                        if (v.length <= 10) setCedulaIdentidad(v);
+                    }}
+                    className="w-full p-3 border border-[#9E9E9E] rounded-lg"
+                    required
+                />
+
+                <input
+                    type="text"
+                    placeholder="Amount Owed"
+                    value={amountOwed}
+                    onChange={(e) => setAmountOwed(e.target.value)}
+                    className="w-full p-3 border border-[#9E9E9E] rounded-lg"
+                    required
+                />
+
+                <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={(e) => setDocumentFile(e.target.files[0])}
+                    className="block w-full text-sm"
+                />
+
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-[#21FE83] text-[#443CA3] font-bold py-3 rounded-lg"
+                >
+                    {loading
+                        ? "Submitting..."
+                        : editingId
+                            ? "Update Debtor"
+                            : "Add Debtor"}
+                </button>
+
+                {success && <p className="text-green-600">{success}</p>}
+                {error && <p className="text-red-600">{error}</p>}
+            </form>
+
+            {/* Debtor List */}
+            <div className="mt-10">
+                <h2 className="text-xl font-bold mb-4">Your Debtors</h2>
+
+                {debtors.length === 0 ? (
+                    <p className="text-gray-400">No debtors yet.</p>
+                ) : (
+                    <ul className="space-y-3">
+                        {filteredDebtors.map((debtor) => (
+                            <li
+                                key={debtor.id}
+                                className="border p-4 rounded-xl bg-white shadow flex justify-between"
+                            >
+                                <div>
+                                    <p>
+                                        <b>Name:</b> {debtor.name}
+                                    </p>
+                                    {debtor.email && (
+                                        <p>
+                                            <b>Email:</b> {debtor.email}
+                                        </p>
+                                    )}
+                                    <p>
+                                        <b>Cédula:</b> {debtor.cedulaIdentidad}
+                                    </p>
+                                    <p>
+                                        <b>Amount:</b> ${debtor.amountOwed}
+                                    </p>
+                                </div>
+
+                                <div className="space-x-3">
+                                    <button
+                                        onClick={() => {
+                                            setEditingId(debtor.id);
+                                            setName(debtor.name);
+                                            setEmail(debtor.email || "");
+                                            setTelephone(debtor.telephone || "");
+                                            setAddress(debtor.address || "");
+                                            setCedulaIdentidad(debtor.cedulaIdentidad || "");
+                                            setAmountOwed(String(debtor.amountOwed));
+
+                                        }}
+                                        className="text-indigo-600"
+                                    >
+                                        Edit
+                                    </button>
+
+                                    <button
+                                        onClick={() => handleDelete(debtor.id)}
+                                        className="text-red-500"
+                                    >
+                                        Delete
+                                    </button>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+
+            {/* Logout */}
             <button
                 onClick={() => signOut(() => router.push("/sign-in"))}
-                className="mt-12 bg-indigo-600 text-white px-6 py-3 rounded-xl"
+                className="mt-12 bg-[#443CA3] text-white px-6 py-3 rounded-xl"
             >
                 Logout
             </button>
         </div>
     );
+
 }

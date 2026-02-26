@@ -1,127 +1,495 @@
+// import Image from "next/image";
+// import Link from "next/link";
+//
+// export default function HomePage() {
+//     return (
+//         <div className="min-h-screen bg-[#443CA3] flex items-center justify-center px-6">
+//             <div className="max-w-5xl w-full text-center space-y-10">
+//
+//                 {/* ✅ Logo */}
+//                 <div className="flex justify-center">
+//                     <div className="bg-white p-4 rounded-2xl shadow-lg">
+//                         <Image
+//                             src="/logo-recupera-purple.png"
+//                             alt="Recupera Logo"
+//                             width={180}
+//                             height={80}
+//                             className="object-contain"
+//                         />
+//                     </div>
+//                 </div>
+//
+//                 {/* Hero Title */}
+//                 <div>
+//                     <h1
+//                         className="text-5xl font-extrabold text-[#FFFF76] mb-4"
+//                         style={{ fontFamily: "Neulis Alt" }}
+//                     >
+//                         Bienvenido a tu Portal de Recuperación de Deudas
+//                     </h1>
+//
+//                     <p
+//                         className="text-lg text-[#CCE8FF] max-w-2xl mx-auto"
+//                         style={{ fontFamily: "Avenir Next" }}
+//                     >
+//                         Administra deudores, controla pagos y automatiza recordatorios —
+//                         todo desde un panel moderno diseñado para clientes y administradores.
+//                     </p>
+//                 </div>
+//
+//                 {/* Action Buttons */}
+//                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
+//
+//                     {/* Login */}
+//                     <Link
+//                         href="/sign-in"
+//                         className="px-8 py-3 rounded-xl bg-[#21FE83] text-[#443CA3] font-bold shadow-lg hover:bg-[#1edb70] transition"
+//                         style={{ fontFamily: "Neulis Alt" }}
+//                     >
+//                         Iniciar Sesión
+//                     </Link>
+//
+//                     {/* Sign Up */}
+//                     <Link
+//                         href="/sign-up"
+//                         className="px-8 py-3 rounded-xl border-2 border-[#CCE8FF] text-white font-semibold hover:bg-[#CCE8FF] hover:text-[#443CA3] transition"
+//                         style={{ fontFamily: "Avenir Next" }}
+//                     >
+//                         Crear Cuenta
+//                     </Link>
+//                 </div>
+//
+//                 {/* Features Section */}
+//                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+//
+//                     {/* Feature Card */}
+//                     <div className="bg-[#CCE8FF] rounded-2xl shadow-md p-6 text-left space-y-3">
+//                         <h3
+//                             className="text-xl font-bold text-[#443CA3]"
+//                             style={{ fontFamily: "Neulis Alt" }}
+//                         >
+//                             Portal del Cliente
+//                         </h3>
+//                         <p
+//                             className="text-sm text-[#9E9E9E]"
+//                             style={{ fontFamily: "Avenir Next" }}
+//                         >
+//                             Registra deudores, revisa su estado y administra acuerdos de pago
+//                             desde una interfaz clara y profesional.
+//                         </p>
+//                     </div>
+//
+//                     {/* Feature Card */}
+//                     <div className="bg-[#CCE8FF] rounded-2xl shadow-md p-6 text-left space-y-3">
+//                         <h3
+//                             className="text-xl font-bold text-[#443CA3]"
+//                             style={{ fontFamily: "Neulis Alt" }}
+//                         >
+//                             Recordatorios Automatizados
+//                         </h3>
+//                         <p
+//                             className="text-sm text-[#9E9E9E]"
+//                             style={{ fontFamily: "Avenir Next" }}
+//                         >
+//                             Automatiza correos, WhatsApp y llamadas para asegurar el seguimiento
+//                             de pagos atrasados de forma eficiente.
+//                         </p>
+//                     </div>
+//
+//                     {/* Feature Card */}
+//                     <div className="bg-[#CCE8FF] rounded-2xl shadow-md p-6 text-left space-y-3">
+//                         <h3
+//                             className="text-xl font-bold text-[#443CA3]"
+//                             style={{ fontFamily: "Neulis Alt" }}
+//                         >
+//                             Panel Administrativo
+//                         </h3>
+//                         <p
+//                             className="text-sm text-[#9E9E9E]"
+//                             style={{ fontFamily: "Avenir Next" }}
+//                         >
+//                             Los administradores pueden supervisar clientes, actualizar estados
+//                             de deudas y controlar recordatorios globales del sistema.
+//                         </p>
+//                     </div>
+//                 </div>
+//
+//                 {/* Footer Note */}
+//                 {/* ✅ Footer */}
+//                 <footer className="mt-16 border-t border-[#CCE8FF]/30 pt-8">
+//                     <div className="flex flex-col md:flex-row items-center justify-between gap-6 text-sm text-[#CCE8FF]">
+//
+//                         {/* Left Side */}
+//                         <p
+//                             style={{ fontFamily: "Avenir Next" }}
+//                             className="text-center md:text-left"
+//                         >
+//                             © {new Date().getFullYear()}{" "}
+//                             <span className="font-bold text-[#FFFF76]">Recupera</span>.
+//                             Todos los derechos reservados.
+//                         </p>
+//
+//                         {/* Footer Links */}
+//                         <div
+//                             className="flex flex-wrap justify-center gap-6"
+//                             style={{ fontFamily: "Avenir Next" }}
+//                         >
+//                             <a
+//                                 href="/privacy"
+//                                 className="hover:text-[#21FE83] transition"
+//                             >
+//                                 Política de Privacidad
+//                             </a>
+//
+//                             <a
+//                                 href="/terms"
+//                                 className="hover:text-[#21FE83] transition"
+//                             >
+//                                 Términos y Condiciones
+//                             </a>
+//
+//                             <a
+//                                 href="/contact"
+//                                 className="hover:text-[#21FE83] transition"
+//                             >
+//                                 Contacto
+//                             </a>
+//                         </div>
+//                     </div>
+//
+//                     {/* Bottom Line */}
+//                     <p
+//                         className="mt-6 text-xs text-center text-[#9E9E9E]"
+//                         style={{ fontFamily: "Avenir Next" }}
+//                     >
+//                         Plataforma diseñada para automatizar la recuperación de pagos de forma segura y eficiente.
+//                     </p>
+//                 </footer>
+//
+//             </div>
+//         </div>
+//     );
+// }
+
+'use client';
+
 import Image from "next/image";
 import Link from "next/link";
 
-export default function HomePage() {
+export default function LandingPage() {
     return (
-        <div className="min-h-screen bg-[#443CA3] flex items-center justify-center px-6">
-            <div className="max-w-5xl w-full text-center space-y-10">
+        <div className="min-h-screen bg-[#443CA3] text-white overflow-hidden">
 
-                {/* ✅ Logo */}
-                <div className="flex justify-center">
-                    <div className="bg-white p-4 rounded-2xl shadow-lg">
-                        <Image
-                            src="/logo-recupera-purple.png"
-                            alt="Recupera Logo"
-                            width={180}
-                            height={80}
-                            className="object-contain"
-                        />
-                    </div>
+            {/* ================= NAVBAR ================= */}
+            <nav className="flex items-center justify-between px-8 max-w-7xl mx-auto">
+
+                {/* Logo */}
+                <div className="bg-white p-3 rounded-xl shadow-lg">
+                    <Image
+                        src="/logo-recupera-purple.png"
+                        alt="Recupera"
+                        width={30}
+                        height={25}
+                    />
                 </div>
 
-                {/* Hero Title */}
-                <div>
-                    <h1
-                        className="text-5xl font-extrabold text-[#FFFF76] mb-4"
-                        style={{ fontFamily: "Neulis Alt" }}
-                    >
-                        Bienvenido a tu Portal de Recuperación de Deudas
-                    </h1>
-
-                    <p
-                        className="text-lg text-[#CCE8FF] max-w-2xl mx-auto"
-                        style={{ fontFamily: "Avenir Next" }}
-                    >
-                        Administra deudores, controla pagos y automatiza recordatorios —
-                        todo desde un panel moderno diseñado para clientes y administradores.
-                    </p>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-
-                    {/* Login */}
-                    <Link
-                        href="/sign-in"
-                        className="px-8 py-3 rounded-xl bg-[#21FE83] text-[#443CA3] font-bold shadow-lg hover:bg-[#1edb70] transition"
-                        style={{ fontFamily: "Neulis Alt" }}
-                    >
-                        Iniciar Sesión
-                    </Link>
-
-                    {/* Sign Up */}
-                    <Link
-                        href="/sign-up"
-                        className="px-8 py-3 rounded-xl border-2 border-[#CCE8FF] text-white font-semibold hover:bg-[#CCE8FF] hover:text-[#443CA3] transition"
-                        style={{ fontFamily: "Avenir Next" }}
-                    >
-                        Crear Cuenta
-                    </Link>
-                </div>
-
-                {/* Features Section */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
-
-                    {/* Feature Card */}
-                    <div className="bg-[#CCE8FF] rounded-2xl shadow-md p-6 text-left space-y-3">
-                        <h3
-                            className="text-xl font-bold text-[#443CA3]"
-                            style={{ fontFamily: "Neulis Alt" }}
-                        >
-                            Portal del Cliente
-                        </h3>
-                        <p
-                            className="text-sm text-[#9E9E9E]"
-                            style={{ fontFamily: "Avenir Next" }}
-                        >
-                            Registra deudores, revisa su estado y administra acuerdos de pago
-                            desde una interfaz clara y profesional.
-                        </p>
-                    </div>
-
-                    {/* Feature Card */}
-                    <div className="bg-[#CCE8FF] rounded-2xl shadow-md p-6 text-left space-y-3">
-                        <h3
-                            className="text-xl font-bold text-[#443CA3]"
-                            style={{ fontFamily: "Neulis Alt" }}
-                        >
-                            Recordatorios Automatizados
-                        </h3>
-                        <p
-                            className="text-sm text-[#9E9E9E]"
-                            style={{ fontFamily: "Avenir Next" }}
-                        >
-                            Automatiza correos, WhatsApp y llamadas para asegurar el seguimiento
-                            de pagos atrasados de forma eficiente.
-                        </p>
-                    </div>
-
-                    {/* Feature Card */}
-                    <div className="bg-[#CCE8FF] rounded-2xl shadow-md p-6 text-left space-y-3">
-                        <h3
-                            className="text-xl font-bold text-[#443CA3]"
-                            style={{ fontFamily: "Neulis Alt" }}
-                        >
-                            Panel Administrativo
-                        </h3>
-                        <p
-                            className="text-sm text-[#9E9E9E]"
-                            style={{ fontFamily: "Avenir Next" }}
-                        >
-                            Los administradores pueden supervisar clientes, actualizar estados
-                            de deudas y controlar recordatorios globales del sistema.
-                        </p>
-                    </div>
-                </div>
-
-                {/* Footer Note */}
-                <p
-                    className="text-sm text-[#CCE8FF] mt-10"
-                    style={{ fontFamily: "Avenir Next" }}
+                {/* CTA */}
+                <Link
+                    href="/sign-in"
+                    className="bg-[#21FE83] text-[#443CA3] font-bold px-6 py-2 rounded-lg hover:bg-[#1edb70] transition"
+                    style={{fontFamily: "Neulis Alt"}}
                 >
-                    Construido con seguridad, automatización y diseño moderno en mente.
+                    Iniciar Sesión
+                </Link>
+            </nav>
+
+            {/* ================= HERO ================= */}
+            <section className="relative min-h-screen flex items-center px-8 overflow-hidden bg-[#443CA3]">
+
+                {/* ===== Gradient Mesh Background ===== */}
+                <div className="absolute inset-0">
+
+                    <div
+                        className="absolute w-[900px] h-[900px] bg-[#21FE83]/20 blur-[180px] rounded-full top-[-200px] left-[-200px]"/>
+
+                    <div
+                        className="absolute w-[700px] h-[700px] bg-[#CCE8FF]/20 blur-[160px] rounded-full bottom-[-200px] right-[-200px]"/>
+
+                    <div
+                        className="absolute w-[600px] h-[600px] bg-[#FFFF76]/10 blur-[140px] rounded-full top-[30%] left-[40%]"/>
+
+                </div>
+
+                {/* ===== Particle Field ===== */}
+                <div className="absolute inset-0 opacity-30">
+                    {[...Array(40)].map((_, i) => (
+                        <div
+                            key={i}
+                            className="absolute w-1 h-1 bg-white rounded-full animate-pulse"
+                            style={{
+                                top: `${Math.random() * 100}%`,
+                                left: `${Math.random() * 100}%`,
+                                animationDuration: `${2 + Math.random() * 3}s`,
+                            }}
+                        />
+                    ))}
+                </div>
+
+                {/* ===== Main Content Grid ===== */}
+                <div className="relative max-w-7xl mx-auto grid md:grid-cols-2 gap-20 items-center">
+
+                    {/* ===== LEFT — TEXT ===== */}
+                    <div className="space-y-10">
+
+                        <h1
+                            className="text-7xl md:text-8xl xl:text-[110px] font-extrabold leading-[0.95]"
+                            style={{fontFamily: "Neulis Alt"}}
+                        >
+                            Recupera tu Liquidez
+                            <br/>
+                            <span className="text-[#FFFF76]">
+          de Manera Automatica
+        </span>
+                        </h1>
+
+                        <p
+                            className="text-xl text-[#CCE8FF] max-w-xl"
+                            style={{fontFamily: "Avenir Next"}}
+                        >
+                            Automatiza recordatorios, optimiza negociaciones y ejecuta
+                            estrategias de cobranza inteligentes con una plataforma diseñada
+                            para maximizar tu flujo de caja.
+                        </p>
+
+                        {/* Metrics */}
+                        <div className="flex gap-10 text-sm text-[#CCE8FF]">
+
+                            <div>
+                                <p className="text-3xl font-bold text-[#21FE83]">+92%</p>
+                                <p>Contactabilidad</p>
+                            </div>
+
+                            <div>
+                                <p className="text-3xl font-bold text-[#21FE83]">24/7</p>
+                                <p>Automatización</p>
+                            </div>
+
+                            <div>
+                                <p className="text-3xl font-bold text-[#21FE83]">+10K</p>
+                                <p>Casos activos</p>
+                            </div>
+
+                        </div>
+
+                        {/* CTA */}
+                        <div className="flex gap-6">
+
+                            <a
+                                href="/sign-up"
+                                className="bg-[#21FE83] text-[#443CA3] font-bold px-12 py-5 rounded-2xl shadow-2xl hover:bg-[#1edb70] transition text-lg"
+                                style={{fontFamily: "Neulis Alt"}}
+                            >
+                                Crear Cuenta
+                            </a>
+
+                            <a
+                                href="#how"
+                                className="border border-[#CCE8FF] px-12 py-5 rounded-2xl hover:bg-[#CCE8FF] hover:text-[#443CA3] transition text-lg"
+                                style={{fontFamily: "Avenir Next"}}
+                            >
+                                Ver Plataforma
+                            </a>
+
+                        </div>
+                    </div>
+
+                    {/* ===== RIGHT — AI + FLOATING UI ===== */}
+                    <div className="relative flex justify-center items-center">
+
+                        {/* AI Energy Core */}
+                        <div
+                            className="absolute w-[420px] h-[420px] bg-gradient-to-br from-[#21FE83]/40 to-[#CCE8FF]/40 blur-3xl rounded-full animate-pulse"/>
+
+                        {/* Glass Card 1 */}
+                        <div
+                            className="absolute -top-10 -left-10 bg-white/90 backdrop-blur-xl p-5 rounded-xl shadow-2xl w-56 animate-[float_6s_ease-in-out_infinite]">
+                            <p className="text-[#443CA3] text-sm font-bold">
+                                Recuperado Hoy
+                            </p>
+                            <p className="text-2xl font-bold text-[#21FE83]">
+                                $12,840
+                            </p>
+                        </div>
+
+                        {/* Glass Card 2 */}
+                        <div
+                            className="absolute -bottom-10 -right-10 bg-white/90 backdrop-blur-xl p-5 rounded-xl shadow-2xl w-56 animate-[float_7s_ease-in-out_infinite]">
+                            <p className="text-[#443CA3] text-sm font-bold">
+                                Automatizaciones
+                            </p>
+                            <p className="text-2xl font-bold text-[#443CA3]">
+                                1,284
+                            </p>
+                        </div>
+
+                        {/* Main Dashboard */}
+                        <div
+                            className="relative bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_0_80px_rgba(0,0,0,0.4)] p-7 w-[380px] border border-[#CCE8FF]">
+
+                            <h3 className="text-[#443CA3] font-bold mb-4">
+                                Centro de Control
+                            </h3>
+
+                            <div className="space-y-3 text-sm text-[#443CA3]">
+
+                                <div className="flex justify-between">
+                                    <span>Empresa Orion</span>
+                                    <span className="bg-[#21FE83] px-2 py-1 rounded text-xs font-bold">
+              Pagado
+            </span>
+                                </div>
+
+                                <div className="flex justify-between">
+                                    <span>Grupo Atlas</span>
+                                    <span className="bg-[#FFFF76] px-2 py-1 rounded text-xs font-bold">
+              Pendiente
+            </span>
+                                </div>
+
+                                <div className="flex justify-between">
+                                    <span>Innova Tech</span>
+                                    <span className="bg-[#CCE8FF] px-2 py-1 rounded text-xs font-bold">
+              En Gestión
+            </span>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Floating animation */}
+                <style jsx>{`
+                    @keyframes float {
+                        0% {
+                            transform: translateY(0px);
+                        }
+                        50% {
+                            transform: translateY(-22px);
+                        }
+                        100% {
+                            transform: translateY(0px);
+                        }
+                    }
+                `}</style>
+
+            </section>
+
+            {/* ================= TRUST STRIP ================= */}
+            <section className="border-y border-[#CCE8FF]/20 py-8 text-center text-[#CCE8FF]">
+                <p style={{fontFamily: "Avenir Next"}}>
+                    +10,000 deudores gestionados · Automatización 24/7 · Seguridad empresarial
                 </p>
-            </div>
+            </section>
+
+            {/* ================= HOW IT WORKS ================= */}
+            <section id="how" className="px-8 py-24 max-w-7xl mx-auto">
+
+                <h2
+                    className="text-3xl font-bold text-center mb-16"
+                    style={{fontFamily: "Neulis Alt"}}
+                >
+                    Cómo Funciona
+                </h2>
+
+                <div className="grid md:grid-cols-4 gap-8 text-center">
+
+                    {[
+                        "Carga tus deudores",
+                        "Activamos recordatorios",
+                        "Seguimiento automatizado",
+                        "Recuperas liquidez",
+                    ].map((step, i) => (
+                        <div key={i} className="space-y-3">
+                            <div className="text-[#FFFF76] text-3xl font-bold">
+                                0{i + 1}
+                            </div>
+                            <p style={{fontFamily: "Avenir Next"}}>{step}</p>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* ================= FEATURES ================= */}
+            <section className="px-8 pb-24 max-w-7xl mx-auto">
+
+                <h2
+                    className="text-3xl font-bold text-center mb-12"
+                    style={{fontFamily: "Neulis Alt"}}
+                >
+                    Tecnología Diseñada para Resultados
+                </h2>
+
+                <div className="grid md:grid-cols-3 gap-8">
+
+                    {[
+                        "Portal Cliente",
+                        "Automatización IA",
+                        "Gestión Legal",
+                        "Reportes Inteligentes",
+                        "Panel Administrativo",
+                        "Seguridad Empresarial",
+                    ].map((feature, i) => (
+                        <div
+                            key={i}
+                            className="bg-[#CCE8FF] text-[#443CA3] p-6 rounded-2xl shadow-lg hover:-translate-y-1 transition"
+                        >
+                            <h3 className="font-bold text-lg">{feature}</h3>
+                            <p className="text-sm text-[#9E9E9E] mt-2">
+                                Módulo avanzado diseñado para optimizar la recuperación.
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* ================= CTA ================= */}
+            <section className="px-8 pb-24 text-center">
+
+                <h2
+                    className="text-3xl font-bold mb-6"
+                    style={{fontFamily: "Neulis Alt"}}
+                >
+                    Activa tu sistema de recuperación hoy
+                </h2>
+
+                <Link
+                    href="/sign-up"
+                    className="bg-[#21FE83] text-[#443CA3] font-bold px-10 py-4 rounded-xl shadow-lg hover:bg-[#1edb70] transition"
+                    style={{fontFamily: "Neulis Alt"}}
+                >
+                    Crear Cuenta
+                </Link>
+            </section>
+
+            {/* ================= FOOTER ================= */}
+            <footer className="border-t border-[#CCE8FF]/20 py-8 px-8 text-sm">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+
+                    <p className="text-[#CCE8FF]">
+                        © {new Date().getFullYear()}{" "}
+                        <span className="text-[#FFFF76] font-bold">
+              Recupera
+            </span>. Todos los derechos reservados.
+                    </p>
+
+                    <div className="flex gap-6 text-[#CCE8FF]">
+                        <a href="#">Privacidad</a>
+                        <a href="#">Términos</a>
+                        <a href="#">Contacto</a>
+                    </div>
+                </div>
+            </footer>
         </div>
     );
 }
