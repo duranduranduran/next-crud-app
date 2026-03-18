@@ -170,115 +170,129 @@
 //         </div>
 //     );
 // }
-
 'use client';
 
 import Image from "next/image";
 import Link from "next/link";
+import { useMemo, useState } from "react";
 
 export default function LandingPage() {
+
+    // Particles (static)
+    const particles = useMemo(() =>
+        [...Array(40)].map(() => ({
+            top: Math.random() * 100,
+            left: Math.random() * 100,
+        })), []
+    );
+
+    // Mouse parallax
+    const [mouse, setMouse] = useState({ x: 0, y: 0 });
+
+    const handleMouseMove = (e) => {
+        const { innerWidth, innerHeight } = window;
+
+        const x = (e.clientX / innerWidth - 0.5) * 10;
+        const y = (e.clientY / innerHeight - 0.5) * 10;
+
+        setMouse({ x, y });
+    };
+
     return (
-        <div className="min-h-screen bg-[#443CA3] text-white overflow-hidden">
+        <div className="min-h-screen bg-white text-[#443CA3]">
 
             {/* ================= NAVBAR ================= */}
-            <nav className="flex items-center justify-between px-8 max-w-7xl mx-auto">
-
-                {/* Logo */}
-                <div className="bg-white p-3 rounded-xl shadow-lg">
+            <nav
+                className="sticky top-0 z-50 flex items-center justify-between px-8 max-w-7xl mx-auto bg-white py-4 border-b border-[#443CA3]/10">
+                <Link href="/">
                     <Image
                         src="/logo-recupera-purple.png"
                         alt="Recupera"
-                        width={30}
+                        width={150}
                         height={25}
                     />
-                </div>
-
-                {/* CTA */}
-                <Link
-                    href="/sign-in"
-                    className="bg-[#21FE83] text-[#443CA3] font-bold px-6 py-2 rounded-lg hover:bg-[#1edb70] transition"
-                    style={{fontFamily: "Neulis Alt"}}
-                >
-                    Iniciar Sesión
                 </Link>
+
+                <ul className="flex space-x-6">
+                    <li>
+                        <Link href="/about" className="hover:underline">
+                            Quienes Somos
+                        </Link>
+                    </li>
+                    <li>
+                        <Link href="/services" className="hover:underline">
+                            Servicios
+                        </Link>
+                    </li>
+                    <li>
+                        <Link href="/contact" className="hover:underline">
+                            Contactanos
+                        </Link>
+                    </li>
+                    <li>
+                        <Link
+                            href="/sign-in"
+                            className="border border-[#443CA3] px-5 py-2 rounded-lg hover:bg-[#443CA3] hover:text-white transition"
+                        >
+                            Iniciar Sesión
+                        </Link>
+                    </li>
+                </ul>
             </nav>
 
             {/* ================= HERO ================= */}
-            <section className="relative min-h-screen flex items-center px-8 overflow-hidden bg-[#443CA3]">
+            <section
+                className="relative min-h-screen flex items-center px-8"
+                onMouseMove={handleMouseMove}
+            >
 
-                {/* ===== Gradient Mesh Background ===== */}
-                <div className="absolute inset-0">
-
-                    <div
-                        className="absolute w-[900px] h-[900px] bg-[#21FE83]/20 blur-[180px] rounded-full top-[-200px] left-[-200px]"/>
-
-                    <div
-                        className="absolute w-[700px] h-[700px] bg-[#CCE8FF]/20 blur-[160px] rounded-full bottom-[-200px] right-[-200px]"/>
-
-                    <div
-                        className="absolute w-[600px] h-[600px] bg-[#FFFF76]/10 blur-[140px] rounded-full top-[30%] left-[40%]"/>
-
-                </div>
-
-                {/* ===== Particle Field ===== */}
-                <div className="absolute inset-0 opacity-30">
-                    {[...Array(40)].map((_, i) => (
+                {/* Particles */}
+                <div className="absolute inset-0 opacity-10">
+                    {particles.map((p, i) => (
                         <div
                             key={i}
-                            className="absolute w-1 h-1 bg-white rounded-full animate-pulse"
+                            className="absolute w-1 h-1 bg-[#443CA3] rounded-full"
                             style={{
-                                top: `${Math.random() * 100}%`,
-                                left: `${Math.random() * 100}%`,
-                                animationDuration: `${2 + Math.random() * 3}s`,
+                                top: `${p.top}%`,
+                                left: `${p.left}%`,
                             }}
                         />
                     ))}
                 </div>
 
-                {/* ===== Main Content Grid ===== */}
                 <div className="relative max-w-7xl mx-auto grid md:grid-cols-2 gap-20 items-center">
 
-                    {/* ===== LEFT — TEXT ===== */}
+                    {/* TEXT */}
                     <div className="space-y-10">
 
-                        <h1
-                            className="text-7xl md:text-8xl xl:text-[110px] font-extrabold leading-[0.95]"
-                            style={{fontFamily: "Neulis Alt"}}
-                        >
-                            Recupera tu Liquidez
-                            <br/>
-                            <span className="text-[#FFFF76]">
-          de Manera Automatica
-        </span>
+                        <h1 className="text-7xl md:text-8xl xl:text-[110px] font-extrabold leading-[0.95]">
+                            RECUPERA tu Liquidez
+                            <br />
+                            <span>
+                                de Manera Automatica
+                            </span>
                         </h1>
 
-                        <p
-                            className="text-xl text-[#CCE8FF] max-w-xl"
-                            style={{fontFamily: "Avenir Next"}}
-                        >
+                        <p className="text-lg max-w-xl text-[#443CA3]/70">
                             Automatiza recordatorios, optimiza negociaciones y ejecuta
                             estrategias de cobranza inteligentes con una plataforma diseñada
                             para maximizar tu flujo de caja.
                         </p>
 
                         {/* Metrics */}
-                        <div className="flex gap-10 text-sm text-[#CCE8FF]">
-
+                        <div className="flex gap-10 text-sm text-[#443CA3]/70">
                             <div>
-                                <p className="text-3xl font-bold text-[#21FE83]">+92%</p>
+                                <p className="text-3xl font-bold">+92%</p>
                                 <p>Contactabilidad</p>
                             </div>
-
                             <div>
-                                <p className="text-3xl font-bold text-[#21FE83]">24/7</p>
+                                <p className="text-3xl font-bold">24/7</p>
                                 <p>Automatización</p>
                             </div>
-
                             <div>
-                                <p className="text-3xl font-bold text-[#21FE83]">+10K</p>
+                                <p className="text-3xl font-bold">+10K</p>
                                 <p>Casos activos</p>
                             </div>
-
                         </div>
 
                         {/* CTA */}
@@ -286,16 +300,14 @@ export default function LandingPage() {
 
                             <a
                                 href="/sign-up"
-                                className="bg-[#21FE83] text-[#443CA3] font-bold px-12 py-5 rounded-2xl shadow-2xl hover:bg-[#1edb70] transition text-lg"
-                                style={{fontFamily: "Neulis Alt"}}
+                                className="bg-[#443CA3] text-white px-10 py-4 rounded-lg font-bold hover:opacity-90 transition"
                             >
                                 Crear Cuenta
                             </a>
 
                             <a
                                 href="#how"
-                                className="border border-[#CCE8FF] px-12 py-5 rounded-2xl hover:bg-[#CCE8FF] hover:text-[#443CA3] transition text-lg"
-                                style={{fontFamily: "Avenir Next"}}
+                                className="border border-[#443CA3] px-10 py-4 rounded-lg hover:bg-[#443CA3] hover:text-white transition"
                             >
                                 Ver Plataforma
                             </a>
@@ -303,64 +315,70 @@ export default function LandingPage() {
                         </div>
                     </div>
 
-                    {/* ===== RIGHT — AI + FLOATING UI ===== */}
+                    {/* UI MOCK */}
                     <div className="relative flex justify-center items-center">
 
-                        {/* AI Energy Core */}
+                        {/* Floating Card 1 */}
                         <div
-                            className="absolute w-[420px] h-[420px] bg-gradient-to-br from-[#21FE83]/40 to-[#CCE8FF]/40 blur-3xl rounded-full animate-pulse"/>
+                            className="group absolute -top-10 -left-10 border border-[#443CA3]/20 p-5 rounded-lg w-56 bg-white animate-floatSlow hover:bg-[#21FE83] transition-all duration-300">
 
-                        {/* Glass Card 1 */}
-                        <div
-                            className="absolute -top-10 -left-10 bg-white/90 backdrop-blur-xl p-5 rounded-xl shadow-2xl w-56 animate-[float_6s_ease-in-out_infinite]">
-                            <p className="text-[#443CA3] text-sm font-bold">
+                            <p className="text-sm font-bold group-hover:text-[#443CA3]">
                                 Recuperado Hoy
                             </p>
-                            <p className="text-2xl font-bold text-[#21FE83]">
+
+                            <p className="text-2xl font-bold group-hover:text-[#443CA3]">
                                 $12,840
                             </p>
+
                         </div>
 
-                        {/* Glass Card 2 */}
+                        {/* Floating Card 2 */}
                         <div
-                            className="absolute -bottom-10 -right-10 bg-white/90 backdrop-blur-xl p-5 rounded-xl shadow-2xl w-56 animate-[float_7s_ease-in-out_infinite]">
-                            <p className="text-[#443CA3] text-sm font-bold">
+                            className="group absolute -bottom-10 -right-10 border border-[#443CA3]/20 p-5 rounded-lg w-56 bg-white animate-floatSlowReverse hover:bg-[#FFFF76] transition-all duration-300">
+
+                            <p className="text-sm font-bold group-hover:text-[#443CA3]">
                                 Automatizaciones
                             </p>
-                            <p className="text-2xl font-bold text-[#443CA3]">
+
+                            <p className="text-2xl font-bold group-hover:text-[#443CA3]">
                                 1,284
                             </p>
+
                         </div>
 
-                        {/* Main Dashboard */}
+                        {/* Main Card with Parallax */}
                         <div
-                            className="relative bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_0_80px_rgba(0,0,0,0.4)] p-7 w-[380px] border border-[#CCE8FF]">
+                            className="group bg-white border border-[#443CA3]/20 rounded-xl p-7 w-[380px] transition-all duration-300 ease-out hover:bg-[#443CA3]"
+                            style={{
+                                transform: `translate(${mouse.x}px, ${mouse.y}px) scale(1.01)`
+                            }}
+                        >
 
-                            <h3 className="text-[#443CA3] font-bold mb-4">
+                            <h3 className="font-bold mb-4">
                                 Centro de Control
                             </h3>
 
-                            <div className="space-y-3 text-sm text-[#443CA3]">
+                            <div className="space-y-3 text-sm">
 
                                 <div className="flex justify-between">
                                     <span>Empresa Orion</span>
-                                    <span className="bg-[#21FE83] px-2 py-1 rounded text-xs font-bold">
-              Pagado
-            </span>
+                                    <span className="border px-2 py-1 rounded text-xs">
+                                        Pagado
+                                    </span>
                                 </div>
 
                                 <div className="flex justify-between">
                                     <span>Grupo Atlas</span>
-                                    <span className="bg-[#FFFF76] px-2 py-1 rounded text-xs font-bold">
-              Pendiente
-            </span>
+                                    <span className="border px-2 py-1 rounded text-xs">
+                                        Pendiente
+                                    </span>
                                 </div>
 
                                 <div className="flex justify-between">
                                     <span>Innova Tech</span>
-                                    <span className="bg-[#CCE8FF] px-2 py-1 rounded text-xs font-bold">
-              En Gestión
-            </span>
+                                    <span className="border px-2 py-1 rounded text-xs">
+                                        En Gestión
+                                    </span>
                                 </div>
 
                             </div>
@@ -368,42 +386,51 @@ export default function LandingPage() {
                     </div>
                 </div>
 
-                {/* Floating animation */}
+                {/* Floating Animations */}
                 <style jsx>{`
-                    @keyframes float {
+                    @keyframes floatSlow {
                         0% {
-                            transform: translateY(0px);
+                            transform: translateY(0px) rotate(0deg);
                         }
                         50% {
-                            transform: translateY(-22px);
+                            transform: translateY(-18px) rotate(1deg);
                         }
                         100% {
-                            transform: translateY(0px);
+                            transform: translateY(0px) rotate(0deg);
                         }
                     }
-                `}</style>
 
+                    @keyframes floatSlowReverse {
+                        0% { transform: translateY(0px) rotate(0deg); }
+                        50% { transform: translateY(18px) rotate(-1deg); }
+                        100% { transform: translateY(0px) rotate(0deg); }
+                    }
+
+                    .animate-floatSlow {
+                        animation: floatSlow 6s ease-in-out infinite;
+                    }
+
+                    .animate-floatSlowReverse {
+                        animation: floatSlowReverse 7s ease-in-out infinite;
+                    }
+                `}</style>
             </section>
 
-            {/* ================= TRUST STRIP ================= */}
-            <section className="border-y border-[#CCE8FF]/20 py-8 text-center text-[#CCE8FF]">
-                <p style={{fontFamily: "Avenir Next"}}>
+            {/* ================= REST UNCHANGED ================= */}
+            {/* TRUST */}
+            <section className="border-y border-[#443CA3]/10 py-8 text-center text-[#443CA3]/70">
+                <p>
                     +10,000 deudores gestionados · Automatización 24/7 · Seguridad empresarial
                 </p>
             </section>
 
-            {/* ================= HOW IT WORKS ================= */}
+            {/* HOW */}
             <section id="how" className="px-8 py-24 max-w-7xl mx-auto">
-
-                <h2
-                    className="text-3xl font-bold text-center mb-16"
-                    style={{fontFamily: "Neulis Alt"}}
-                >
+                <h2 className="text-3xl font-bold text-center mb-16">
                     Cómo Funciona
                 </h2>
 
                 <div className="grid md:grid-cols-4 gap-8 text-center">
-
                     {[
                         "Carga tus deudores",
                         "Activamos recordatorios",
@@ -411,27 +438,22 @@ export default function LandingPage() {
                         "Recuperas liquidez",
                     ].map((step, i) => (
                         <div key={i} className="space-y-3">
-                            <div className="text-[#FFFF76] text-3xl font-bold">
+                            <div className="text-3xl font-bold">
                                 0{i + 1}
                             </div>
-                            <p style={{fontFamily: "Avenir Next"}}>{step}</p>
+                            <p>{step}</p>
                         </div>
                     ))}
                 </div>
             </section>
 
-            {/* ================= FEATURES ================= */}
+            {/* FEATURES */}
             <section className="px-8 pb-24 max-w-7xl mx-auto">
-
-                <h2
-                    className="text-3xl font-bold text-center mb-12"
-                    style={{fontFamily: "Neulis Alt"}}
-                >
+                <h2 className="text-3xl font-bold text-center mb-12">
                     Tecnología Diseñada para Resultados
                 </h2>
 
                 <div className="grid md:grid-cols-3 gap-8">
-
                     {[
                         "Portal Cliente",
                         "Automatización IA",
@@ -440,12 +462,9 @@ export default function LandingPage() {
                         "Panel Administrativo",
                         "Seguridad Empresarial",
                     ].map((feature, i) => (
-                        <div
-                            key={i}
-                            className="bg-[#CCE8FF] text-[#443CA3] p-6 rounded-2xl shadow-lg hover:-translate-y-1 transition"
-                        >
+                        <div key={i} className="border border-[#443CA3]/20 p-6 rounded-xl">
                             <h3 className="font-bold text-lg">{feature}</h3>
-                            <p className="text-sm text-[#9E9E9E] mt-2">
+                            <p className="text-sm text-[#443CA3]/70 mt-2">
                                 Módulo avanzado diseñado para optimizar la recuperación.
                             </p>
                         </div>
@@ -453,37 +472,32 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* ================= CTA ================= */}
+            {/* CTA */}
             <section className="px-8 pb-24 text-center">
-
-                <h2
-                    className="text-3xl font-bold mb-6"
-                    style={{fontFamily: "Neulis Alt"}}
-                >
+                <h2 className="text-3xl font-bold mb-6">
                     Activa tu sistema de recuperación hoy
                 </h2>
 
                 <Link
                     href="/sign-up"
-                    className="bg-[#21FE83] text-[#443CA3] font-bold px-10 py-4 rounded-xl shadow-lg hover:bg-[#1edb70] transition"
-                    style={{fontFamily: "Neulis Alt"}}
+                    className="bg-[#443CA3] text-white px-10 py-4 rounded-lg font-bold hover:opacity-90 transition"
                 >
                     Crear Cuenta
                 </Link>
             </section>
 
-            {/* ================= FOOTER ================= */}
-            <footer className="border-t border-[#CCE8FF]/20 py-8 px-8 text-sm">
+            {/* FOOTER */}
+            <footer className="border-t border-[#443CA3]/10 py-8 px-8 text-sm">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
 
-                    <p className="text-[#CCE8FF]">
+                    <p className="text-[#443CA3]/70">
                         © {new Date().getFullYear()}{" "}
-                        <span className="text-[#FFFF76] font-bold">
-              Recupera
-            </span>. Todos los derechos reservados.
+                        <span className="font-bold">
+                            Recupera
+                        </span>. Todos los derechos reservados.
                     </p>
 
-                    <div className="flex gap-6 text-[#CCE8FF]">
+                    <div className="flex gap-6 text-[#443CA3]/70">
                         <a href="#">Privacidad</a>
                         <a href="#">Términos</a>
                         <a href="#">Contacto</a>

@@ -70,6 +70,136 @@ export default function ClientPage() {
         }
     };
 
+
+    //// ---------------- HANDLE DOWNLOAD TEMPLATE XLS ----------------
+    const handleDownloadTemplate = () => {
+        const headers = [
+            "name",
+            "email",
+            "telephone",
+            "address",
+            "cedulaIdentidad",
+            "amountOwed",
+        ];
+
+        const exampleRow = [
+            "Juan Perez",
+            "juan@email.com",
+            "0991234567",
+            "Guayaquil",
+            "0123456789",
+            150.50,
+        ];
+
+        const ws = XLSX.utils.aoa_to_sheet([headers, exampleRow]);
+
+        ws["!cols"] = [
+            { wch: 20 },
+            { wch: 30 },
+            { wch: 16 },
+            { wch: 25 },
+            { wch: 16 },
+            { wch: 14 },
+        ];
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Debtors");
+
+        XLSX.writeFile(wb, "debtors_template.xlsx");
+    };
+
+//// ---------------- HANDLE FILE UPLOAD ----------------
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+
+        reader.onload = async (event) => {
+            const data = new Uint8Array(event.target.result);
+            const workbook = XLSX.read(data, { type: "array" });
+
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+            const validRows = [];
+            const errors = [];
+
+            jsonData.forEach((row, index) => {
+                const rowNum = index + 2;
+
+                const { name, amountOwed, cedulaIdentidad, email, telephone } = row;
+
+                if (!name) {
+                    errors.push(`Row ${rowNum}: name required`);
+                    return;
+                }
+
+                if (!amountOwed || isNaN(amountOwed) || parseFloat(amountOwed) <= 0) {
+                    errors.push(`Row ${rowNum}: invalid amount`);
+                    return;
+                }
+
+                if (!cedulaIdentidad) {
+                    errors.push(`Row ${rowNum}: cedula required`);
+                    return;
+                }
+
+                const cedulaStr = String(cedulaIdentidad).padStart(10, "0");
+
+                if (!/^\d{10}$/.test(cedulaStr)) {
+                    errors.push(`Row ${rowNum}: cedula must be 10 digits`);
+                    return;
+                }
+
+                validRows.push({
+                    name,
+                    amountOwed: parseFloat(amountOwed),
+                    cedulaIdentidad: cedulaStr,
+                    email: email || null,
+                    telephone: telephone ? String(telephone) : null,
+                    address: row.address || null,
+                    documentUrl: row.documentUrl || null,
+                });
+            });
+
+            if (validRows.length === 0) {
+                setMessage("No valid rows found in file");
+                console.warn(errors);
+                return;
+            }
+
+            try {
+                const response = await fetch("/api/debtors/upload", {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(validRows),
+                });
+
+                const result = await response.json();
+
+                if (result.errors && result.errors.length > 0) {
+                    setMessage("⚠️ Some rows failed. Check console.");
+                    console.warn(result.errors);
+                } else {
+                    setMessage(`✅ ${validRows.length} debtors uploaded`);
+                }
+
+                await fetchDebtors();
+            } catch (err) {
+                console.error(err);
+                setMessage("Upload failed");
+            }
+        };
+
+        reader.readAsArrayBuffer(file);
+    };
+
     // Fetch once auth is ready
     useEffect(() => {
         if (!isLoaded || !isSignedIn) return;
@@ -248,176 +378,251 @@ export default function ClientPage() {
     }
 
     return (
-        <div className="min-h-screen bg-white text-[#443CA3] p-10">
-            {/* Header */}
-            <h1 className="text-3xl font-extrabold mb-2 font-[Neulis Alt]">
-                Welcome, {user?.fullName || "Client"}!
-            </h1>
-            <p className="text-base text-[#9E9E9E] font-[Avenir Next]">
-                Email:{" "}
-                <span className="font-bold text-[#21FE83]">
-        {user?.primaryEmailAddress?.emailAddress}
-      </span>
-            </p>
+        <div className="min-h-screen bg-[#F7F8FF] text-[#443CA3] px-8 py-12">
 
-            {/* Debtor Form */}
-            <form
-                onSubmit={handleSubmit}
-                className="mt-8 space-y-4 max-w-lg bg-[#CCE8FF] p-6 rounded-2xl shadow-md"
-            >
-                <h2 className="text-xl font-semibold text-[#443CA3] font-[Neulis Alt]">
-                    {editingId ? "Edit Debtor" : "Add a Debtor"}
-                </h2>
+            <div className="max-w-7xl mx-auto">
 
-                <input
-                    type="text"
-                    placeholder="Debtor Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full p-3 border border-[#9E9E9E] rounded-lg"
-                    required
-                />
+                {/* ===== HEADER ===== */}
+                <div className="mb-12">
+                    <h1
+                        className="text-5xl font-extrabold mb-3"
+                        style={{ fontFamily: "Neulis Alt" }}
+                    >
+                        Panel de Cliente
+                    </h1>
 
-                <input
-                    type="email"
-                    placeholder="Debtor Email (optional)"
-                    value={email}
-                    onChange={(e) => {
-                        setEmail(e.target.value);
-                        validateEmail(e.target.value);
-                    }}
-                    className="w-full p-3 border border-[#9E9E9E] rounded-lg"
-                />
-                {emailError && <p className="text-red-500 text-sm">{emailError}</p>}
+                    <p className="text-[#443CA3]/70 text-lg">
+                        Bienvenido{" "}
+                        <span className="font-bold">
+                        {user?.fullName || "Cliente"}
+                    </span>
+                    </p>
+                </div>
 
-                <PhoneInput
-                    country={"ec"}
-                    value={telephone}
-                    onChange={(phone) => setTelephone(phone)}
-                    enableSearch={true}
-                    inputClass="!w-full !p-3 !border !border-[#9E9E9E] !rounded-lg"
-                />
+                {/* ===== KPI ===== */}
+                <div className="grid md:grid-cols-3 gap-6 mb-12">
 
-                <input
-                    type="text"
-                    placeholder="Address"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    className="w-full p-3 border border-[#9E9E9E] rounded-lg"
-                />
+                    <div className="bg-white border border-[#443CA3]/10 p-6 rounded-2xl">
+                        <p className="text-sm text-[#443CA3]/60">Deudores Totales</p>
+                        <p className="text-3xl font-bold text-[#21FE83]">
+                            {debtors.length}
+                        </p>
+                    </div>
 
-                <input
-                    type="text"
-                    placeholder="Cédula de Identidad"
-                    value={cedulaIdentidad}
-                    onChange={(e) => {
-                        const v = e.target.value.replace(/\D/g, "");
-                        if (v.length <= 10) setCedulaIdentidad(v);
-                    }}
-                    className="w-full p-3 border border-[#9E9E9E] rounded-lg"
-                    required
-                />
+                    <div className="bg-white border border-[#443CA3]/10 p-6 rounded-2xl">
+                        <p className="text-sm text-[#443CA3]/60">Monto Total</p>
+                        <p className="text-3xl font-bold">
+                            $
+                            {debtors
+                                .reduce((acc, d) => acc + Number(d.amountOwed), 0)
+                                .toLocaleString()}
+                        </p>
+                    </div>
 
-                <input
-                    type="text"
-                    placeholder="Amount Owed"
-                    value={amountOwed}
-                    onChange={(e) => setAmountOwed(e.target.value)}
-                    className="w-full p-3 border border-[#9E9E9E] rounded-lg"
-                    required
-                />
+                    <div className="bg-white border border-[#443CA3]/10 p-6 rounded-2xl">
+                        <p className="text-sm text-[#443CA3]/60">Activos</p>
+                        <p className="text-3xl font-bold">
+                            {filteredDebtors.length}
+                        </p>
+                    </div>
 
-                <input
-                    type="file"
-                    accept="image/*,application/pdf"
-                    onChange={(e) => setDocumentFile(e.target.files[0])}
-                    className="block w-full text-sm"
-                />
+                </div>
 
-                <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full bg-[#21FE83] text-[#443CA3] font-bold py-3 rounded-lg"
-                >
-                    {loading
-                        ? "Submitting..."
-                        : editingId
-                            ? "Update Debtor"
-                            : "Add Debtor"}
-                </button>
+                {/* ===== GRID ===== */}
+                <div className="grid lg:grid-cols-2 gap-12">
 
-                {success && <p className="text-green-600">{success}</p>}
-                {error && <p className="text-red-600">{error}</p>}
-            </form>
+                    {/* ===== FORM ===== */}
+                    <div className="bg-white border border-[#443CA3]/10 p-8 rounded-2xl">
 
-            {/* Debtor List */}
-            <div className="mt-10">
-                <h2 className="text-xl font-bold mb-4">Your Debtors</h2>
+                        <h2 className="text-2xl font-bold mb-6">
+                            {editingId ? "Editar Deudor" : "Agregar Deudor"}
+                        </h2>
 
-                {debtors.length === 0 ? (
-                    <p className="text-gray-400">No debtors yet.</p>
-                ) : (
-                    <ul className="space-y-3">
-                        {filteredDebtors.map((debtor) => (
-                            <li
-                                key={debtor.id}
-                                className="border p-4 rounded-xl bg-white shadow flex justify-between"
+                        <form onSubmit={handleSubmit} className="space-y-4">
+
+                            <input
+                                type="text"
+                                placeholder="Nombre del Deudor"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                className="w-full p-3 border border-[#443CA3]/20 rounded-xl focus:outline-none focus:border-[#443CA3]"
+                                required
+                            />
+
+                            <input
+                                type="email"
+                                placeholder="Correo (opcional)"
+                                value={email}
+                                onChange={(e) => {
+                                    setEmail(e.target.value);
+                                    validateEmail(e.target.value);
+                                }}
+                                className="w-full p-3 border border-[#443CA3]/20 rounded-xl"
+                            />
+
+                            <PhoneInput
+                                country={"ec"}
+                                value={telephone}
+                                onChange={(phone) => setTelephone(phone)}
+                                enableSearch={true}
+                                inputClass="!w-full !p-3 !rounded-xl !border !border-[#443CA3]/20 !text-[#443CA3]"
+                            />
+
+                            <input
+                                type="text"
+                                placeholder="Cédula"
+                                value={cedulaIdentidad}
+                                onChange={(e) => {
+                                    const v = e.target.value.replace(/\D/g, "");
+                                    if (v.length <= 10) setCedulaIdentidad(v);
+                                }}
+                                className="w-full p-3 border border-[#443CA3]/20 rounded-xl"
+                                required
+                            />
+
+                            <input
+                                type="text"
+                                placeholder="Monto Adeudado"
+                                value={amountOwed}
+                                onChange={(e) => setAmountOwed(e.target.value)}
+                                className="w-full p-3 border border-[#443CA3]/20 rounded-xl"
+                                required
+                            />
+
+                            <input
+                                type="file"
+                                accept="image/*,application/pdf"
+                                onChange={(e) => setDocumentFile(e.target.files[0])}
+                                className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border file:border-[#443CA3]/20 file:bg-white file:text-[#443CA3] hover:file:bg-[#443CA3] hover:file:text-white"
+                            />
+
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full bg-[#443CA3] text-white font-bold py-3 rounded-xl hover:opacity-90 transition"
                             >
-                                <div>
-                                    <p>
-                                        <b>Name:</b> {debtor.name}
-                                    </p>
-                                    {debtor.email && (
-                                        <p>
-                                            <b>Email:</b> {debtor.email}
-                                        </p>
-                                    )}
-                                    <p>
-                                        <b>Cédula:</b> {debtor.cedulaIdentidad}
-                                    </p>
-                                    <p>
-                                        <b>Amount:</b> ${debtor.amountOwed}
-                                    </p>
-                                </div>
+                                {loading
+                                    ? "Procesando..."
+                                    : editingId
+                                        ? "Actualizar"
+                                        : "Agregar"}
+                            </button>
 
-                                <div className="space-x-3">
-                                    <button
-                                        onClick={() => {
-                                            setEditingId(debtor.id);
-                                            setName(debtor.name);
-                                            setEmail(debtor.email || "");
-                                            setTelephone(debtor.telephone || "");
-                                            setAddress(debtor.address || "");
-                                            setCedulaIdentidad(debtor.cedulaIdentidad || "");
-                                            setAmountOwed(String(debtor.amountOwed));
+                        </form>
 
-                                        }}
-                                        className="text-indigo-600"
+                    </div>
+
+                    {/* ===== EXCEL ===== */}
+                    <div className="flex gap-4 items-start">
+
+                        <button
+                            onClick={handleDownloadTemplate}
+                            className="border border-[#443CA3]/20 px-5 py-2 rounded-xl font-bold hover:bg-[#443CA3] hover:text-white transition"
+                        >
+                            Descargar Plantilla Excel
+                        </button>
+
+                        <input
+                            type="file"
+                            accept=".xlsx,.xls,.csv"
+                            onChange={handleFileUpload}
+                            className="text-sm"
+                        />
+                    </div>
+
+                    {message && (
+                        <p className="text-sm text-[#443CA3]/70 mb-6">{message}</p>
+                    )}
+
+                    {/* ===== LIST ===== */}
+                    <div>
+
+                        <h2 className="text-2xl font-bold mb-6">
+                            Tus Deudores
+                        </h2>
+
+                        {filteredDebtors.length === 0 ? (
+                            <p className="text-[#443CA3]/70">
+                                No hay deudores registrados.
+                            </p>
+                        ) : (
+                            <div className="space-y-4">
+
+                                {filteredDebtors.map((debtor) => (
+                                    <div
+                                        key={debtor.id}
+                                        className="bg-white border border-[#443CA3]/10 p-6 rounded-2xl flex justify-between items-center hover:bg-[#EEF1FF] transition"
                                     >
-                                        Edit
-                                    </button>
+                                        <div>
+                                            <p className="font-bold text-lg">
+                                                {debtor.name}
+                                            </p>
 
-                                    <button
-                                        onClick={() => handleDelete(debtor.id)}
-                                        className="text-red-500"
-                                    >
-                                        Delete
-                                    </button>
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
-                )}
+                                            {debtor.email && (
+                                                <p className="text-[#443CA3]/60 text-sm">
+                                                    {debtor.email}
+                                                </p>
+                                            )}
+
+                                            <p className="text-sm text-[#443CA3]/60">
+                                                Cédula: {debtor.cedulaIdentidad}
+                                            </p>
+
+                                            <p className="text-sm text-[#443CA3]/60">
+                                                Teléfono: {debtor.telephone}
+                                            </p>
+
+                                            <p className="text-[#21FE83] font-bold">
+                                                ${debtor.amountOwed}
+                                            </p>
+                                        </div>
+
+                                        <div className="flex gap-4 text-sm">
+
+                                            <button
+                                                onClick={() => {
+                                                    setEditingId(debtor.id);
+                                                    setName(debtor.name);
+                                                    setEmail(debtor.email || "");
+                                                    setTelephone(debtor.telephone || "");
+                                                    setAddress(debtor.address || "");
+                                                    setCedulaIdentidad(debtor.cedulaIdentidad || "");
+                                                    setAmountOwed(String(debtor.amountOwed));
+                                                }}
+                                                className="hover:underline"
+                                            >
+                                                Editar
+                                            </button>
+
+                                            <button
+                                                onClick={() => handleDelete(debtor.id)}
+                                                className="text-red-500 hover:underline"
+                                            >
+                                                Eliminar
+                                            </button>
+
+                                        </div>
+                                    </div>
+                                ))}
+
+                            </div>
+                        )}
+
+                    </div>
+
+                </div>
+
+                {/* ===== LOGOUT ===== */}
+                <div className="mt-16">
+                    <button
+                        onClick={() => signOut(() => router.push("/sign-in"))}
+                        className="border border-[#443CA3]/20 px-6 py-3 rounded-xl hover:bg-[#443CA3] hover:text-white transition"
+                    >
+                        Cerrar Sesión
+                    </button>
+                </div>
+
             </div>
-
-            {/* Logout */}
-            <button
-                onClick={() => signOut(() => router.push("/sign-in"))}
-                className="mt-12 bg-[#443CA3] text-white px-6 py-3 rounded-xl"
-            >
-                Logout
-            </button>
         </div>
     );
-
 }

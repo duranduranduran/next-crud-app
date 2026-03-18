@@ -16,7 +16,7 @@ function SendRemindersButton() {
         setSending(true);
         setMessage(null);
         try {
-            const res = await fetch("/api/send-reminders/whatsapp", { method: "GET" });
+            const res = await fetch("/api/send-reminders", { method: "GET" });
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({}));
                 throw new Error(errorData.message || "Something went wrong.");
@@ -382,6 +382,9 @@ export default function AdminPage() {
                                                             <p className="text-xs text-gray-500">
                                                                 Cédula: {debtor.cedulaIdentidad || '—'}
                                                             </p>
+                                                            <p className="text-xs text-gray-500">
+                                                                Telefono: {debtor.telephone || '—'}
+                                                            </p>
 
                                                             {debtor.documentUrl && (
                                                                 <div className="mt-2">
@@ -560,7 +563,7 @@ export default function AdminPage() {
                         Logout
                     </button>
                 </SignOutButton>
-                Logout
+
             </div>
         </main>
     );

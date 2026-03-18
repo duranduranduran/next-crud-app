@@ -1,25 +1,33 @@
-
-
 import { prisma } from '@/lib/prisma';
-import { getToken } from 'next-auth/jwt';
 import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
 // BULK CREATE debtors
 export async function POST(req) {
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    const { userId, sessionClaims } = auth(req);
 
-    if (!token || !token.email) {
+    if (!userId) {
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
+    const role = sessionClaims?.publicMetadata?.role;
+
+    if (role !== 'client') {
+        return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+    }
+
     const body = await req.json();
+
     if (!Array.isArray(body)) {
-        return NextResponse.json({ message: 'Expected an array of debtors' }, { status: 400 });
+        return NextResponse.json(
+            { message: 'Expected an array of debtors' },
+            { status: 400 }
+        );
     }
 
     try {
         const user = await prisma.user.findUnique({
-            where: { email: token.email },
+            where: { clerkUserId: userId },
         });
 
         if (!user) {
@@ -31,18 +39,34 @@ export async function POST(req) {
 
         for (let i = 0; i < body.length; i++) {
             const debtor = body[i];
-            const { name, email, amountOwed, documentUrl, telephone, address, cedulaIdentidad } = debtor;
+
+            const {
+                name,
+                email,
+                amountOwed,
+                documentUrl,
+                telephone,
+                address,
+                cedulaIdentidad,
+            } = debtor;
 
             // Basic validation
             if (!name || !amountOwed || !cedulaIdentidad) {
-                errors.push({ row: i + 2, debtor, message: 'Missing required fields' }); // +2 to match Excel row
+                errors.push({
+                    row: i + 2, // Excel row
+                    debtor,
+                    message: 'Missing required fields',
+                });
                 continue;
             }
 
-            // Convert amountOwed to float
             const parsedAmount = parseFloat(amountOwed);
             if (isNaN(parsedAmount)) {
-                errors.push({ row: i + 2, debtor, message: 'Invalid amountOwed' });
+                errors.push({
+                    row: i + 2,
+                    debtor,
+                    message: 'Invalid amountOwed',
+                });
                 continue;
             }
 
@@ -62,8 +86,11 @@ export async function POST(req) {
 
                 created.push(newDebtor);
             } catch (err) {
-                // Catch database errors (like duplicate cedulaIdentidad for the same user)
-                errors.push({ row: i + 2, debtor, message: err.message });
+                errors.push({
+                    row: i + 2,
+                    debtor,
+                    message: err.message,
+                });
             }
         }
 

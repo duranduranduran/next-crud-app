@@ -382,6 +382,9 @@ export default function AdminPage() {
                                                             <p className="text-xs text-gray-500">
                                                                 Cédula: {debtor.cedulaIdentidad || '—'}
                                                             </p>
+                                                            <p className="text-xs text-gray-500">
+                                                                Telefono: {debtor.telephone || '—'}
+                                                            </p>
 
                                                             {debtor.documentUrl && (
                                                                 <div className="mt-2">
@@ -435,16 +438,16 @@ export default function AdminPage() {
                                                         <div className="text-sm text-gray-500">Subnivel Gestión</div>
 
                                                         <div className="flex items-center gap-2">
-                                                            <button
-                                                                onClick={() => {
-                                                                    // Edit / view management — keep your existing routing or handler here
-                                                                    // If you have a modal or page, call it here. Placeholder:
-                                                                    console.log('View management for', debtor.id);
-                                                                }}
-                                                                className="text-sm px-3 py-1 border rounded text-indigo-600 hover:bg-indigo-50"
-                                                            >
-                                                                View
-                                                            </button>
+                                                            {/*<button*/}
+                                                            {/*    onClick={() => {*/}
+                                                            {/*        // Edit / view management — keep your existing routing or handler here*/}
+                                                            {/*        // If you have a modal or page, call it here. Placeholder:*/}
+                                                            {/*        console.log('View management for', debtor.id);*/}
+                                                            {/*    }}*/}
+                                                            {/*    className="text-sm px-3 py-1 border rounded text-indigo-600 hover:bg-indigo-50"*/}
+                                                            {/*>*/}
+                                                            {/*    View*/}
+                                                            {/*</button>*/}
 
                                                             <button
                                                                 onClick={() => {
@@ -560,7 +563,7 @@ export default function AdminPage() {
                         Logout
                     </button>
                 </SignOutButton>
-                Logout
+
             </div>
         </main>
     );
