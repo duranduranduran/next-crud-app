@@ -379,14 +379,42 @@ export default function ClientPage() {
 
     return (
         <div className="min-h-screen bg-[#F7F8FF] text-[#443CA3] px-8 py-12">
+            <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#443CA3]/10">
 
-            <div className="max-w-7xl mx-auto">
+                <div className="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center ">
+
+                    {/* Logo */}
+                    <img
+                        src="/logo-recupera-purple.png"
+                        alt="Recupera"
+                        className="h-20"
+                    />
+
+                    {/* Right side */}
+                    <div className="flex items-center gap-4">
+
+            <span className="text-lg text-[#443CA3]/70">
+                {user?.fullName || "Cliente"}
+            </span>
+
+                        <button
+                            onClick={() => signOut(() => router.push("/sign-in"))}
+                            className="border border-[#443CA3]/20 px-6 py-3 rounded-xl hover:bg-[#443CA3] hover:text-white transition"
+                        >
+                            Cerrar Sesión
+                        </button>
+
+                    </div>
+                </div>
+            </nav>
+
+            <div className="max-w-7xl mx-auto pt-10">
 
                 {/* ===== HEADER ===== */}
                 <div className="mb-12">
                     <h1
                         className="text-5xl font-extrabold mb-3"
-                        style={{ fontFamily: "Neulis Alt" }}
+                        style={{fontFamily: "Neulis Alt"}}
                     >
                         Panel de Cliente
                     </h1>
@@ -522,12 +550,14 @@ export default function ClientPage() {
                             Descargar Plantilla Excel
                         </button>
 
-                        <input
-                            type="file"
-                            accept=".xlsx,.xls,.csv"
-                            onChange={handleFileUpload}
-                            className="text-sm"
-                        />
+                        <button
+                            className="border border-[#443CA3]/20 px-5 py-2 rounded-xl font-bold hover:bg-[#443CA3] hover:text-white transition">
+                            <input
+                                type="file"
+                                accept=".xlsx,.xls,.csv"
+                                onChange={handleFileUpload}
+                                className="text-sm"
+                            /></button>
                     </div>
 
                     {message && (

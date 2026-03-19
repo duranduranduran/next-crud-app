@@ -378,23 +378,48 @@ export default function ClientPage() {
     }
 
     return (
-        <div className="min-h-screen bg-white text-[#443CA3] px-8 py-12">
+        <div className="min-h-screen bg-[#F7F8FF] text-[#443CA3] px-8 py-12">
+            <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#443CA3]/10">
 
-            {/* ===== HEADER ===== */}
-            <div className="max-w-7xl mx-auto">
+                <div className="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center ">
 
+                    {/* Logo */}
+                    <img
+                        src="/logo-recupera-purple.png"
+                        alt="Recupera"
+                        className="h-20"
+                    />
+
+                    {/* Right side */}
+                    <div className="flex items-center gap-4">
+
+            <span className="text-sm text-[#443CA3]/70">
+                {user?.fullName || "Cliente"}
+            </span>
+
+                        <button
+                            onClick={() => signOut(() => router.push("/sign-in"))}
+                            className="border border-[#443CA3]/20 px-6 py-3 rounded-xl hover:bg-[#443CA3] hover:text-white transition"
+                        >
+                            Cerrar Sesión
+                        </button>
+
+                    </div>
+                </div>
+            </nav>
+
+            <div className="max-w-7xl mx-auto pt-10">
+
+                {/* ===== HEADER ===== */}
                 <div className="mb-12">
                     <h1
                         className="text-5xl font-extrabold mb-3"
-                        style={{ fontFamily: "Neulis Alt" }}
+                        style={{fontFamily: "Neulis Alt"}}
                     >
                         Panel de Cliente
                     </h1>
 
-                    <p
-                        className="text-[#443CA3]/70 text-lg"
-                        style={{ fontFamily: "Avenir Next" }}
-                    >
+                    <p className="text-[#443CA3]/70 text-lg">
                         Bienvenido{" "}
                         <span className="font-bold">
                         {user?.fullName || "Cliente"}
@@ -402,19 +427,19 @@ export default function ClientPage() {
                     </p>
                 </div>
 
-                {/* ===== KPI STRIP ===== */}
+                {/* ===== KPI ===== */}
                 <div className="grid md:grid-cols-3 gap-6 mb-12">
 
-                    <div className="border border-[#443CA3]/20 p-6 rounded-2xl">
-                        <p className="text-sm text-[#443CA3]/70">Deudores Totales</p>
+                    <div className="bg-white border border-[#443CA3]/10 p-6 rounded-2xl">
+                        <p className="text-sm text-[#443CA3]/60">Deudores Totales</p>
                         <p className="text-3xl font-bold text-[#21FE83]">
                             {debtors.length}
                         </p>
                     </div>
 
-                    <div className="border border-[#443CA3]/20 p-6 rounded-2xl">
-                        <p className="text-sm text-[#443CA3]/70">Monto Total</p>
-                        <p className="text-3xl font-bold text-[#443CA3]">
+                    <div className="bg-white border border-[#443CA3]/10 p-6 rounded-2xl">
+                        <p className="text-sm text-[#443CA3]/60">Monto Total</p>
+                        <p className="text-3xl font-bold">
                             $
                             {debtors
                                 .reduce((acc, d) => acc + Number(d.amountOwed), 0)
@@ -422,8 +447,8 @@ export default function ClientPage() {
                         </p>
                     </div>
 
-                    <div className="border border-[#443CA3]/20 p-6 rounded-2xl">
-                        <p className="text-sm text-[#443CA3]/70">Activos</p>
+                    <div className="bg-white border border-[#443CA3]/10 p-6 rounded-2xl">
+                        <p className="text-sm text-[#443CA3]/60">Activos</p>
                         <p className="text-3xl font-bold">
                             {filteredDebtors.length}
                         </p>
@@ -435,7 +460,7 @@ export default function ClientPage() {
                 <div className="grid lg:grid-cols-2 gap-12">
 
                     {/* ===== FORM ===== */}
-                    <div className="border border-[#443CA3]/20 p-8 rounded-2xl">
+                    <div className="bg-white border border-[#443CA3]/10 p-8 rounded-2xl">
 
                         <h2 className="text-2xl font-bold mb-6">
                             {editingId ? "Editar Deudor" : "Agregar Deudor"}
@@ -496,7 +521,7 @@ export default function ClientPage() {
                                 type="file"
                                 accept="image/*,application/pdf"
                                 onChange={(e) => setDocumentFile(e.target.files[0])}
-                                className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border file:border-[#443CA3] file:text-sm file:font-semibold file:bg-white file:text-[#443CA3] hover:file:bg-[#443CA3] hover:file:text-white"
+                                className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border file:border-[#443CA3]/20 file:bg-white file:text-[#443CA3] hover:file:bg-[#443CA3] hover:file:text-white"
                             />
 
                             <button
@@ -520,17 +545,19 @@ export default function ClientPage() {
 
                         <button
                             onClick={handleDownloadTemplate}
-                            className="border border-[#443CA3] px-5 py-2 rounded-xl font-bold hover:bg-[#443CA3] hover:text-white transition"
+                            className="border border-[#443CA3]/20 px-5 py-2 rounded-xl font-bold hover:bg-[#443CA3] hover:text-white transition"
                         >
                             Descargar Plantilla Excel
                         </button>
 
-                        <input
-                            type="file"
-                            accept=".xlsx,.xls,.csv"
-                            onChange={handleFileUpload}
-                            className="text-sm"
-                        />
+                        <button
+                            className="border border-[#443CA3]/20 px-5 py-2 rounded-xl font-bold hover:bg-[#443CA3] hover:text-white transition">
+                            <input
+                                type="file"
+                                accept=".xlsx,.xls,.csv"
+                                onChange={handleFileUpload}
+                                className="text-sm"
+                            /></button>
                     </div>
 
                     {message && (
@@ -554,7 +581,7 @@ export default function ClientPage() {
                                 {filteredDebtors.map((debtor) => (
                                     <div
                                         key={debtor.id}
-                                        className="border border-[#443CA3]/20 p-6 rounded-2xl flex justify-between items-center hover:bg-[#443CA3]/5 transition"
+                                        className="bg-white border border-[#443CA3]/10 p-6 rounded-2xl flex justify-between items-center hover:bg-[#EEF1FF] transition"
                                     >
                                         <div>
                                             <p className="font-bold text-lg">
@@ -562,16 +589,16 @@ export default function ClientPage() {
                                             </p>
 
                                             {debtor.email && (
-                                                <p className="text-[#443CA3]/70 text-sm">
+                                                <p className="text-[#443CA3]/60 text-sm">
                                                     {debtor.email}
                                                 </p>
                                             )}
 
-                                            <p className="text-sm text-[#443CA3]/70">
+                                            <p className="text-sm text-[#443CA3]/60">
                                                 Cédula: {debtor.cedulaIdentidad}
                                             </p>
 
-                                            <p className="text-sm text-[#443CA3]/70">
+                                            <p className="text-sm text-[#443CA3]/60">
                                                 Teléfono: {debtor.telephone}
                                             </p>
 
@@ -619,7 +646,7 @@ export default function ClientPage() {
                 <div className="mt-16">
                     <button
                         onClick={() => signOut(() => router.push("/sign-in"))}
-                        className="border border-[#443CA3] px-6 py-3 rounded-xl hover:bg-[#443CA3] hover:text-white transition"
+                        className="border border-[#443CA3]/20 px-6 py-3 rounded-xl hover:bg-[#443CA3] hover:text-white transition"
                     >
                         Cerrar Sesión
                     </button>

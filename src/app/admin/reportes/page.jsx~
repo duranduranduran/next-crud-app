@@ -1,0 +1,58 @@
+// "use client";
+//
+// import { useEffect, useState } from "react";
+// import { useUser } from "@clerk/nextjs";
+//
+// export default function ReportesPage() {
+//     const { user, isLoaded } = useUser();
+//
+//     const [data, setData] = useState(null);
+//     const [loading, setLoading] = useState(true);
+//     const [error, setError] = useState(null);
+//
+//     useEffect(() => {
+//         if (!isLoaded) return;
+//
+//         if (!user) {
+//             setError("Not logged in");
+//             setLoading(false);
+//             return;
+//         }
+//
+//         const fetchReports = async () => {
+//             try {
+//                 const res = await fetch("/api/admin/reports", {
+//                     credentials: "include",
+//                 });
+//
+//                 if (!res.ok) {
+//                     const text = await res.text();
+//                     console.error("STATUS:", res.status);
+//                     console.error("BODY:", text);
+//                     throw new Error("Error fetching reports");
+//                 }
+//
+//                 const json = await res.json();
+//                 setData(json);
+//             } catch (err) {
+//                 console.error(err);
+//                 setError(err.message);
+//             } finally {
+//                 setLoading(false);
+//             }
+//         };
+//
+//         fetchReports();
+//     }, [isLoaded, user]);
+//
+//     if (loading) return <div className="p-6">Loading...</div>;
+//     if (error) return <div className="p-6 text-red-500">{error}</div>;
+//
+//     return (
+//         <div className="p-6">
+//             <h1 className="text-xl font-bold mb-4">Reports</h1>
+//             <pre>{JSON.stringify(data, null, 2)}</pre>
+//         </div>
+//     );
+// }
+
