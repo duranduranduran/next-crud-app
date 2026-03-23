@@ -1,43 +1,47 @@
-import { prisma } from '@/lib/prisma';
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 
 // BULK CREATE debtors
 export async function POST(req) {
-    const { userId, sessionClaims } = auth();
-
-    if (!userId) {
-        return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-
-    const role = sessionClaims?.publicMetadata?.role;
-
-    if (role !== 'client') {
-        return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
-    }
-
-    const body = await req.json();
-
-    if (!Array.isArray(body)) {
-        return NextResponse.json(
-            { message: 'Expected an array of debtors' },
-            { status: 400 }
-        );
-    }
-
     try {
+
+        // Clerk authentication
+        const { userId } = await auth();
+
+        if (!userId) {
+            return NextResponse.json(
+                { message: "Unauthorized" },
+                { status: 401 }
+            );
+        }
+
+        const body = await req.json();
+
+        if (!Array.isArray(body)) {
+            return NextResponse.json(
+                { message: "Expected an array of debtors" },
+                { status: 400 }
+            );
+        }
+
+        // Get user from database
         const user = await prisma.user.findUnique({
-            where: { clerkUserId: userId },
+            where: { clerkId: userId },
         });
 
         if (!user) {
-            return NextResponse.json({ message: 'User not found' }, { status: 404 });
+            return NextResponse.json(
+                { message: "User not found" },
+                { status: 404 }
+            );
         }
 
-        const created = [];
+        const validDebtors = [];
         const errors = [];
 
         for (let i = 0; i < body.length; i++) {
+
             const debtor = body[i];
 
             const {
@@ -50,53 +54,60 @@ export async function POST(req) {
                 cedulaIdentidad,
             } = debtor;
 
-            // Basic validation
+            // Validation
             if (!name || !amountOwed || !cedulaIdentidad) {
                 errors.push({
-                    row: i + 2, // Excel row
+                    row: i + 2,
                     debtor,
-                    message: 'Missing required fields',
+                    message: "Missing required fields",
                 });
                 continue;
             }
 
             const parsedAmount = parseFloat(amountOwed);
+
             if (isNaN(parsedAmount)) {
                 errors.push({
                     row: i + 2,
                     debtor,
-                    message: 'Invalid amountOwed',
+                    message: "Invalid amountOwed",
                 });
                 continue;
             }
 
-            try {
-                const newDebtor = await prisma.debtor.create({
-                    data: {
-                        name,
-                        email: email || null,
-                        telephone: telephone || null,
-                        address: address || null,
-                        cedulaIdentidad,
-                        amountOwed: parsedAmount,
-                        documentUrl: documentUrl || null,
-                        userId: user.id,
-                    },
-                });
-
-                created.push(newDebtor);
-            } catch (err) {
-                errors.push({
-                    row: i + 2,
-                    debtor,
-                    message: err.message,
-                });
-            }
+            validDebtors.push({
+                name,
+                email: email || null,
+                telephone: telephone || null,
+                address: address || null,
+                cedulaIdentidad,
+                amountOwed: parsedAmount,
+                documentUrl: documentUrl || null,
+                userId: user.id,
+            });
         }
 
-        return NextResponse.json({ created, errors }, { status: 201 });
-    } catch (err) {
-        console.error(err);
-        return NextResponse.json({ message: 'Server error' }, { status: 500 });
+        // Insert all rows at once (much faster)
+        await prisma.debtor.createMany({
+            data: validDebtors,
+            skipDuplicates: true, // prevents cedula unique constraint crash
+        });
+
+        return NextResponse.json(
+            {
+                created: validDebtors.length,
+                errors,
+            },
+            { status: 201 }
+        );
+
+    } catch (error) {
+
+        console.error("[DEBTOR_UPLOAD]", error);
+
+        return NextResponse.json(
+            { message: "Server error" },
+            { status: 500 }
+        );
     }
 }

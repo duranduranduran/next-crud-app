@@ -31,11 +31,15 @@ export default function ClientPage() {
     // ---------------- DATA ----------------
     const [debtors, setDebtors] = useState([]);
 
-    // ---------------- FILTERS ----------------
+// ---------------- FILTERS ----------------
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("ALL");
     const [amountFilter, setAmountFilter] = useState("ALL");
     const [emailError, setEmailError] = useState("");
+
+// pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 6;
     // ---------------- AUTH GUARD (CLERK) ----------------
     useEffect(() => {
         if (!isLoaded) return;
@@ -174,7 +178,7 @@ export default function ClientPage() {
             try {
                 const response = await fetch("/api/debtors/upload", {
                     method: "POST",
-                    credentials: "same-origin",
+                    credentials: "same-origin", //inclued maybe?
                     headers: {
                         "Content-Type": "application/json",
                     },
@@ -336,7 +340,7 @@ export default function ClientPage() {
 
             if (!res.ok) {
                 const data = await res.json();
-                throw new Error(data.error || "Submit failed");
+                throw new Error(data.error || data.message || "Submit failed");
             }
             setSuccess(editingId ? "Debtor updated!" : "Debtor added!");
             setEditingId(null);
@@ -379,42 +383,44 @@ export default function ClientPage() {
 
     return (
         <div className="min-h-screen bg-[#F7F8FF] text-[#443CA3] px-8 py-12">
+
+            {/* NAVBAR */}
             <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#443CA3]/10">
 
-                <div className="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center ">
+                <div className="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center">
 
-                    {/* Logo */}
                     <img
                         src="/logo-recupera-purple.png"
                         alt="Recupera"
                         className="h-20"
                     />
 
-                    {/* Right side */}
                     <div className="flex items-center gap-4">
 
-            <span className="text-lg text-[#443CA3]/70">
-                {user?.fullName || "Cliente"}
-            </span>
+                    <span className="text-lg text-[#443CA3]/70">
+                        {user?.fullName || "Cliente"}
+                    </span>
 
                         <button
                             onClick={() => signOut(() => router.push("/sign-in"))}
-                            className="border border-[#443CA3]/20 px-6 py-3 rounded-xl hover:bg-[#443CA3] hover:text-white transition"
+                            className=" text-red-800 border border-[#443CA3]/20 bg-red px-6 py-3 rounded-xl hover:bg-[#443CA3] hover:text-white transition"
                         >
                             Cerrar Sesión
                         </button>
 
                     </div>
                 </div>
+
             </nav>
 
             <div className="max-w-7xl mx-auto pt-10">
 
-                {/* ===== HEADER ===== */}
+                {/* HEADER */}
                 <div className="mb-12">
+
                     <h1
                         className="text-5xl font-extrabold mb-3"
-                        style={{fontFamily: "Neulis Alt"}}
+                        style={{ fontFamily: "Neulis Alt" }}
                     >
                         Panel de Cliente
                     </h1>
@@ -425,9 +431,10 @@ export default function ClientPage() {
                         {user?.fullName || "Cliente"}
                     </span>
                     </p>
+
                 </div>
 
-                {/* ===== KPI ===== */}
+                {/* KPI */}
                 <div className="grid md:grid-cols-3 gap-6 mb-12">
 
                     <div className="bg-white border border-[#443CA3]/10 p-6 rounded-2xl">
@@ -450,16 +457,14 @@ export default function ClientPage() {
                     <div className="bg-white border border-[#443CA3]/10 p-6 rounded-2xl">
                         <p className="text-sm text-[#443CA3]/60">Activos</p>
                         <p className="text-3xl font-bold">
-                            {filteredDebtors.length}
+                            {debtors.length}
                         </p>
                     </div>
 
                 </div>
 
-                {/* ===== GRID ===== */}
-                <div className="grid lg:grid-cols-2 gap-12">
-
-                    {/* ===== FORM ===== */}
+                <div className="grid lg:grid-cols-2 gap-12 items-start">
+                    {/* FORM */}
                     <div className="bg-white border border-[#443CA3]/10 p-8 rounded-2xl">
 
                         <h2 className="text-2xl font-bold mb-6">
@@ -540,119 +545,158 @@ export default function ClientPage() {
 
                     </div>
 
-                    {/* ===== EXCEL ===== */}
-                    <div className="flex gap-4 items-start">
-
-                        <button
-                            onClick={handleDownloadTemplate}
-                            className="border border-[#443CA3]/20 px-5 py-2 rounded-xl font-bold hover:bg-[#443CA3] hover:text-white transition"
-                        >
-                            Descargar Plantilla Excel
-                        </button>
-
-                        <button
-                            className="border border-[#443CA3]/20 px-5 py-2 rounded-xl font-bold hover:bg-[#443CA3] hover:text-white transition">
-                            <input
-                                type="file"
-                                accept=".xlsx,.xls,.csv"
-                                onChange={handleFileUpload}
-                                className="text-sm"
-                            /></button>
-                    </div>
-
-                    {message && (
-                        <p className="text-sm text-[#443CA3]/70 mb-6">{message}</p>
-                    )}
-
-                    {/* ===== LIST ===== */}
+                    {/* DEBTOR LIST */}
                     <div>
 
                         <h2 className="text-2xl font-bold mb-6">
                             Tus Deudores
                         </h2>
 
-                        {filteredDebtors.length === 0 ? (
-                            <p className="text-[#443CA3]/70">
-                                No hay deudores registrados.
-                            </p>
-                        ) : (
-                            <div className="space-y-4">
+                        {/* SEARCH */}
+                        <input
+                            type="text"
+                            placeholder="Buscar deudor..."
+                            value={searchTerm}
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                            className="w-full mb-6 p-3 border border-[#443CA3]/20 rounded-xl"
+                        />
 
-                                {filteredDebtors.map((debtor) => (
-                                    <div
-                                        key={debtor.id}
-                                        className="bg-white border border-[#443CA3]/10 p-6 rounded-2xl flex justify-between items-center hover:bg-[#EEF1FF] transition"
-                                    >
-                                        <div>
-                                            <p className="font-bold text-lg">
-                                                {debtor.name}
-                                            </p>
+                        {(() => {
 
-                                            {debtor.email && (
-                                                <p className="text-[#443CA3]/60 text-sm">
-                                                    {debtor.email}
-                                                </p>
-                                            )}
+                            const filteredDebtors = debtors.filter((debtor) =>
+                                debtor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                (debtor.email && debtor.email.toLowerCase().includes(searchTerm.toLowerCase()))
+                            );
 
-                                            <p className="text-sm text-[#443CA3]/60">
-                                                Cédula: {debtor.cedulaIdentidad}
-                                            </p>
+                            const totalPages = Math.ceil(filteredDebtors.length / ITEMS_PER_PAGE);
 
-                                            <p className="text-sm text-[#443CA3]/60">
-                                                Teléfono: {debtor.telephone}
-                                            </p>
+                            const paginatedDebtors = filteredDebtors.slice(
+                                (currentPage - 1) * ITEMS_PER_PAGE,
+                                currentPage * ITEMS_PER_PAGE
+                            );
 
-                                            <p className="text-[#21FE83] font-bold">
-                                                ${debtor.amountOwed}
-                                            </p>
-                                        </div>
+                            if (paginatedDebtors.length === 0) {
+                                return (
+                                    <p className="text-[#443CA3]/70">
+                                        No hay deudores registrados.
+                                    </p>
+                                );
+                            }
 
-                                        <div className="flex gap-4 text-sm">
+                            return (
+                                <>
+                                    <div className="space-y-4">
 
-                                            <button
-                                                onClick={() => {
-                                                    setEditingId(debtor.id);
-                                                    setName(debtor.name);
-                                                    setEmail(debtor.email || "");
-                                                    setTelephone(debtor.telephone || "");
-                                                    setAddress(debtor.address || "");
-                                                    setCedulaIdentidad(debtor.cedulaIdentidad || "");
-                                                    setAmountOwed(String(debtor.amountOwed));
-                                                }}
-                                                className="hover:underline"
+                                        {paginatedDebtors.map((debtor) => (
+
+                                            <div
+                                                key={debtor.id}
+                                                className="bg-white border border-[#443CA3]/10 p-6 rounded-2xl flex justify-between items-center hover:bg-[#EEF1FF] transition"
                                             >
-                                                Editar
-                                            </button>
 
-                                            <button
-                                                onClick={() => handleDelete(debtor.id)}
-                                                className="text-red-500 hover:underline"
-                                            >
-                                                Eliminar
-                                            </button>
+                                                <div>
 
-                                        </div>
+                                                    <p className="font-bold text-lg">
+                                                        {debtor.name}
+                                                    </p>
+
+                                                    {debtor.email && (
+                                                        <p className="text-[#443CA3]/60 text-sm">
+                                                            {debtor.email}
+                                                        </p>
+                                                    )}
+
+                                                    <p className="text-sm text-[#443CA3]/60">
+                                                        Cédula: {debtor.cedulaIdentidad}
+                                                    </p>
+
+                                                    <p className="text-sm text-[#443CA3]/60">
+                                                        Teléfono: {debtor.telephone}
+                                                    </p>
+
+                                                    <p className="text-sm text-[#443CA3]/60">
+                                                        Estado: {debtor.status}
+                                                    </p>
+
+
+                                                    <p className="text-[#21FE83] font-bold">
+                                                        ${debtor.amountOwed}
+                                                    </p>
+
+
+                                                </div>
+
+                                                <div className="flex gap-4 text-sm">
+
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingId(debtor.id);
+                                                            setName(debtor.name);
+                                                            setEmail(debtor.email || "");
+                                                            setTelephone(debtor.telephone || "");
+                                                            setAddress(debtor.address || "");
+                                                            setCedulaIdentidad(debtor.cedulaIdentidad || "");
+                                                            setAmountOwed(String(debtor.amountOwed));
+                                                        }}
+                                                        className="text-[#443CA3] hover:underline"
+                                                    >
+                                                        Editar
+                                                    </button>
+
+                                                    <button
+                                                        onClick={() => handleDelete(debtor.id)}
+                                                        className="text-red-500 hover:underline"
+                                                    >
+                                                        Eliminar
+                                                    </button>
+
+                                                </div>
+
+                                            </div>
+
+                                        ))}
+
                                     </div>
-                                ))}
 
-                            </div>
-                        )}
+                                    {/* PAGINATION */}
+                                    {totalPages > 1 && (
+                                        <div className="flex justify-center gap-4 mt-8">
+
+                                            <button
+                                                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                                className="px-4 py-2 border border-[#443CA3]/20 rounded-xl hover:bg-[#443CA3] hover:text-white transition"
+                                            >
+                                                Prev
+                                            </button>
+
+                                            <span className="text-[#443CA3]/70">
+                                            Página {currentPage} de {totalPages}
+                                        </span>
+
+                                            <button
+                                                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                                className="px-4 py-2 border border-[#443CA3]/20 rounded-xl hover:bg-[#443CA3] hover:text-white transition"
+                                            >
+                                                Next
+                                            </button>
+
+                                        </div>
+                                    )}
+
+                                </>
+                            );
+
+                        })()}
 
                     </div>
 
                 </div>
 
-                {/* ===== LOGOUT ===== */}
-                <div className="mt-16">
-                    <button
-                        onClick={() => signOut(() => router.push("/sign-in"))}
-                        className="border border-[#443CA3]/20 px-6 py-3 rounded-xl hover:bg-[#443CA3] hover:text-white transition"
-                    >
-                        Cerrar Sesión
-                    </button>
-                </div>
-
             </div>
+
         </div>
     );
 }

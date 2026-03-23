@@ -1,39 +1,23 @@
 export const runtime = "nodejs";
 
 import { prisma } from "@/lib/prisma";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-
-
-let user = await prisma.user.findUnique({
-    where: { clerkId: userId },
-});
-
-if (!user) {
-    user = await prisma.user.create({
-        data: {
-            clerkId: userId,
-            email: clerkUser.emailAddresses[0].emailAddress,
-            role: "client",
-        },
-    });
-}
+import { getOrCreateUser } from "@/lib/getOrCreateUser";
 
 // CREATE a debtor
 export async function POST(req) {
     try {
         // 1. Auth
-        const { userId } = await auth();
-        console.log("USER ID:", userId);
-
+        const { userId } = auth();
         if (!userId) {
-            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // 2. Get full user (optional pero útil para debug)
-        const clerkUser = await currentUser();
-        if (!clerkUser) {
-            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+        // 2. Get or create user in DB
+        const user = await getOrCreateUser();
+        if (!user) {
+            return NextResponse.json({ error: "User sync failed" }, { status: 500 });
         }
 
         const body = await req.json();
@@ -49,21 +33,12 @@ export async function POST(req) {
 
         if (!name || !amountOwed || !cedulaIdentidad) {
             return NextResponse.json(
-                { message: "Missing required fields" },
+                { error: "Missing required fields" },
                 { status: 400 }
             );
         }
 
-        // 3. Buscar usuario en tu DB
-        const user = await prisma.user.findUnique({
-            where: { clerkId: userId },
-        });
-
-        if (!user) {
-            return NextResponse.json({ message: "User not found in DB" }, { status: 404 });
-        }
-
-        // 4. Crear debtor
+        // 3. Create debtor
         const debtor = await prisma.debtor.create({
             data: {
                 name,
@@ -71,7 +46,7 @@ export async function POST(req) {
                 telephone: telephone || null,
                 address: address || null,
                 cedulaIdentidad,
-                amountOwed: parseFloat(amountOwed),
+                amountOwed: Number(amountOwed),
                 documentUrl: documentUrl || null,
                 userId: user.id,
             },
@@ -83,26 +58,21 @@ export async function POST(req) {
         );
     } catch (error) {
         console.error("[DEBTORS_POST]", error);
-        return NextResponse.json({ message: "Server error" }, { status: 500 });
+        return NextResponse.json({ error: "Server error" }, { status: 500 });
     }
 }
 
 // GET list of debtors
 export async function GET() {
     try {
-        const { userId } = await auth();
-        console.log("USER ID:", userId);
-
+        const { userId } = auth();
         if (!userId) {
-            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const user = await prisma.user.findUnique({
-            where: { clerkId: userId },
-        });
-
+        const user = await getOrCreateUser();
         if (!user) {
-            return NextResponse.json({ message: "User not found in DB" }, { status: 404 });
+            return NextResponse.json({ error: "User sync failed" }, { status: 500 });
         }
 
         const debtors = await prisma.debtor.findMany({
@@ -113,17 +83,21 @@ export async function GET() {
         return NextResponse.json(debtors);
     } catch (error) {
         console.error("[DEBTORS_GET]", error);
-        return NextResponse.json({ message: "Server error" }, { status: 500 });
+        return NextResponse.json({ error: "Server error" }, { status: 500 });
     }
 }
 
 // UPDATE a debtor
 export async function PATCH(req) {
     try {
-        const { userId } = await auth();
-
+        const { userId } = auth();
         if (!userId) {
-            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const user = await getOrCreateUser();
+        if (!user) {
+            return NextResponse.json({ error: "User sync failed" }, { status: 500 });
         }
 
         const body = await req.json();
@@ -140,26 +114,18 @@ export async function PATCH(req) {
 
         if (!id || !name || !amountOwed || !cedulaIdentidad) {
             return NextResponse.json(
-                { message: "Missing required fields" },
+                { error: "Missing required fields" },
                 { status: 400 }
             );
         }
 
-        const user = await prisma.user.findUnique({
-            where: { clerkId: userId },
-        });
-
-        if (!user) {
-            return NextResponse.json({ message: "User not found" }, { status: 404 });
-        }
-
-        // Seguridad
+        // Security check
         const debtor = await prisma.debtor.findUnique({
             where: { id },
         });
 
         if (!debtor || debtor.userId !== user.id) {
-            return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
         const updatedDebtor = await prisma.debtor.update({
@@ -170,7 +136,7 @@ export async function PATCH(req) {
                 telephone: telephone || null,
                 address: address || null,
                 cedulaIdentidad,
-                amountOwed: parseFloat(amountOwed),
+                amountOwed: Number(amountOwed),
                 documentUrl: documentUrl || null,
             },
         });
@@ -181,6 +147,6 @@ export async function PATCH(req) {
         });
     } catch (error) {
         console.error("[DEBTORS_PATCH]", error);
-        return NextResponse.json({ message: "Server error" }, { status: 500 });
+        return NextResponse.json({ error: "Server error" }, { status: 500 });
     }
 }
