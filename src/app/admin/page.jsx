@@ -5,23 +5,26 @@ import { useRouter } from "next/navigation";
 import { useUser, SignOutButton } from "@clerk/nextjs";
 
 /* --------------------------------------
-   Send Reminders Button (sin cambios)
+Send Reminders Button
 -------------------------------------- */
 function SendRemindersButton() {
     const [sending, setSending] = useState(false);
     const [message, setMessage] = useState(null);
-    const [searchTerm, setSearchTerm] = useState("");
 
     const handleSendReminders = async () => {
         setSending(true);
         setMessage(null);
+
         try {
             const res = await fetch("/api/send-reminders", { method: "GET" });
+
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({}));
                 throw new Error(errorData.message || "Something went wrong.");
             }
+
             setMessage({ type: "success", text: "Reminders sent successfully!" });
+
         } catch (err) {
             setMessage({ type: "error", text: err.message });
         } finally {
@@ -34,7 +37,7 @@ function SendRemindersButton() {
             <button
                 onClick={handleSendReminders}
                 disabled={sending}
-                className={`bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 shadow-sm ${
+                className={`bg-[#443CA3] text-white px-4 py-2 rounded-lg hover:bg-[#3A3391] shadow-sm ${
                     sending ? "opacity-50 cursor-not-allowed" : ""
                 }`}
             >
@@ -55,25 +58,25 @@ function SendRemindersButton() {
 }
 
 /* --------------------------------------
-            MAIN PAGE
+MAIN PAGE
 -------------------------------------- */
+
 export default function AdminPage() {
+
     const { user, isLoaded } = useUser();
     const router = useRouter();
 
-    // 🔎 Filters
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("ALL");
     const [amountFilter, setAmountFilter] = useState("ALL");
 
-// 🔘 Bulk actions
     const [bulkStatus, setBulkStatus] = useState("");
     const [selectedDebtors, setSelectedDebtors] = useState([]);
     const [selectAll, setSelectAll] = useState(false);
     const [bulkMessage, setBulkMessage] = useState(null);
     const [bulkLoading, setBulkLoading] = useState(false);
+    const [selectedDebtor, setSelectedDebtor] = useState(null);
 
-// 📄 Pagination
     const ITEMS_PER_PAGE = 6;
     const [debtorPages, setDebtorPages] = useState({});
 
@@ -88,8 +91,12 @@ export default function AdminPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    // AUTH CHECK (Clerk)
+    /* --------------------------------------
+    AUTH CHECK
+    -------------------------------------- */
+
     useEffect(() => {
+
         if (!isLoaded) return;
 
         if (!user) {
@@ -98,13 +105,37 @@ export default function AdminPage() {
         }
 
         const role = user.publicMetadata?.role;
+
         if (role !== "admin") {
             router.push("/client");
         }
+
     }, [isLoaded, user, router]);
 
+    useEffect(() => {
+
+        const handleKeyDown = (e) => {
+            if (e.key === "Escape") {
+                setSelectedDebtor(null);
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+
+    }, []);
+
+    /* --------------------------------------
+    FETCH CLIENTS
+    -------------------------------------- */
+
     const fetchClients = async () => {
+
         try {
+
             const res = await fetch("/api/admin/clients", {
                 credentials: "include",
             });
@@ -116,56 +147,82 @@ export default function AdminPage() {
 
             const data = await res.json();
             const clientData = Array.isArray(data) ? data : data.clients;
+
             setClients(clientData || []);
+
         } catch (err) {
+
             console.error("Error fetching clients:", err);
             setError("Failed to load clients.");
-        } finally {
-            setLoading(false);
-        }
-    };
 
+        } finally {
+
+            setLoading(false);
+
+        }
+
+    };
 
     useEffect(() => {
         fetchClients();
     }, []);
 
-    // --------------------------------------
-    // Availability Toggle
-    // --------------------------------------
+    /* --------------------------------------
+    Toggle Notify
+    -------------------------------------- */
+
     const toggleDebtorAvailability = async (debtorId) => {
+
         try {
+
             const res = await fetch(`/api/admin/debtors/${debtorId}/toggle-availability`, {
                 method: 'PATCH',
             });
+
             if (!res.ok) throw new Error('Failed to toggle');
+
             await fetchClients();
+
         } catch (err) {
+
             console.error(err);
             alert('Failed to toggle availability');
+
         }
+
     };
 
     const updateDebtorStatus = async (debtorId, newStatus) => {
+
         try {
+
             const res = await fetch(`/api/admin/debtors/${debtorId}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: newStatus }),
             });
+
             if (!res.ok) throw new Error('Failed to update status');
+
             await fetchClients();
+
         } catch (err) {
+
             console.error(err);
             alert('Failed to update status');
+
         }
+
     };
 
-    // ----------------------------------------------------
-    // Filter logic
-    // ----------------------------------------------------
+    /* --------------------------------------
+    FILTER LOGIC
+    -------------------------------------- */
+
     const filteredClients = clients.map((client) => {
+
         const filteredDebtors = client.debtorRecords.filter((debtor) => {
+
             const matchesSearch =
                 debtor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (debtor.email && debtor.email.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -174,36 +231,59 @@ export default function AdminPage() {
                 statusFilter === 'ALL' ? true : debtor.status === statusFilter;
 
             let matchesAmount = true;
+
             if (amountFilter === '<500') matchesAmount = debtor.amountOwed < 500;
             if (amountFilter === '500-1000')
                 matchesAmount = debtor.amountOwed >= 500 && debtor.amountOwed <= 1000;
             if (amountFilter === '>1000') matchesAmount = debtor.amountOwed > 1000;
 
             return matchesSearch && matchesStatus && matchesAmount;
+
         });
 
         return { ...client, debtorRecords: filteredDebtors };
+
     });
 
     if (loading) return <p className="text-center mt-20">Loading...</p>;
     if (error) return <p className="text-red-500">{error}</p>;
 
     return (
-        <main className="min-h-screen bg-gray-50 px-8 py-6">
-            {/* Top bar */}
-            <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow mb-8">
-                <img src="/logo-recupera-purple.png" alt="recupera" className="h-20" />
+
+        <main className="min-h-screen bg-white px-10 py-8">
+
+
+
+            {/* Top Bar */}
+
+            <div className="flex justify-between items-center bg-white px-6 py-4 rounded-2xl shadow-sm border border-gray-100 mb-10">
+
+                <img
+                    src="/logo-recupera-purple.png"
+                    alt="recupera"
+                    className="h-16"
+                />
 
                 <div className="flex items-center gap-3 text-gray-700">
-                    <div className="w-10 h-10 rounded-full bg-black-200"></div>
-                    <span className="font-medium">Admin Dashboard</span>
+
+                    <div className="w-10 h-10 rounded-full bg-gray-200"></div>
+
+                    <span className="font-medium">
+                        Admin Dashboard
+                    </span>
+
                 </div>
+
             </div>
 
-            <h1 className="text-3xl font-semibold text-gray-700 mb-6">My Debtors</h1>
+            <h1 className="text-3xl font-semibold text-gray-700 mb-6">
+                My Debtors
+            </h1>
 
-            {/* ---------------------- FILTER BAR ------------------------ */}
-            <section className="bg-white p-4 rounded-xl shadow mb-8">
+            {/* FILTER BAR */}
+
+            <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-8">
+
                 <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-4">
 
                     <input
@@ -211,13 +291,13 @@ export default function AdminPage() {
                         placeholder="Search..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="border rounded-lg px-3 py-2 shadow-sm"
+                        className="border rounded-lg px-3 py-2"
                     />
 
                     <select
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
-                        className="border rounded-lg px-3 py-2 shadow-sm"
+                        className="border rounded-lg px-3 py-2"
                     >
                         <option value="ALL">All Statuses</option>
                         <option value="PENDIENTE">Pendiente</option>
@@ -230,7 +310,7 @@ export default function AdminPage() {
                     <select
                         value={amountFilter}
                         onChange={(e) => setAmountFilter(e.target.value)}
-                        className="border rounded-lg px-3 py-2 shadow-sm"
+                        className="border rounded-lg px-3 py-2"
                     >
                         <option value="ALL">All Amounts</option>
                         <option value="<500">Less than $500</option>
@@ -238,46 +318,55 @@ export default function AdminPage() {
                         <option value=">1000">More than $1000</option>
                     </select>
 
-                    {/* Bulk select */}
-                    <select
-                        value={bulkStatus}
-                        onChange={(e) => setBulkStatus(e.target.value)}
-                        className="border rounded-lg px-3 py-2 shadow-sm"
-                    >
-                        <option value="">Bulk Status</option>
-                        <option value="PENDIENTE">Pendiente</option>
-                        <option value="EN_GESTION">En Gestión</option>
-                        <option value="ACUERDO_DE_PAGO">Acuerdo de Pago</option>
-                        <option value="PAGADO">Pagado</option>
-                        <option value="ESCALADO_JUDICIAL">Escalado Judicial</option>
-                    </select>
                 </div>
+
             </section>
-            {/* Bulk actions row (top of list) */}
+
+            {/* BULK ACTIONS */}
+
             <section className="mb-6 flex items-center justify-between gap-4">
+
                 <div className="flex items-center gap-3">
+
                     <label className="flex items-center gap-2 text-sm">
+
                         <input
                             type="checkbox"
                             checked={selectAll}
                             onChange={() => {
+
                                 const currently = !selectAll;
                                 setSelectAll(currently);
+
                                 if (currently) {
-                                    const allIds = clients.flatMap((c) => c.debtorRecords.map((d) => d.id));
+
+                                    const allIds = clients.flatMap((c) =>
+                                        c.debtorRecords.map((d) => d.id)
+                                    );
+
                                     setSelectedDebtors(allIds);
+
                                 } else {
+
                                     setSelectedDebtors([]);
+
                                 }
+
                             }}
                         />
+
                         <span>Select all</span>
+
                     </label>
 
-                    <span className="text-sm text-gray-600">Selected: {selectedDebtors.length}</span>
+                    <span className="text-sm text-gray-600">
+                        Selected: {selectedDebtors.length}
+                    </span>
+
                 </div>
 
                 <div className="flex items-center gap-3">
+
                     <select
                         value={bulkStatus}
                         onChange={(e) => setBulkStatus(e.target.value)}
@@ -293,278 +382,578 @@ export default function AdminPage() {
 
                     <button
                         onClick={async () => {
+
                             setBulkMessage(null);
+
                             if (!bulkStatus) {
-                                setBulkMessage({ type: 'error', text: 'Please select a status' });
+
+                                setBulkMessage({
+                                    type: 'error',
+                                    text: 'Please select a status'
+                                });
+
                                 return;
+
                             }
+
                             if (selectedDebtors.length === 0) {
-                                setBulkMessage({ type: 'error', text: 'Please select at least one debtor' });
+
+                                setBulkMessage({
+                                    type: 'error',
+                                    text: 'Please select at least one debtor'
+                                });
+
                                 return;
+
                             }
+
                             setBulkLoading(true);
+
                             try {
+
                                 const res = await fetch('/api/admin/debtors/bulk-status', {
+
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ debtorIds: selectedDebtors, status: bulkStatus }),
+                                    body: JSON.stringify({
+                                        debtorIds: selectedDebtors,
+                                        status: bulkStatus
+                                    }),
+
                                 });
+
                                 const data = await res.json().catch(() => ({}));
-                                if (!res.ok) throw new Error(data.message || 'Failed to update status');
-                                setBulkMessage({ type: 'success', text: 'Statuses updated successfully' });
+
+                                if (!res.ok) {
+                                    throw new Error(data.message || 'Failed to update status');
+                                }
+
+                                setBulkMessage({
+                                    type: 'success',
+                                    text: 'Statuses updated successfully'
+                                });
+
                                 await fetchClients();
+
                                 setSelectedDebtors([]);
                                 setBulkStatus('');
                                 setSelectAll(false);
+
                             } catch (err) {
+
                                 console.error(err);
-                                setBulkMessage({ type: 'error', text: err.message || 'Error updating statuses' });
+
+                                setBulkMessage({
+                                    type: 'error',
+                                    text: err.message || 'Error updating statuses'
+                                });
+
                             } finally {
+
                                 setBulkLoading(false);
+
                             }
+
                         }}
                         disabled={bulkLoading}
-                        className="bg-indigo-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+                        className="bg-[#443CA3] text-white px-4 py-2 rounded-lg disabled:opacity-50"
                     >
                         {bulkLoading ? 'Updating...' : 'Apply to Selected'}
                     </button>
+
                 </div>
+
             </section>
 
-            {bulkMessage && (
-                <div className={`mb-4 ${bulkMessage.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
-                    {bulkMessage.text}
-                </div>
-            )}
+            {/* CLIENTS */}
 
-            {/* Clients list (cards + grid of debtor cards) */}
             <section className="space-y-8">
-                {filteredClients.length === 0 ? (
-                    <p className="text-gray-500">No clients found.</p>
-                ) : (
-                    filteredClients.map((client) => {
-                        const currentPage = debtorPages[client.id] || 1;
-                        const totalPages = Math.max(1, Math.ceil(client.debtorRecords.length / ITEMS_PER_PAGE));
-                        const paginatedDebtors = client.debtorRecords.slice(
-                            (currentPage - 1) * ITEMS_PER_PAGE,
-                            currentPage * ITEMS_PER_PAGE
-                        );
 
-                        return (
-                            <div key={client.id} className="bg-white rounded-lg shadow p-6 border border-gray-200">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-gray-800">{client.name}</h3>
-                                        <p className="text-sm text-gray-500">{client.email}</p>
-                                    </div>
-                                    <div className="text-sm text-gray-600">Debtors: {client.debtorRecords.length}</div>
+                {filteredClients.map((client) => {
+
+                    const currentPage = debtorPages[client.id] || 1;
+
+                    const totalPages = Math.max(
+                        1,
+                        Math.ceil(client.debtorRecords.length / ITEMS_PER_PAGE)
+                    );
+
+                    const paginatedDebtors = client.debtorRecords.slice(
+                        (currentPage - 1) * ITEMS_PER_PAGE,
+                        currentPage * ITEMS_PER_PAGE
+                    );
+
+                    return (
+
+                        <div
+                            key={client.id}
+                            className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-all"
+                        >
+
+                            <div className="flex items-center justify-between mb-4">
+
+                                <div>
+
+                                    <h3 className="text-lg font-semibold text-gray-800">
+                                        {client.name}
+                                    </h3>
+
+                                    <p className="text-sm text-gray-500">
+                                        {client.email}
+                                    </p>
+
                                 </div>
 
-                                {client.debtorRecords.length === 0 ? (
-                                    <p className="text-gray-500">No debtors.</p>
-                                ) : (
-                                    <>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {paginatedDebtors.map((debtor) => (
-                                                <div
-                                                    key={debtor.id}
-                                                    className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 relative"
-                                                >
-                                                    {/* top row: name + amount */}
-                                                    <div className="flex items-start justify-between mb-3">
-                                                        <div>
-                                                            <p className="text-sm text-gray-800 font-semibold">
-                                                                {debtor.name}
-                                                            </p>
-                                                            <p className="text-xs text-gray-500 mt-1">
-                                                                Email: {debtor.email || '—'}
-                                                            </p>
-                                                            <p className="text-xs text-gray-500">
-                                                                Cédula: {debtor.cedulaIdentidad || '—'}
-                                                            </p>
-                                                            <p className="text-xs text-gray-500">
-                                                                Telefono: {debtor.telephone || '—'}
-                                                            </p>
+                                <div className="text-sm text-gray-600">
+                                    Debtors: {client.debtorRecords.length}
+                                </div>
 
-                                                            {debtor.documentUrl && (
-                                                                <div className="mt-2">
-                                                                    <a
-                                                                        href={debtor.documentUrl.replace(
-                                                                            "/upload/",
-                                                                            "/upload/fl_attachment/"
-                                                                        )}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition"
-                                                                    >
-                                                                        Download Document
-                                                                    </a>
-                                                                </div>
-                                                            )}
-                                                        </div>
+                            </div>
 
+                            {client.debtorRecords.length === 0 ? (
 
-                                                        <div className="text-right">
-                                                            <div className="text-sm font-medium text-gray-800">
-                                                                USD {Number(debtor.amountOwed).toLocaleString(undefined, {
-                                                                minimumFractionDigits: 2,
-                                                                maximumFractionDigits: 2,
-                                                            })}
-                                                            </div>
+                                <p className="text-gray-500">No debtors.</p>
 
-                                                            {/* status badge */}
-                                                            <div className="mt-2">
-                                                                <span
-                                                                    className={`inline-block text-xs font-semibold px-2 py-1 rounded ${
-                                                                        debtor.status === 'PAGADO'
-                                                                            ? 'bg-green-100 text-green-700'
-                                                                            : debtor.status === 'EN_GESTION'
-                                                                                ? 'bg-emerald-100 text-emerald-700'
-                                                                                : debtor.status === 'ACUERDO_DE_PAGO'
-                                                                                    ? 'bg-indigo-100 text-indigo-700'
-                                                                                    : debtor.status === 'ESCALADO_JUDICIAL'
-                                                                                        ? 'bg-red-100 text-red-700'
-                                                                                        : 'bg-yellow-100 text-yellow-700'
-                                                                    }`}
-                                                                >
-                                                                    {debtor.status ? debtor.status.replace(/_/g, ' ') : 'PENDIENTE'}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                            ) : (
 
-                                                    {/* middle row: sublevel + actions */}
-                                                    <div className="flex items-center justify-between mt-4">
-                                                        <div className="text-sm text-gray-500">Subnivel Gestión</div>
+                                <>
 
-                                                        <div className="flex items-center gap-2">
-                                                            {/*<button*/}
-                                                            {/*    onClick={() => {*/}
-                                                            {/*        // Edit / view management — keep your existing routing or handler here*/}
-                                                            {/*        // If you have a modal or page, call it here. Placeholder:*/}
-                                                            {/*        console.log('View management for', debtor.id);*/}
-                                                            {/*    }}*/}
-                                                            {/*    className="text-sm px-3 py-1 border rounded text-indigo-600 hover:bg-indigo-50"*/}
-                                                            {/*>*/}
-                                                            {/*    View*/}
-                                                            {/*</button>*/}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 
-                                                            <button
-                                                                onClick={() => {
-                                                                    // Edit action placeholder (preserve existing edit handler if any)
-                                                                    console.log('Edit', debtor.id);
-                                                                }}
-                                                                className="text-sm px-3 py-1 border rounded text-gray-700 hover:bg-gray-50"
-                                                            >
-                                                                Edit
-                                                            </button>
+                                        {paginatedDebtors.map((debtor) => (
 
-                                                            <button
-                                                                onClick={() => {
-                                                                    // Delete placeholder - preserve original delete behavior if you want
-                                                                    (async () => {
-                                                                        if (!confirm('Are you sure you want to delete this debtor?')) return;
-                                                                        try {
-                                                                            const res = await fetch(`/api/debtors/${debtor.id}`, {
-                                                                                method: 'DELETE',
-                                                                                credentials: 'include',
-                                                                            });
-                                                                            if (!res.ok) {
-                                                                                const data = await res.json().catch(() => ({}));
-                                                                                throw new Error(data.message || 'Failed to delete');
-                                                                            }
-                                                                            await fetchClients();
-                                                                        } catch (err) {
-                                                                            console.error(err);
-                                                                            alert('Failed to delete');
-                                                                        }
-                                                                    })();
-                                                                }}
-                                                                className="text-sm px-3 py-1 border rounded text-red-600 hover:bg-red-50"
-                                                            >
-                                                                Delete
-                                                            </button>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* bottom row: notify toggle and select box */}
-                                                    <div className="flex items-center justify-between mt-4">
-                                                        <label className="flex items-center gap-2 text-sm">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={!!debtor.availableForNotify}
-                                                                onChange={() => {
-                                                                    toggleDebtorAvailability(debtor.id);
-                                                                }}
-                                                            />
-                                                            <span>Notify Allowed</span>
-                                                        </label>
-
-                                                        <label className="flex items-center gap-2 text-sm">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={selectedDebtors.includes(debtor.id)}
-                                                                onChange={() => {
-                                                                    setSelectedDebtors((prev) => {
-                                                                        const exists = prev.includes(debtor.id);
-                                                                        const newSelected = exists ? prev.filter((id) => id !== debtor.id) : [...prev, debtor.id];
-                                                                        const totalDebtors = clients.flatMap((c) => c.debtorRecords.map((d) => d.id));
-                                                                        setSelectAll(newSelected.length === totalDebtors.length);
-                                                                        return newSelected;
-                                                                    });
-                                                                }}
-                                                            />
-                                                            <span>Select</span>
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-
-                                        {/* Pagination controls for this client */}
-                                        <div className="flex items-center justify-center gap-3 mt-6">
-                                            <button
-                                                onClick={() => handlePageChange(client.id, Math.max(1, currentPage - 1))}
-                                                disabled={currentPage === 1}
-                                                className="px-3 py-1 border rounded disabled:opacity-50"
+                                            <div
+                                                key={debtor.id}
+                                                onClick={() => setSelectedDebtor(debtor)}
+                                                className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
                                             >
-                                                Prev
-                                            </button>
 
-                                            <div className="text-sm text-gray-600">
-                                                Page {currentPage} of {totalPages}
+                                                <div className="flex items-start justify-between mb-3">
+
+                                                    <div>
+
+                                                        <p className="text-sm font-semibold text-gray-800">
+                                                            {debtor.name}
+                                                        </p>
+
+                                                        <p className="text-xs text-gray-500 mt-1">
+                                                            Email: {debtor.email || '—'}
+                                                        </p>
+
+                                                        <p className="text-xs text-gray-500">
+                                                            Cédula: {debtor.cedulaIdentidad || '—'}
+                                                        </p>
+
+                                                        <p className="text-xs text-gray-500">
+                                                            Telefono: {debtor.telephone || '—'}
+                                                        </p>
+
+                                                    </div>
+
+                                                    <div className="text-right">
+
+                                                        <div className="text-base font-semibold text-[#443CA3]">
+
+                                                            USD {Number(debtor.amountOwed).toLocaleString(undefined, {
+                                                            minimumFractionDigits: 2,
+                                                            maximumFractionDigits: 2,
+                                                        })}
+
+                                                        </div>
+
+                                                        <div className="mt-2">
+
+                                                            <span
+                                                                className={`inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full ${
+                                                                    debtor.status === 'PAGADO'
+                                                                        ? 'bg-green-100 text-green-700'
+                                                                        : debtor.status === 'EN_GESTION'
+                                                                            ? 'bg-emerald-100 text-emerald-700'
+                                                                            : debtor.status === 'ACUERDO_DE_PAGO'
+                                                                                ? 'bg-indigo-100 text-indigo-700'
+                                                                                : debtor.status === 'ESCALADO_JUDICIAL'
+                                                                                    ? 'bg-red-100 text-red-700'
+                                                                                    : 'bg-yellow-100 text-yellow-700'
+                                                                }`}
+                                                            >
+                                                                {debtor.status ? debtor.status.replace(/_/g, ' ') : 'PENDIENTE'}
+                                                            </span>
+
+                                                        </div>
+
+                                                    </div>
+
+                                                </div>
+
+                                                <div className="flex items-center justify-between mt-4">
+
+                                                    <div className="text-sm text-gray-500">
+                                                        Subnivel Gestión
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2">
+
+                                                        <button
+                                                            onClick={() => {
+                                                                console.log('Edit', debtor.id);
+                                                            }}
+                                                            className="text-sm px-3 py-1 border rounded text-gray-700 hover:bg-gray-50"
+                                                        >
+                                                            Edit
+                                                        </button>
+
+                                                        <button
+                                                            onClick={() => {
+
+                                                                (async () => {
+
+                                                                    if (!confirm('Are you sure you want to delete this debtor?')) return;
+
+                                                                    try {
+
+                                                                        const res = await fetch(`/api/debtors/${debtor.id}`, {
+                                                                            method: 'DELETE',
+                                                                            credentials: 'include',
+                                                                        });
+
+                                                                        if (!res.ok) {
+
+                                                                            const data = await res.json().catch(() => ({}));
+                                                                            throw new Error(data.message || 'Failed to delete');
+
+                                                                        }
+
+                                                                        await fetchClients();
+
+                                                                    } catch (err) {
+
+                                                                        console.error(err);
+                                                                        alert('Failed to delete');
+
+                                                                    }
+
+                                                                })();
+
+                                                            }}
+                                                            className="text-sm px-3 py-1 border rounded text-red-600 hover:bg-red-50"
+                                                        >
+                                                            Delete
+                                                        </button>
+
+                                                    </div>
+
+                                                </div>
+
+                                                <div className="flex items-center justify-between mt-4">
+
+                                                    <label className="flex items-center gap-2 text-sm">
+
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={!!debtor.availableForNotify}
+                                                            onChange={() => {
+                                                                toggleDebtorAvailability(debtor.id);
+                                                            }}
+                                                        />
+
+                                                        <span>Notify Allowed</span>
+
+                                                    </label>
+
+                                                    <label className="flex items-center gap-2 text-sm">
+
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedDebtors.includes(debtor.id)}
+                                                            onChange={() => {
+
+                                                                setSelectedDebtors((prev) => {
+
+                                                                    const exists = prev.includes(debtor.id);
+
+                                                                    const newSelected = exists
+                                                                        ? prev.filter((id) => id !== debtor.id)
+                                                                        : [...prev, debtor.id];
+
+                                                                    const totalDebtors = clients.flatMap((c) =>
+                                                                        c.debtorRecords.map((d) => d.id)
+                                                                    );
+
+                                                                    setSelectAll(newSelected.length === totalDebtors.length);
+
+                                                                    return newSelected;
+
+                                                                });
+
+                                                            }}
+                                                        />
+
+                                                        <span>Select</span>
+
+                                                    </label>
+
+                                                </div>
+
                                             </div>
 
-                                            <button
-                                                onClick={() => handlePageChange(client.id, Math.min(totalPages, currentPage + 1))}
-                                                disabled={currentPage === totalPages}
-                                                className="px-3 py-1 border rounded disabled:opacity-50"
-                                            >
-                                                Next
-                                            </button>
+                                        ))}
+
+                                    </div>
+
+                                    <div className="flex items-center justify-center gap-3 mt-6">
+
+                                    <button
+                                            onClick={() =>
+                                                handlePageChange(client.id, Math.max(1, currentPage - 1))
+                                            }
+                                            disabled={currentPage === 1}
+                                            className="px-3 py-1 border rounded disabled:opacity-50"
+                                        >
+                                            Prev
+                                        </button>
+
+                                        <div className="text-sm text-gray-600">
+                                            Page {currentPage} of {totalPages}
                                         </div>
-                                    </>
-                                )}
-                            </div>
-                        );
-                    })
-                )}
+
+                                        <button
+                                            onClick={() =>
+                                                handlePageChange(client.id, Math.min(totalPages, currentPage + 1))
+                                            }
+                                            disabled={currentPage === totalPages}
+                                            className="px-3 py-1 border rounded disabled:opacity-50"
+                                        >
+                                            Next
+                                        </button>
+
+                                    </div>
+
+                                </>
+
+                            )}
+
+                        </div>
+
+                    );
+
+                })}
+
             </section>
 
-            {/* Send reminders action */}
             <div className="mt-8">
                 <SendRemindersButton />
             </div>
 
-            {/* Footer / logout */}
             <div className="mt-12 flex justify-end">
+
                 <SignOutButton redirectUrl="/sign-in">
+
                     <button className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">
                         Logout
                     </button>
+
                 </SignOutButton>
 
             </div>
+               ///MODAL BLOCK
+            {selectedDebtor && (
+
+                <div
+                    className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+                    onClick={() => setSelectedDebtor(null)}
+                >
+
+                    <div
+                        className="bg-white rounded-2xl shadow-xl w-[900px] max-h-[90vh] overflow-y-auto p-6 relative"
+                        onClick={(e)=>e.stopPropagation()}
+                    >
+
+                        <button
+                            onClick={()=>setSelectedDebtor(null)}
+                            className="absolute top-4 right-4 text-gray-500 hover:text-gray-800"
+                        >
+                            ✕
+                        </button>
+
+                        {/* HEADER */}
+
+                        <div className="flex items-center gap-4 mb-6">
+
+                            <div className="w-14 h-14 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-lg">
+                                {selectedDebtor.name?.slice(0,2).toUpperCase()}
+                            </div>
+
+                            <div>
+
+                                <h2 className="text-xl font-semibold">
+                                    {selectedDebtor.name}
+                                </h2>
+
+                                <div className="flex gap-6 text-sm text-gray-600 mt-1">
+
+                                    <div>
+                                        <span className="text-gray-400">Total Debt</span>
+                                        <p className="font-semibold">
+                                            USD {Number(selectedDebtor.amountOwed).toLocaleString()}
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <span className="text-gray-400">Status</span>
+
+                                        <span className={`ml-2 px-2 py-1 rounded-full text-xs font-semibold
+${selectedDebtor.status==="PAGADO" ? "bg-green-100 text-green-700" :
+                                            selectedDebtor.status==="ESCALADO_JUDICIAL" ? "bg-red-100 text-red-700" :
+                                                selectedDebtor.status==="ACUERDO_DE_PAGO" ? "bg-indigo-100 text-indigo-700" :
+                                                    selectedDebtor.status==="EN_GESTION" ? "bg-emerald-100 text-emerald-700" :
+                                                        "bg-yellow-100 text-yellow-700"}
+`}>
+{selectedDebtor.status?.replace(/_/g," ")}
+</span>
+
+                                    </div>
+
+                                    <div>
+                                        <span className="text-gray-400">Due Date</span>
+                                        <p>—</p>
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        {/* CONTACT */}
+
+                        <div className="flex gap-6 text-sm text-gray-600 mb-6">
+
+                            <div>
+                                📧 {selectedDebtor.email || "—"}
+                            </div>
+
+                            <div>
+                                📞 {selectedDebtor.telephone || "—"}
+                            </div>
+
+                        </div>
+
+                        {/* ACTION BUTTONS */}
+
+                        <div className="flex gap-3 mb-8">
+
+                            <button
+                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                            >
+                                Enviar Recordatorio
+                            </button>
+
+                            <button
+                                onClick={()=>{
+                                    const phone=selectedDebtor.telephone?.replace(/\D/g,"");
+                                    if(phone){
+                                        window.open(`https://wa.me/${phone}`,"_blank");
+                                    }
+                                }}
+                                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                            >
+                                Enviar WhatsApp
+                            </button>
+
+                            <button
+                                className="border px-4 py-2 rounded-lg hover:bg-gray-50"
+                            >
+                                Marcar como Pagado
+                            </button>
+
+                        </div>
+
+                        {/* GRID */}
+
+                        <div className="grid grid-cols-2 gap-6">
+
+                            {/* DEBT DETAILS */}
+
+                            <div className="border rounded-xl p-4">
+
+                                <h3 className="font-semibold mb-4">
+                                    Detalles de la Deuda
+                                </h3>
+
+                                <div className="space-y-2 text-sm">
+
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Original Amount</span>
+                                        <span>$ {Number(selectedDebtor.amountOwed).toLocaleString()}</span>
+                                    </div>
+
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Remaining Balance</span>
+                                        <span>$ {Number(selectedDebtor.amountOwed).toLocaleString()}</span>
+                                    </div>
+
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Due Date</span>
+                                        <span>—</span>
+                                    </div>
+
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Days Overdue</span>
+                                        <span>—</span>
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            {/* ACTIVITY */}
+
+                            <div className="border rounded-xl p-4">
+
+                                <h3 className="font-semibold mb-4">
+                                    Línea de Actividad
+                                </h3>
+
+                                <div className="space-y-3 text-sm text-gray-600">
+
+                                    <div>✔ Debtor created</div>
+                                    <div>📧 Email reminder sent</div>
+                                    <div>💬 WhatsApp reminder sent</div>
+
+                                </div>
+
+                            </div>
+
+                            {/* NOTES */}
+
+                            <div className="border rounded-xl p-4 col-span-2">
+
+                                <h3 className="font-semibold mb-4">
+                                    Notas
+                                </h3>
+
+                                <textarea
+                                    className="w-full border rounded-lg p-2 text-sm"
+                                    placeholder="Add a note..."
+                                />
+
+                                <button className="mt-3 bg-gray-900 text-white px-3 py-1 rounded-lg text-sm">
+                                    Agregar Nota
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            )}
+
         </main>
+
     );
+
 }
+

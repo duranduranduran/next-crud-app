@@ -244,9 +244,9 @@ export default function LandingPage() {
                     <div className="space-y-10">
 
                         <h1 className="text-7xl md:text-8xl xl:text-[110px] font-extrabold leading-[0.95]">
-                            Recupera tu Liquidez
+                            Recupera Tu Liquidez
                             <br />
-                            <span>de Manera Automatica</span>
+
                         </h1>
 
                         <p className="text-lg max-w-xl text-[#443CA3]/70">

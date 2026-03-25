@@ -403,7 +403,7 @@ export default function ClientPage() {
 
                         <button
                             onClick={() => signOut(() => router.push("/sign-in"))}
-                            className=" text-red-800border border-[#443CA3]/20 bg-red px-6 py-3 rounded-xl hover:bg-[#443CA3] hover:text-white transition"
+                            className=" text-red-800 border border-[#443CA3]/20 bg-red px-6 py-3 rounded-xl hover:bg-[#443CA3] hover:text-white transition"
                         >
                             Cerrar Sesión
                         </button>
@@ -561,7 +561,7 @@ export default function ClientPage() {
                                 setSearchTerm(e.target.value);
                                 setCurrentPage(1);
                             }}
-                            className="w-full mb-6 p-3 border border-[#443CA3]/20 rounded-xl"
+                            className="w-full border border-[#443CA3]/20 rounded-xl px-4 py-3 focus:outline-none focus:border-[#443CA3]"
                         />
 
                         {(() => {

@@ -75,13 +75,13 @@ export default function AdminSidebar() {
 
                 <SignOutButton redirectUrl="/sign-in">
 
-                    <button className="flex items-center gap-4 w-full p-3 rounded-xl text-slate-300 hover:text-white hover:bg-red-600 transition">
+                    <button className="flex items-center gap-4 w-full p-3 rounded-xl text-red-400 hover:text-white hover:bg-red-600 transition">
 
-                        <LogOut size={22} className="shrink-0" />
+                        <LogOut size={22} />
 
                         <span className="opacity-0 group-hover:opacity-100 transition">
-            Sign Out
-        </span>
+                            Sign Out
+                        </span>
 
                     </button>
 
