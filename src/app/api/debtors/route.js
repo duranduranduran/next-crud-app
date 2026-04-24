@@ -1,7 +1,161 @@
+// export const runtime = "nodejs";
+//
+// import { prisma } from "@/lib/prisma";
+// import { auth } from "@clerk/nextjs/server";
+// import { NextResponse } from "next/server";
+// import { getOrCreateUser } from "@/lib/getOrCreateUser";
+//
+// // CREATE a debtor
+// export async function POST(req) {
+//     try {
+//         // 1. Auth
+//         const { userId } = await auth();
+//         if (!userId) {
+//             return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+//         }
+//
+//         // 2. Get or create user in DB
+//         const user = await getOrCreateUser();
+//         if (!user) {
+//             return NextResponse.json({ message: "User sync failed" }, { status: 500 });
+//         }
+//
+//         const body = await req.json();
+//         const {
+//             name,
+//             email,
+//             amountOwed,
+//             documentUrl,
+//             telephone,
+//             address,
+//             cedulaIdentidad,
+//         } = body;
+//
+//         if (!name || !amountOwed || !cedulaIdentidad) {
+//             return NextResponse.json(
+//                 { message: "Missing required fields" },
+//                 { status: 400 }
+//             );
+//         }
+//
+//         // 3. Crear debtor
+//         const debtor = await prisma.debtor.create({
+//             data: {
+//                 name,
+//                 email: email || null,
+//                 telephone: telephone || null,
+//                 address: address || null,
+//                 cedulaIdentidad,
+//                 amountOwed: parseFloat(amountOwed),
+//                 documentUrl: documentUrl || null,
+//                 userId: user.id,
+//             },
+//         });
+//
+//         return NextResponse.json(
+//             { message: "Debtor created", debtor },
+//             { status: 201 }
+//         );
+//     } catch (error) {
+//         console.error("[DEBTORS_POST]", error);
+//         return NextResponse.json({ message: "Server error" }, { status: 500 });
+//     }
+// }
+//
+// // GET list of debtors
+// export async function GET() {
+//     try {
+//         const { userId } = await auth();
+//         if (!userId) {
+//             return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+//         }
+//
+//         const user = await getOrCreateUser();
+//         if (!user) {
+//             return NextResponse.json({ message: "User sync failed" }, { status: 500 });
+//         }
+//
+//         const debtors = await prisma.debtor.findMany({
+//             where: { userId: user.id },
+//             orderBy: { createdAt: "desc" },
+//         });
+//
+//         return NextResponse.json(debtors);
+//     } catch (error) {
+//         console.error("[DEBTORS_GET]", error);
+//         return NextResponse.json({ message: "Server error" }, { status: 500 });
+//     }
+// }
+//
+// // UPDATE a debtor
+// export async function PATCH(req) {
+//     try {
+//         const { userId } = await auth();
+//         if (!userId) {
+//             return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+//         }
+//
+//         const user = await getOrCreateUser();
+//         if (!user) {
+//             return NextResponse.json({ message: "User sync failed" }, { status: 500 });
+//         }
+//
+//         const body = await req.json();
+//         const {
+//             id,
+//             name,
+//             email,
+//             amountOwed,
+//             documentUrl,
+//             telephone,
+//             address,
+//             cedulaIdentidad,
+//         } = body;
+//
+//         if (!id || !name || !amountOwed || !cedulaIdentidad) {
+//             return NextResponse.json(
+//                 { message: "Missing required fields" },
+//                 { status: 400 }
+//             );
+//         }
+//
+//         // Seguridad
+//         const debtor = await prisma.debtor.findUnique({
+//             where: { id },
+//         });
+//
+//         if (!debtor || debtor.userId !== user.id) {
+//             return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+//         }
+//
+//         const updatedDebtor = await prisma.debtor.update({
+//             where: { id },
+//             data: {
+//                 name,
+//                 email: email || null,
+//                 telephone: telephone || null,
+//                 address: address || null,
+//                 cedulaIdentidad,
+//                 amountOwed: parseFloat(amountOwed),
+//                 documentUrl: documentUrl || null,
+//             },
+//         });
+//
+//         return NextResponse.json({
+//             message: "Debtor updated",
+//             debtor: updatedDebtor,
+//         });
+//     } catch (error) {
+//         console.error("[DEBTORS_PATCH]", error);
+//         return NextResponse.json({ message: "Server error" }, { status: 500 });
+//     }
+// }
+//
+
 export const runtime = "nodejs";
 
 import { prisma } from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getOrCreateUser } from "@/lib/getOrCreateUser";
 
@@ -38,7 +192,7 @@ export async function POST(req) {
             );
         }
 
-        // 3. Crear debtor
+        // 3. Create debtor first to get the id
         const debtor = await prisma.debtor.create({
             data: {
                 name,
@@ -49,6 +203,16 @@ export async function POST(req) {
                 amountOwed: parseFloat(amountOwed),
                 documentUrl: documentUrl || null,
                 userId: user.id,
+            },
+        });
+
+        // 4. Now create the log with the real debtorId
+        await prisma.activityLog.create({
+            data: {
+                event: "DEBTOR_CREATED",
+                detail: `New debtor created: ${name} (USD ${parseFloat(amountOwed)})`,
+                userId: user.id,
+                debtorId: debtor.id, // 👈 real id now available
             },
         });
 
@@ -119,7 +283,6 @@ export async function PATCH(req) {
             );
         }
 
-        // Seguridad
         const debtor = await prisma.debtor.findUnique({
             where: { id },
         });
@@ -140,6 +303,17 @@ export async function PATCH(req) {
                 documentUrl: documentUrl || null,
             },
         });
+
+// Log the update
+        await prisma.activityLog.create({
+            data: {
+                event: "DEBTOR_CREATED",
+                detail: `[UPDATED] Debtor: ${name} (USD ${parseFloat(amountOwed)})`,
+                userId: user.id,
+                debtorId: id,
+            },
+        });
+
 
         return NextResponse.json({
             message: "Debtor updated",

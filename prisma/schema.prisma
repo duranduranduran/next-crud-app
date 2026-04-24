@@ -8,18 +8,19 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  name          String?
-  email         String?  @unique
-  emailVerified DateTime?
-  image         String?
-  role          String   @default("client")
-  hashedPassword String?  // ← add this line
-  accounts      Account[]
-  sessions      Session[]
-  debtorRecords Debtor[]
-  clerkId       String @unique
-  debtorNotes DebtorNote[]
+  id             String        @id @default(cuid())
+  name           String?
+  email          String?       @unique
+  emailVerified  DateTime?
+  image          String?
+  role           String        @default("client")
+  hashedPassword String?
+  accounts       Account[]
+  sessions       Session[]
+  debtorRecords  Debtor[]
+  clerkId        String        @unique
+  debtorNotes    DebtorNote[]
+  activityLogs   ActivityLog[]
 }
 
 enum DebtorStatus {
@@ -30,48 +31,70 @@ enum DebtorStatus {
   ESCALADO_JUDICIAL
 }
 
+enum LogEventType {
+  REMINDER_SENT
+  CALL_TRIGGERED
+  STATUS_CHANGED
+  NOTE_ADDED
+  NOTE_DELETED
+  DEBTOR_CREATED
+  DEBTOR_DELETED
+  BULK_STATUS_CHANGED
+}
+
 model Debtor {
-  id         String   @id @default(uuid())
-  name       String
-  email      String?
-  amountOwed Float
-  telephone         String?
-  address           String?
-  cedulaIdentidad   String    @unique
-  createdAt  DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id])
-  userId     String
-  availableForNotify  Boolean  @default(false)
-  documentUrl String?
-  status            DebtorStatus  @default(PENDIENTE)
-  notes DebtorNote[]
+  id                 String        @id @default(uuid())
+  name               String
+  email              String?
+  amountOwed         Float
+  telephone          String?
+  address            String?
+  cedulaIdentidad    String        @unique
+  createdAt          DateTime      @default(now())
+  user               User          @relation(fields: [userId], references: [id])
+  userId             String
+  availableForNotify Boolean       @default(false)
+  documentUrl        String?
+  status             DebtorStatus  @default(PENDIENTE)
+  notes              DebtorNote[]
+  activityLogs       ActivityLog[]
 }
 
 model DebtorNote {
   id        String   @id @default(cuid())
   content   String
   createdAt DateTime @default(now())
-
   debtorId  String
   debtor    Debtor   @relation(fields: [debtorId], references: [id], onDelete: Cascade)
-  userId String
-  user User @relation(fields: [userId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model ActivityLog {
+  id        String       @id @default(cuid())
+  event     LogEventType
+  detail    String
+  createdAt DateTime     @default(now())
+  userId    String?
+  user      User?        @relation(fields: [userId], references: [id])
+  debtorId  String?
+  debtor    Debtor?      @relation(fields: [debtorId], references: [id], onDelete: SetNull)
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?
-  access_token       String?
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?
-  session_state      String?
-  user               User    @relation(fields: [userId], references: [id])
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id])
 
   @@unique([provider, providerAccountId])
 }
@@ -93,8 +116,7 @@ model VerificationToken {
 }
 
 model NotificationSettings {
-  id     String  @id @default(cuid())
-  hour   Int     @default(9)
-  minute Int     @default(0)
+  id     String @id @default(cuid())
+  hour   Int    @default(9)
+  minute Int    @default(0)
 }
-

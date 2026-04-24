@@ -1,64 +1,68 @@
-import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { prisma } from "@/lib/prisma";
+// export const runtime = "nodejs";
+//
+// import { NextResponse } from "next/server";
+// import { auth, currentUser } from "@clerk/nextjs/server";
+// import { prisma } from "@/lib/prisma";
+//
+// export async function PATCH(req, { params }) {
+//     // 1. Auth
+//     const { userId } = await auth();
+//
+//     if (!userId) {
+//         return NextResponse.json(
+//             { message: "Unauthorized" },
+//             { status: 401 }
+//         );
+//     }
+//
+//     // 2. Role check (admin only)
+//     const user = await currentUser();
+//
+//     if (!user || user.publicMetadata?.role !== "admin") {
+//         return NextResponse.json(
+//             { message: "Forbidden" },
+//             { status: 403 }
+//         );
+//     }
+//
+//     // 3. Params & body
+//     const { id } = params;
+//     const { status } = await req.json();
+//
+//     // 4. Validate status
+//     const validStatuses = [
+//         "PENDIENTE",
+//         "EN_GESTION",
+//         "ACUERDO_DE_PAGO",
+//         "PAGADO",
+//         "ESCALADO_JUDICIAL",
+//     ];
+//
+//     if (!validStatuses.includes(status)) {
+//         return NextResponse.json(
+//             { message: "Invalid status value" },
+//             { status: 400 }
+//         );
+//     }
+//
+//     // 5. Update debtor
+//     try {
+//         const updatedDebtor = await prisma.debtor.update({
+//             where: { id },
+//             data: { status },
+//         });
+//
+//         return NextResponse.json(
+//             { message: "Status updated", debtor: updatedDebtor },
+//             { status: 200 }
+//         );
+//     } catch (err) {
+//         console.error("[ADMIN_DEBTOR_STATUS_PATCH_ERROR]", err);
+//         return NextResponse.json(
+//             { message: "Server error" },
+//             { status: 500 }
+//         );
+//     }
+// }
 
-export async function PATCH(req, { params }) {
-    // 1️⃣ Auth with Clerk
-    const { userId, sessionClaims } = auth();
 
-    if (!userId) {
-        return NextResponse.json(
-            { message: "Unauthorized" },
-            { status: 401 }
-        );
-    }
-
-    // 2️⃣ Role check (admin only)
-    const role = sessionClaims?.publicMetadata?.role;
-
-    if (role !== "admin") {
-        return NextResponse.json(
-            { message: "Forbidden" },
-            { status: 403 }
-        );
-    }
-
-    // 3️⃣ Params & body
-    const { id } = params;
-    const { status } = await req.json();
-
-    // 4️⃣ Validate status
-    const validStatuses = [
-        "PENDIENTE",
-        "EN_GESTION",
-        "ACUERDO_DE_PAGO",
-        "PAGADO",
-        "ESCALADO_JUDICIAL",
-    ];
-
-    if (!validStatuses.includes(status)) {
-        return NextResponse.json(
-            { message: "Invalid status value" },
-            { status: 400 }
-        );
-    }
-
-    // 5️⃣ Update debtor
-    try {
-        const updatedDebtor = await prisma.debtor.update({
-            where: { id },
-            data: { status },
-        });
-
-        return NextResponse.json(
-            { message: "Status updated", debtor: updatedDebtor },
-            { status: 200 }
-        );
-    } catch (err) {
-        console.error("[ADMIN_DEBTOR_STATUS_PATCH_ERROR]", err);
-        return NextResponse.json(
-            { message: "Server error" },
-            { status: 500 }
-        );
-    }
-}

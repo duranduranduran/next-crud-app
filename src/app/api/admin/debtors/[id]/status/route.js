@@ -1,3 +1,71 @@
+// export const runtime = "nodejs";
+//
+// import { NextResponse } from "next/server";
+// import { auth, currentUser } from "@clerk/nextjs/server";
+// import { prisma } from "@/lib/prisma";
+//
+// export async function PATCH(req, { params }) {
+//     // 1. Auth
+//     const { userId } = await auth();
+//
+//     if (!userId) {
+//         return NextResponse.json(
+//             { message: "Unauthorized" },
+//             { status: 401 }
+//         );
+//     }
+//
+//     // 2. Role check (admin only)
+//     const user = await currentUser();
+//
+//     if (!user || user.publicMetadata?.role !== "admin") {
+//         return NextResponse.json(
+//             { message: "Forbidden" },
+//             { status: 403 }
+//         );
+//     }
+//
+//     // 3. Params & body
+//     const { id } = params;
+//     const { status } = await req.json();
+//
+//     // 4. Validate status
+//     const validStatuses = [
+//         "PENDIENTE",
+//         "EN_GESTION",
+//         "ACUERDO_DE_PAGO",
+//         "PAGADO",
+//         "ESCALADO_JUDICIAL",
+//     ];
+//
+//     if (!validStatuses.includes(status)) {
+//         return NextResponse.json(
+//             { message: "Invalid status value" },
+//             { status: 400 }
+//         );
+//     }
+//
+//     // 5. Update debtor
+//     try {
+//         const updatedDebtor = await prisma.debtor.update({
+//             where: { id },
+//             data: { status },
+//         });
+//
+//         return NextResponse.json(
+//             { message: "Status updated", debtor: updatedDebtor },
+//             { status: 200 }
+//         );
+//     } catch (err) {
+//         console.error("[ADMIN_DEBTOR_STATUS_PATCH_ERROR]", err);
+//         return NextResponse.json(
+//             { message: "Server error" },
+//             { status: 500 }
+//         );
+//     }
+// }
+
+
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
@@ -9,24 +77,18 @@ export async function PATCH(req, { params }) {
     const { userId } = await auth();
 
     if (!userId) {
-        return NextResponse.json(
-            { message: "Unauthorized" },
-            { status: 401 }
-        );
+        return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     // 2. Role check (admin only)
-    const user = await currentUser();
+    const clerkUser = await currentUser();
 
-    if (!user || user.publicMetadata?.role !== "admin") {
-        return NextResponse.json(
-            { message: "Forbidden" },
-            { status: 403 }
-        );
+    if (!clerkUser || clerkUser.publicMetadata?.role !== "admin") {
+        return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
 
     // 3. Params & body
-    const { id } = params;
+    const { id } = await params;
     const { status } = await req.json();
 
     // 4. Validate status
@@ -39,18 +101,44 @@ export async function PATCH(req, { params }) {
     ];
 
     if (!validStatuses.includes(status)) {
-        return NextResponse.json(
-            { message: "Invalid status value" },
-            { status: 400 }
-        );
+        return NextResponse.json({ message: "Invalid status value" }, { status: 400 });
     }
 
-    // 5. Update debtor
     try {
-        const updatedDebtor = await prisma.debtor.update({
+        // 5. Get current debtor BEFORE updating
+        const existingDebtor = await prisma.debtor.findUnique({
             where: { id },
-            data: { status },
+            select: { status: true, name: true },
         });
+
+        if (!existingDebtor) {
+            return NextResponse.json({ message: "Debtor not found" }, { status: 404 });
+        }
+
+        // 6. Find DB user by clerkId
+        const dbUser = await prisma.user.findUnique({
+            where: { clerkId: userId },
+        });
+
+        if (!dbUser) {
+            return NextResponse.json({ message: "User not found" }, { status: 404 });
+        }
+
+        // 7. Update debtor + log in one transaction
+        const [updatedDebtor] = await prisma.$transaction([
+            prisma.debtor.update({
+                where: { id },
+                data: { status },
+            }),
+            prisma.activityLog.create({
+                data: {
+                    event: "STATUS_CHANGED",
+                    detail: `${existingDebtor.name}: ${existingDebtor.status} → ${status}`,
+                    userId: dbUser.id,
+                    debtorId: id,
+                },
+            }),
+        ]);
 
         return NextResponse.json(
             { message: "Status updated", debtor: updatedDebtor },
@@ -58,9 +146,7 @@ export async function PATCH(req, { params }) {
         );
     } catch (err) {
         console.error("[ADMIN_DEBTOR_STATUS_PATCH_ERROR]", err);
-        return NextResponse.json(
-            { message: "Server error" },
-            { status: 500 }
-        );
+        return NextResponse.json({ message: "Server error" }, { status: 500 });
     }
 }
+

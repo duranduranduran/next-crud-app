@@ -133,6 +133,8 @@
 // }
 
 
+export const runtime = "nodejs";
+
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
@@ -148,7 +150,6 @@ export async function PATCH(req, context) {
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
         }
 
-        // ✅ get user from DB using correct field
         const user = await prisma.user.findUnique({
             where: { clerkId: userId },
         });
@@ -161,9 +162,7 @@ export async function PATCH(req, context) {
             return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
         }
 
-        // ✅ NEXT 15 FIX
         const { id } = await context.params;
-
         const body = await req.json();
 
         const {
@@ -180,7 +179,7 @@ export async function PATCH(req, context) {
             return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
         }
 
-        // validate duplicate cedula
+        // Validate duplicate cedula
         const existingDebtor = await prisma.debtor.findFirst({
             where: {
                 cedulaIdentidad,
@@ -195,7 +194,7 @@ export async function PATCH(req, context) {
             );
         }
 
-        // ensure ownership
+        // Ensure ownership
         const debtor = await prisma.debtor.findUnique({
             where: { id },
         });
@@ -207,6 +206,7 @@ export async function PATCH(req, context) {
             );
         }
 
+        // Update debtor
         const updatedDebtor = await prisma.debtor.update({
             where: { id },
             data: {
@@ -217,6 +217,16 @@ export async function PATCH(req, context) {
                 cedulaIdentidad,
                 amountOwed: parseFloat(amountOwed),
                 documentUrl: documentUrl || null,
+            },
+        });
+
+        // Log the update
+        await prisma.activityLog.create({
+            data: {
+                event: "DEBTOR_CREATED", // closest available — replace with DEBTOR_UPDATED when added to schema
+                detail: `[UPDATED] ${name} (USD ${parseFloat(amountOwed)})`,
+                userId: user.id,
+                debtorId: id,
             },
         });
 
@@ -253,11 +263,11 @@ export async function DELETE(req, context) {
             return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
         }
 
-        // ✅ NEXT 15 FIX
         const { id } = await context.params;
 
         const debtor = await prisma.debtor.findUnique({
             where: { id },
+            select: { name: true, amountOwed: true, userId: true },
         });
 
         if (!debtor || debtor.userId !== user.id) {
@@ -266,6 +276,16 @@ export async function DELETE(req, context) {
                 { status: 404 }
             );
         }
+
+        // Log BEFORE deleting so we still have the info
+        await prisma.activityLog.create({
+            data: {
+                event: "DEBTOR_DELETED",
+                detail: `Debtor deleted: ${debtor.name} (USD ${debtor.amountOwed})`,
+                userId: user.id,
+                debtorId: null, // null because debtor is about to be deleted
+            },
+        });
 
         await prisma.debtor.delete({
             where: { id },
