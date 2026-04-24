@@ -1,0 +1,20 @@
+import { prisma } from '@/lib/prisma';
+import { NextResponse } from 'next/server';
+
+export async function DELETE(req, { params }) {
+    try {
+        const { noteId } = params;
+
+        await prisma.debtorNote.delete({
+            where: { id: noteId },
+        });
+
+        return NextResponse.json({ message: 'Note deleted' });
+    } catch (err) {
+        console.error(err);
+        return NextResponse.json(
+            { message: 'Failed to delete note' },
+            { status: 500 }
+        );
+    }
+}

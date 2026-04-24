@@ -545,6 +545,11 @@ export default function ClientPage() {
 
                     </div>
 
+                    {/* ===== EXCEL IMPORT ===== */}
+                        <div className="flex gap-4 mb-120">
+                            <button onClick={handleDownloadTemplate} className="bg-[#21FE83] text-[#443CA3] px-5 py-2 rounded-xl font-bold hover:bg-[#1edb70]" >Descargar Plantilla Excel </button> <button className="bg-[#21FE83] text-[#443CA3] px-5 py-2 rounded-xl font-bold hover:bg-[#1edb70]"><input className="bg-[#21FE83] text-[#443CA3] px-5 py-2 rounded-xl font-bold hover:bg-[#1edb70]" type="file" accept=".xlsx,.xls,.csv" onChange={handleFileUpload} className="text-md" />
+                        </button> </div> {message && ( <p className="text-sm text-[#CCE8FF] mb-6">{message}</p> )}
+
                     {/* DEBTOR LIST */}
                     <div>
 

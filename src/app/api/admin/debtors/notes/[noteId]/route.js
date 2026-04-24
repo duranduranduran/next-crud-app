@@ -4,10 +4,9 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+export async function DELETE(req, { params }) {
     // 1. Auth (Clerk v5)
     const { userId } = await auth();
-    console.log("USER ID:", userId);
 
     if (!userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -21,23 +20,19 @@ export async function GET() {
     }
 
     // 3. Business logic
-    const clients = await prisma.user.findMany({
-        where: { role: 'client' },
-        include: {
-            debtorRecords: {
-                include: {
-                    notes: {
-                        orderBy: {
-                            createdAt: 'desc',
-                        },
-                        include: {
-                            user: true,
-                        },
-                    },
-                },
-            },
-        },
-    });
+    try {
+        const { noteId } = params;
 
-    return NextResponse.json(clients);
+        await prisma.debtorNote.delete({
+            where: { id: noteId },
+        });
+
+        return NextResponse.json({ message: "Note deleted" });
+    } catch (err) {
+        console.error(err);
+        return NextResponse.json(
+            { error: "Failed to delete note" },
+            { status: 500 }
+        );
+    }
 }

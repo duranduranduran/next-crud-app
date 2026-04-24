@@ -19,6 +19,7 @@ model User {
   sessions      Session[]
   debtorRecords Debtor[]
   clerkId       String @unique
+  debtorNotes DebtorNote[]
 }
 
 enum DebtorStatus {
@@ -43,6 +44,18 @@ model Debtor {
   availableForNotify  Boolean  @default(false)
   documentUrl String?
   status            DebtorStatus  @default(PENDIENTE)
+  notes DebtorNote[]
+}
+
+model DebtorNote {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  debtorId  String
+  debtor    Debtor   @relation(fields: [debtorId], references: [id], onDelete: Cascade)
+  userId String
+  user User @relation(fields: [userId], references: [id])
 }
 
 model Account {
