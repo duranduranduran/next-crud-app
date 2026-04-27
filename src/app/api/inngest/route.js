@@ -5,7 +5,5 @@ import { sendRemindersFunction } from "@/inngest/functions";
 export const { GET, POST, PUT } = serve({
     client: inngest,
     functions: [sendRemindersFunction],
-    signingKey: process.env.NODE_ENV === "production"
-        ? process.env.INNGEST_SIGNING_KEY
-        : undefined, // 👈 no signing key in dev
+    signingKey: process.env.INNGEST_SIGNING_KEY,
 });
