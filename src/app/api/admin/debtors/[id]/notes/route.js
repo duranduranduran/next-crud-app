@@ -64,8 +64,9 @@ export async function GET() {
 }
 
 export async function POST(req, { params }) {
-    // 1. Auth (Clerk v5)
+    console.log("POST notes hit");
     const { userId } = await auth();
+    console.log("userId:", userId);
 
     if (!userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
