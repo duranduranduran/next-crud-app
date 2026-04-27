@@ -27,7 +27,7 @@ export async function PATCH(req, { params }) {
         }
 
         // 3. Params
-        const { id } = params;
+        const { id } = await params;
 
         // 4. Get current value
         const currentDebtor = await prisma.debtor.findUnique({

@@ -1,11 +1,13 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
 export async function PATCH(req, { params }) {
     try {
-        // 1️⃣ Clerk auth
-        const { userId, sessionClaims } = auth();
+        // 1. Auth
+        const { userId } = await auth();
 
         if (!userId) {
             return NextResponse.json(
@@ -14,19 +16,20 @@ export async function PATCH(req, { params }) {
             );
         }
 
-        const role = sessionClaims?.publicMetadata?.role;
+        // 2. Role check (admin only)
+        const user = await currentUser();
 
-        if (role !== "admin") {
+        if (!user || user.publicMetadata?.role !== "admin") {
             return NextResponse.json(
                 { message: "Forbidden" },
                 { status: 403 }
             );
         }
 
-        // 2️⃣ Params
-        const { id } = params;
-
-        // 3️⃣ Get current value
+        // 3. Params
+        const { id } = await params;
+        
+        // 4. Get current value
         const currentDebtor = await prisma.debtor.findUnique({
             where: { id },
             select: { availableForNotify: true },
@@ -39,7 +42,7 @@ export async function PATCH(req, { params }) {
             );
         }
 
-        // 4️⃣ Toggle value
+        // 5. Toggle value
         const debtor = await prisma.debtor.update({
             where: { id },
             data: {

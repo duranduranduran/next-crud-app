@@ -19,7 +19,7 @@ export default function AdminSidebar() {
         { name: "Deudores", href: "/admin", icon: Users },
         { name: "Logs", href: "/admin/logs", icon: FileText },
         { name: "Reportes", href: "/admin/reportes", icon: BarChart3 },
-        { name: "Configuración", href: "/admin/configuracion", icon: Settings },
+        // { name: "Configuración", href: "/admin/configuracion", icon: Settings },
     ];
 
     return (

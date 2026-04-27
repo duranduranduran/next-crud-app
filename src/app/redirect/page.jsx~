@@ -1,31 +1,28 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+"use client";
 
-export default async function RedirectPage() {
-    const { userId } = await auth();
+import { useUser } from "@clerk/nextjs";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-    if (!userId) {
-        redirect("/sign-in");
-    }
+export default function RedirectPage() {
+    const { user, isLoaded } = useUser();
+    const router = useRouter();
 
-    const user = await currentUser();
+    useEffect(() => {
+        if (!isLoaded) return;
 
-    // Clerk role
-    const clerkRole = user?.publicMetadata?.role;
+        const role = user?.publicMetadata?.role;
 
-    // Database role
-    const dbUser = await prisma.user.findUnique({
-        where: { clerkId: userId },
-        select: { role: true },
-    });
+        if (role === "admin") {
+            router.replace("/admin");
+        } else {
+            router.replace("/client");
+        }
+    }, [isLoaded, user]);
 
-    const role = dbUser?.role || clerkRole;
-
-    // Redirect based on role
-    if (role === "admin") {
-        redirect("/admin");
-    }
-
-    redirect("/client");
+    return (
+        <div className="min-h-screen flex items-center justify-center">
+            <p className="text-lg font-bold">Redirecting...</p>
+        </div>
+    );
 }

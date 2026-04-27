@@ -1,18 +1,755 @@
+// "use client";
+//
+// import { useUser, useClerk } from "@clerk/nextjs";
+// import { useEffect, useState } from "react";
+// import { useRouter } from "next/navigation";
+// import PhoneInput from "react-phone-input-2";
+// import "react-phone-input-2/lib/style.css";
+// import * as XLSX from "xlsx";
+//
+// export default function ClientPage() {
+//     const { user, isLoaded, isSignedIn } = useUser();
+//     const { signOut } = useClerk();
+//     const router = useRouter();
+//
+//     // ---------------- FORM STATE ----------------
+//     const [name, setName] = useState("");
+//     const [email, setEmail] = useState("");
+//     const [amountOwed, setAmountOwed] = useState("");
+//     const [documentFile, setDocumentFile] = useState(null);
+//     const [telephone, setTelephone] = useState("");
+//     const [address, setAddress] = useState("");
+//     const [cedulaIdentidad, setCedulaIdentidad] = useState("");
+//
+//     // ---------------- UI STATE ----------------
+//     const [success, setSuccess] = useState("");
+//     const [error, setError] = useState("");
+//     const [message, setMessage] = useState("");
+//     const [loading, setLoading] = useState(false);
+//     const [editingId, setEditingId] = useState(null);
+//
+//     // ---------------- DATA ----------------
+//     const [debtors, setDebtors] = useState([]);
+//
+// // ---------------- FILTERS ----------------
+//     const [searchTerm, setSearchTerm] = useState("");
+//     const [statusFilter, setStatusFilter] = useState("ALL");
+//     const [amountFilter, setAmountFilter] = useState("ALL");
+//     const [emailError, setEmailError] = useState("");
+//
+// // pagination
+//     const [currentPage, setCurrentPage] = useState(1);
+//     const ITEMS_PER_PAGE = 6;
+//     // ---------------- AUTH GUARD (CLERK) ----------------
+//     useEffect(() => {
+//         if (!isLoaded) return;
+//
+//         if (!isSignedIn) {
+//             router.replace("/sign-in");
+//             return;
+//         }
+//
+//         if (user?.publicMetadata?.role !== "client") {
+//             router.replace("/sign-in");
+//         }
+//     }, [isLoaded, isSignedIn, user, router]);
+//
+//     // ---------------- FETCH DEBTORS ----------------
+//     const fetchDebtors = async () => {
+//         try {
+//             const res = await fetch("/api/debtors", {
+//                 credentials: "include",
+//             });
+//
+//             if (!res.ok) {
+//                 const data = await res.json().catch(() => ({}));
+//                 throw new Error(data.message || "Failed to fetch debtors");
+//             }
+//
+//             const data = await res.json();
+//             setDebtors(data || []);
+//         } catch (err) {
+//             console.error(err);
+//             setError("Error loading debtors");
+//         }
+//     };
+//
+//
+//     //// ---------------- HANDLE DOWNLOAD TEMPLATE XLS ----------------
+//     const handleDownloadTemplate = () => {
+//         const headers = [
+//             "name",
+//             "email",
+//             "telephone",
+//             "address",
+//             "cedulaIdentidad",
+//             "amountOwed",
+//         ];
+//
+//         const exampleRow = [
+//             "Juan Perez",
+//             "juan@email.com",
+//             "0991234567",
+//             "Guayaquil",
+//             "0123456789",
+//             150.50,
+//         ];
+//
+//         const ws = XLSX.utils.aoa_to_sheet([headers, exampleRow]);
+//
+//         ws["!cols"] = [
+//             { wch: 20 },
+//             { wch: 30 },
+//             { wch: 16 },
+//             { wch: 25 },
+//             { wch: 16 },
+//             { wch: 14 },
+//         ];
+//
+//         const wb = XLSX.utils.book_new();
+//         XLSX.utils.book_append_sheet(wb, ws, "Debtors");
+//
+//         XLSX.writeFile(wb, "debtors_template.xlsx");
+//     };
+//
+// //// ---------------- HANDLE FILE UPLOAD ----------------
+//     const handleFileUpload = async (e) => {
+//         const file = e.target.files[0];
+//         if (!file) return;
+//
+//         const reader = new FileReader();
+//
+//         reader.onload = async (event) => {
+//             const data = new Uint8Array(event.target.result);
+//             const workbook = XLSX.read(data, { type: "array" });
+//
+//             const sheetName = workbook.SheetNames[0];
+//             const worksheet = workbook.Sheets[sheetName];
+//
+//             const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+//
+//             const validRows = [];
+//             const errors = [];
+//
+//             jsonData.forEach((row, index) => {
+//                 const rowNum = index + 2;
+//
+//                 const { name, amountOwed, cedulaIdentidad, email, telephone } = row;
+//
+//                 if (!name) {
+//                     errors.push(`Row ${rowNum}: name required`);
+//                     return;
+//                 }
+//
+//                 if (!amountOwed || isNaN(amountOwed) || parseFloat(amountOwed) <= 0) {
+//                     errors.push(`Row ${rowNum}: invalid amount`);
+//                     return;
+//                 }
+//
+//                 if (!cedulaIdentidad) {
+//                     errors.push(`Row ${rowNum}: cedula required`);
+//                     return;
+//                 }
+//
+//                 const cedulaStr = String(cedulaIdentidad).padStart(10, "0");
+//
+//                 if (!/^\d{10}$/.test(cedulaStr)) {
+//                     errors.push(`Row ${rowNum}: cedula must be 10 digits`);
+//                     return;
+//                 }
+//
+//                 validRows.push({
+//                     name,
+//                     amountOwed: parseFloat(amountOwed),
+//                     cedulaIdentidad: cedulaStr,
+//                     email: email || null,
+//                     telephone: telephone ? String(telephone) : null,
+//                     address: row.address || null,
+//                     documentUrl: row.documentUrl || null,
+//                 });
+//             });
+//
+//             if (validRows.length === 0) {
+//                 setMessage("No valid rows found in file");
+//                 console.warn(errors);
+//                 return;
+//             }
+//
+//             try {
+//                 const response = await fetch("/api/debtors/upload", {
+//                     method: "POST",
+//                     credentials: "same-origin", //inclued maybe?
+//                     headers: {
+//                         "Content-Type": "application/json",
+//                     },
+//                     body: JSON.stringify(validRows),
+//                 });
+//
+//                 const result = await response.json();
+//
+//                 if (result.errors && result.errors.length > 0) {
+//                     setMessage("⚠️ Some rows failed. Check console.");
+//                     console.warn(result.errors);
+//                 } else {
+//                     setMessage(`✅ ${validRows.length} debtors uploaded`);
+//                 }
+//
+//                 await fetchDebtors();
+//             } catch (err) {
+//                 console.error(err);
+//                 setMessage("Upload failed");
+//             }
+//         };
+//
+//         reader.readAsArrayBuffer(file);
+//     };
+//
+//     // Fetch once auth is ready
+//     useEffect(() => {
+//         if (!isLoaded || !isSignedIn) return;
+//         fetchDebtors();
+//     }, [isLoaded, isSignedIn]);
+//     // ---------------- FILTERED DEBTORS ----------------
+//     const filteredDebtors = debtors.filter((debtor) => {
+//         const matchesSearch =
+//             debtor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+//             (debtor.email && debtor.email.toLowerCase().includes(searchTerm.toLowerCase()));
+//
+//         const matchesStatus =
+//             statusFilter === "ALL" ? true : debtor.status === statusFilter;
+//
+//         let matchesAmount = true;
+//         if (amountFilter === "<500") matchesAmount = debtor.amountOwed < 500;
+//         if (amountFilter === "500-1000")
+//             matchesAmount = debtor.amountOwed >= 500 && debtor.amountOwed <= 1000;
+//         if (amountFilter === ">1000") matchesAmount = debtor.amountOwed > 1000;
+//
+//         return matchesSearch && matchesStatus && matchesAmount;
+//     });
+//
+//     // ---------------- VALIDATORS ----------------
+//     const isValidCedula = (cedula) => {
+//         if (!/^\d{10}$/.test(cedula)) return false;
+//
+//         const province = parseInt(cedula.substring(0, 2), 10);
+//         if (province < 1 || (province > 24 && province !== 30)) return false;
+//
+//         const digits = cedula.split("").map(Number);
+//         const checkDigit = digits[9];
+//
+//         let sum = 0;
+//         for (let i = 0; i < 9; i++) {
+//             let value = digits[i];
+//             if (i % 2 === 0) {
+//                 value *= 2;
+//                 if (value > 9) value -= 9;
+//             }
+//             sum += value;
+//         }
+//
+//         const nextTen = Math.ceil(sum / 10) * 10;
+//         const calculated = nextTen - sum === 10 ? 0 : nextTen - sum;
+//         return calculated === checkDigit;
+//     };
+//
+//     const validateEmail = (value) => {
+//         if (!value) {
+//             setEmailError("");
+//             return;
+//         }
+//         const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+//         setEmailError(regex.test(value) ? "" : "Correo inválido");
+//     };
+//     const uploadDocument = async (file) => {
+//         const formData = new FormData();
+//         formData.append("file", file);
+//         formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
+//
+//         const isPdf = file.type === "application/pdf";
+//         const resourceType = isPdf ? "raw" : "auto";
+//
+//         try {
+//             const res = await fetch(
+//                 `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`,
+//                 { method: "POST", body: formData }
+//             );
+//             const data = await res.json();
+//             if (!res.ok) throw new Error("Upload failed");
+//             return data.secure_url;
+//         } catch (err) {
+//             console.error(err);
+//             return null;
+//         }
+//     };
+//
+//     const handleSubmit = async (e) => {
+//         e.preventDefault();
+//         setSuccess("");
+//         setError("");
+//
+//         if (email && emailError) {
+//             setError("Correo inválido");
+//             return;
+//         }
+//
+//         const numericAmount = amountOwed.replace(/,/g, "");
+//         const amount = Number(numericAmount);
+//
+//         if (isNaN(amount) || amount <= 0) {
+//             setError("Monto inválido");
+//             return;
+//         }
+//
+//         if (!isValidCedula(cedulaIdentidad)) {
+//             setError("Cédula inválida");
+//             return;
+//         }
+//
+//         setLoading(true);
+//
+//         try {
+//             let documentUrl = null;
+//             if (documentFile) {
+//                 documentUrl = await uploadDocument(documentFile);
+//                 if (!documentUrl) throw new Error("Document upload failed");
+//             }
+//
+//             const payload = {
+//                 name,
+//                 email,
+//                 telephone,
+//                 address,
+//                 cedulaIdentidad,
+//                 amountOwed: amount.toFixed(2),
+//                 ...(documentUrl && { documentUrl }),
+//             };
+//
+//             const res = editingId
+//                 ? await fetch(`/api/debtors/${editingId}`, {
+//                     method: "PATCH",
+//                     credentials: "include",
+//                     headers: { "Content-Type": "application/json" },
+//                     body: JSON.stringify(payload),
+//                 })
+//                 : await fetch("/api/debtors", {
+//                     method: "POST",
+//                     credentials: "include",
+//                     headers: { "Content-Type": "application/json" },
+//                     body: JSON.stringify(payload),
+//                 });
+//
+//             if (!res.ok) {
+//                 const data = await res.json();
+//                 throw new Error(data.error || data.message || "Submit failed");
+//             }
+//             setSuccess(editingId ? "Debtor updated!" : "Debtor added!");
+//             setEditingId(null);
+//             setName("");
+//             setEmail("");
+//             setTelephone("");
+//             setAddress("");
+//             setCedulaIdentidad("");
+//             setAmountOwed("");
+//             setDocumentFile(null);
+//
+//             await fetchDebtors();
+//         } catch (err) {
+//             console.error(err);
+//             setError("Unexpected error");
+//         } finally {
+//             setLoading(false);
+//         }
+//     };
+//     const handleDelete = async (id) => {
+//         if (!confirm("Delete debtor?")) return;
+//
+//         const res = await fetch(`/api/debtors/${id}`, {
+//             method: "DELETE",
+//             credentials: "include",   // 🔥 THIS WAS MISSING
+//         });
+//
+//         if (!res.ok) {
+//             const data = await res.json().catch(() => ({}));
+//             console.error("Delete failed:", data);
+//             return;
+//         }
+//
+//         fetchDebtors();
+//     }
+//     // ---------------- SAFE RENDER GUARD ----------------
+//     if (!isLoaded || !isSignedIn) {
+//         return null;
+//     }
+//
+//     return (
+//         <div className="min-h-screen bg-[#F7F8FF] text-[#443CA3] px-8 py-12">
+//
+//             {/* NAVBAR */}
+//             <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#443CA3]/10">
+//
+//                 <div className="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center">
+//
+//                     <img
+//                         src="/logo-recupera-purple.png"
+//                         alt="Recupera"
+//                         className="h-20"
+//                     />
+//
+//                     <div className="flex items-center gap-4">
+//
+//                     <span className="text-lg text-[#443CA3]/70">
+//                         {user?.fullName || "Cliente"}
+//                     </span>
+//
+//                         <button
+//                             onClick={() => signOut(() => router.push("/sign-in"))}
+//                             className=" text-red-800 border border-[#443CA3]/20 bg-red px-6 py-3 rounded-xl hover:bg-[#443CA3] hover:text-white transition"
+//                         >
+//                             Cerrar Sesión
+//                         </button>
+//
+//                     </div>
+//                 </div>
+//
+//             </nav>
+//
+//             <div className="max-w-7xl mx-auto pt-10">
+//
+//                 {/* HEADER */}
+//                 <div className="mb-12">
+//
+//                     <h1
+//                         className="text-5xl font-extrabold mb-3"
+//                         style={{ fontFamily: "Neulis Alt" }}
+//                     >
+//                         Panel de Cliente
+//                     </h1>
+//
+//                     <p className="text-[#443CA3]/70 text-lg">
+//                         Bienvenido{" "}
+//                         <span className="font-bold">
+//                         {user?.fullName || "Cliente"}
+//                     </span>
+//                     </p>
+//
+//                 </div>
+//
+//                 {/* KPI */}
+//                 <div className="grid md:grid-cols-3 gap-6 mb-12">
+//
+//                     <div className="bg-white border border-[#443CA3]/10 p-6 rounded-2xl">
+//                         <p className="text-sm text-[#443CA3]/60">Deudores Totales</p>
+//                         <p className="text-3xl font-bold text-[#21FE83]">
+//                             {debtors.length}
+//                         </p>
+//                     </div>
+//
+//                     <div className="bg-white border border-[#443CA3]/10 p-6 rounded-2xl">
+//                         <p className="text-sm text-[#443CA3]/60">Monto Total</p>
+//                         <p className="text-3xl font-bold">
+//                             $
+//                             {debtors
+//                                 .reduce((acc, d) => acc + Number(d.amountOwed), 0)
+//                                 .toLocaleString()}
+//                         </p>
+//                     </div>
+//
+//                     <div className="bg-white border border-[#443CA3]/10 p-6 rounded-2xl">
+//                         <p className="text-sm text-[#443CA3]/60">Activos</p>
+//                         <p className="text-3xl font-bold">
+//                             {debtors.length}
+//                         </p>
+//                     </div>
+//
+//                 </div>
+//
+//                 <div className="grid lg:grid-cols-2 gap-12 items-start">
+//                     {/* FORM */}
+//                     <div className="bg-white border border-[#443CA3]/10 p-8 rounded-2xl">
+//
+//                         <h2 className="text-2xl font-bold mb-6">
+//                             {editingId ? "Editar Deudor" : "Agregar Deudor"}
+//                         </h2>
+//
+//                         <form onSubmit={handleSubmit} className="space-y-4">
+//
+//                             <input
+//                                 type="text"
+//                                 placeholder="Nombre del Deudor"
+//                                 value={name}
+//                                 onChange={(e) => setName(e.target.value)}
+//                                 className="w-full p-3 border border-[#443CA3]/20 rounded-xl focus:outline-none focus:border-[#443CA3]"
+//                                 required
+//                             />
+//
+//                             <input
+//                                 type="email"
+//                                 placeholder="Correo (opcional)"
+//                                 value={email}
+//                                 onChange={(e) => {
+//                                     setEmail(e.target.value);
+//                                     validateEmail(e.target.value);
+//                                 }}
+//                                 className="w-full p-3 border border-[#443CA3]/20 rounded-xl"
+//                             />
+//
+//                             <PhoneInput
+//                                 country={"ec"}
+//                                 value={telephone}
+//                                 onChange={(phone) => setTelephone(phone)}
+//                                 enableSearch={true}
+//                                 inputClass="!w-full !p-3 !rounded-xl !border !border-[#443CA3]/20 !text-[#443CA3]"
+//                             />
+//
+//                             <input
+//                                 type="text"
+//                                 placeholder="Cédula"
+//                                 value={cedulaIdentidad}
+//                                 onChange={(e) => {
+//                                     const v = e.target.value.replace(/\D/g, "");
+//                                     if (v.length <= 10) setCedulaIdentidad(v);
+//                                 }}
+//                                 className="w-full p-3 border border-[#443CA3]/20 rounded-xl"
+//                                 required
+//                             />
+//
+//                             <input
+//                                 type="text"
+//                                 placeholder="Monto Adeudado"
+//                                 value={amountOwed}
+//                                 onChange={(e) => setAmountOwed(e.target.value)}
+//                                 className="w-full p-3 border border-[#443CA3]/20 rounded-xl"
+//                                 required
+//                             />
+//
+//                             <input
+//                                 type="file"
+//                                 accept="image/*,application/pdf"
+//                                 onChange={(e) => setDocumentFile(e.target.files[0])}
+//                                 className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border file:border-[#443CA3]/20 file:bg-white file:text-[#443CA3] hover:file:bg-[#443CA3] hover:file:text-white"
+//                             />
+//
+//                             <button
+//                                 type="submit"
+//                                 disabled={loading}
+//                                 className="w-full bg-[#443CA3] text-white font-bold py-3 rounded-xl hover:opacity-90 transition"
+//                             >
+//                                 {loading
+//                                     ? "Procesando..."
+//                                     : editingId
+//                                         ? "Actualizar"
+//                                         : "Agregar"}
+//                             </button>
+//
+//                         </form>
+//
+//                     </div>
+//
+//                     {/* ===== EXCEL IMPORT ===== */}
+//                         <div className="flex gap-4 mb-120">
+//                             <button onClick={handleDownloadTemplate} className="bg-[#21FE83] text-[#443CA3] px-5 py-2 rounded-xl font-bold hover:bg-[#1edb70]" >Descargar Plantilla Excel </button> <button className="bg-[#21FE83] text-[#443CA3] px-5 py-2 rounded-xl font-bold hover:bg-[#1edb70]"><input className="bg-[#21FE83] text-[#443CA3] px-5 py-2 rounded-xl font-bold hover:bg-[#1edb70]" type="file" accept=".xlsx,.xls,.csv" onChange={handleFileUpload} className="text-md" />
+//                         </button> </div> {message && ( <p className="text-sm text-[#CCE8FF] mb-6">{message}</p> )}
+//
+//                     {/* DEBTOR LIST */}
+//                     <div>
+//
+//                         <h2 className="text-2xl font-bold mb-6">
+//                             Tus Deudores
+//                         </h2>
+//
+//                         {/* SEARCH */}
+//                         <input
+//                             type="text"
+//                             placeholder="Buscar deudor..."
+//                             value={searchTerm}
+//                             onChange={(e) => {
+//                                 setSearchTerm(e.target.value);
+//                                 setCurrentPage(1);
+//                             }}
+//                             className="w-full mb-6 p-3 border border-[#443CA3]/20 rounded-xl"
+//                         />
+//
+//                         {(() => {
+//
+//                             const filteredDebtors = debtors.filter((debtor) =>
+//                                 debtor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+//                                 (debtor.email && debtor.email.toLowerCase().includes(searchTerm.toLowerCase()))
+//                             );
+//
+//                             const totalPages = Math.ceil(filteredDebtors.length / ITEMS_PER_PAGE);
+//
+//                             const paginatedDebtors = filteredDebtors.slice(
+//                                 (currentPage - 1) * ITEMS_PER_PAGE,
+//                                 currentPage * ITEMS_PER_PAGE
+//                             );
+//
+//                             if (paginatedDebtors.length === 0) {
+//                                 return (
+//                                     <p className="text-[#443CA3]/70">
+//                                         No hay deudores registrados.
+//                                     </p>
+//                                 );
+//                             }
+//
+//                             return (
+//                                 <>
+//                                     <div className="space-y-4">
+//
+//                                         {paginatedDebtors.map((debtor) => (
+//
+//                                             <div
+//                                                 key={debtor.id}
+//                                                 className="bg-white border border-[#443CA3]/10 p-6 rounded-2xl flex justify-between items-center hover:bg-[#EEF1FF] transition"
+//                                             >
+//
+//                                                 <div>
+//
+//                                                     <p className="font-bold text-lg">
+//                                                         {debtor.name}
+//                                                     </p>
+//
+//                                                     {debtor.email && (
+//                                                         <p className="text-[#443CA3]/60 text-sm">
+//                                                             {debtor.email}
+//                                                         </p>
+//                                                     )}
+//
+//                                                     <p className="text-sm text-[#443CA3]/60">
+//                                                         Cédula: {debtor.cedulaIdentidad}
+//                                                     </p>
+//
+//                                                     <p className="text-sm text-[#443CA3]/60">
+//                                                         Teléfono: {debtor.telephone}
+//                                                     </p>
+//
+//                                                     <p className="text-sm text-[#443CA3]/60">
+//                                                         Estado: {debtor.status}
+//                                                     </p>
+//
+//
+//                                                     <p className="text-[#21FE83] font-bold">
+//                                                         ${debtor.amountOwed}
+//                                                     </p>
+//
+//
+//                                                 </div>
+//
+//                                                 <div className="flex gap-4 text-sm">
+//
+//                                                     <button
+//                                                         onClick={() => {
+//                                                             setEditingId(debtor.id);
+//                                                             setName(debtor.name);
+//                                                             setEmail(debtor.email || "");
+//                                                             setTelephone(debtor.telephone || "");
+//                                                             setAddress(debtor.address || "");
+//                                                             setCedulaIdentidad(debtor.cedulaIdentidad || "");
+//                                                             setAmountOwed(String(debtor.amountOwed));
+//                                                         }}
+//                                                         className="text-[#443CA3] hover:underline"
+//                                                     >
+//                                                         Editar
+//                                                     </button>
+//
+//                                                     <button
+//                                                         onClick={() => handleDelete(debtor.id)}
+//                                                         className="text-red-500 hover:underline"
+//                                                     >
+//                                                         Eliminar
+//                                                     </button>
+//
+//                                                 </div>
+//
+//                                             </div>
+//
+//                                         ))}
+//
+//                                     </div>
+//
+//                                     {/* PAGINATION */}
+//                                     {totalPages > 1 && (
+//                                         <div className="flex justify-center gap-4 mt-8">
+//
+//                                             <button
+//                                                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+//                                                 className="px-4 py-2 border border-[#443CA3]/20 rounded-xl hover:bg-[#443CA3] hover:text-white transition"
+//                                             >
+//                                                 Prev
+//                                             </button>
+//
+//                                             <span className="text-[#443CA3]/70">
+//                                             Página {currentPage} de {totalPages}
+//                                         </span>
+//
+//                                             <button
+//                                                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+//                                                 className="px-4 py-2 border border-[#443CA3]/20 rounded-xl hover:bg-[#443CA3] hover:text-white transition"
+//                                             >
+//                                                 Next
+//                                             </button>
+//
+//                                         </div>
+//                                     )}
+//
+//                                 </>
+//                             );
+//
+//                         })()}
+//
+//                     </div>
+//
+//                 </div>
+//
+//             </div>
+//
+//         </div>
+//     );
+// }
 "use client";
 
 import { useUser, useClerk } from "@clerk/nextjs";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import * as XLSX from "xlsx";
+import {
+    PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis
+} from "recharts";
+
+const STATUS_COLORS = {
+    PENDIENTE: { color: "#F59E0B", bg: "#FEF3C7", label: "Pendiente" },
+    EN_GESTION: { color: "#443CA3", bg: "#EEEDFE", label: "En Gestión" },
+    ACUERDO_DE_PAGO: { color: "#8B5CF6", bg: "#EDE9FE", label: "Acuerdo de Pago" },
+    PAGADO: { color: "#21FE83", bg: "#D1FAE5", label: "Pagado" },
+    ESCALADO_JUDICIAL: { color: "#EF4444", bg: "#FEE2E2", label: "Escalado Judicial" },
+};
+
+function StatusBadge({ status }) {
+    const meta = STATUS_COLORS[status] || { color: "#443CA3", bg: "#EEEDFE", label: status };
+    return (
+        <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
+              style={{ color: meta.color, background: meta.bg }}>
+            {meta.label}
+        </span>
+    );
+}
+
+function StatCard({ label, value, sub, accent }) {
+    return (
+        <div className="bg-white border border-[#443CA3]/10 p-6 rounded-2xl hover:shadow-md hover:border-[#443CA3]/20 transition-all duration-300">
+            <p className="text-xs text-[#443CA3]/50 uppercase tracking-wide mb-2">{label}</p>
+            <p className="text-3xl font-bold" style={{ color: accent || "#443CA3" }}>{value}</p>
+            {sub && <p className="text-xs text-[#443CA3]/40 mt-1">{sub}</p>}
+        </div>
+    );
+}
 
 export default function ClientPage() {
     const { user, isLoaded, isSignedIn } = useUser();
     const { signOut } = useClerk();
     const router = useRouter();
 
-    // ---------------- FORM STATE ----------------
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [amountOwed, setAmountOwed] = useState("");
@@ -20,52 +757,48 @@ export default function ClientPage() {
     const [telephone, setTelephone] = useState("");
     const [address, setAddress] = useState("");
     const [cedulaIdentidad, setCedulaIdentidad] = useState("");
-
-    // ---------------- UI STATE ----------------
     const [success, setSuccess] = useState("");
     const [error, setError] = useState("");
     const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(false);
     const [editingId, setEditingId] = useState(null);
-
-    // ---------------- DATA ----------------
     const [debtors, setDebtors] = useState([]);
-
-// ---------------- FILTERS ----------------
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("ALL");
-    const [amountFilter, setAmountFilter] = useState("ALL");
     const [emailError, setEmailError] = useState("");
-
-// pagination
     const [currentPage, setCurrentPage] = useState(1);
+    const [selectedDebtor, setSelectedDebtor] = useState(null);
+    const [activeTab, setActiveTab] = useState("list"); // list | add | reports
     const ITEMS_PER_PAGE = 6;
-    // ---------------- AUTH GUARD (CLERK) ----------------
+    const [notifData, setNotifData] = useState(null);
+
+
+
+    useEffect(() => {
+        if (!isLoaded || !isSignedIn) return;
+        const fetchNotifs = async () => {
+            const res = await fetch("/api/debtors/logs", { credentials: "include" });
+            if (res.ok) setNotifData(await res.json());
+        };
+        fetchNotifs();
+    }, [isLoaded, isSignedIn]);
+
     useEffect(() => {
         if (!isLoaded) return;
-
-        if (!isSignedIn) {
-            router.replace("/sign-in");
-            return;
-        }
-
-        if (user?.publicMetadata?.role !== "client") {
-            router.replace("/sign-in");
-        }
+        if (!isSignedIn) { router.replace("/sign-in"); return; }
+        if (user?.publicMetadata?.role !== "client") { router.replace("/sign-in"); }
     }, [isLoaded, isSignedIn, user, router]);
 
-    // ---------------- FETCH DEBTORS ----------------
+    useEffect(() => {
+        const handleKey = (e) => { if (e.key === "Escape") setSelectedDebtor(null); };
+        window.addEventListener("keydown", handleKey);
+        return () => window.removeEventListener("keydown", handleKey);
+    }, []);
+
     const fetchDebtors = async () => {
         try {
-            const res = await fetch("/api/debtors", {
-                credentials: "include",
-            });
-
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                throw new Error(data.message || "Failed to fetch debtors");
-            }
-
+            const res = await fetch("/api/debtors", { credentials: "include" });
+            if (!res.ok) throw new Error("Failed to fetch");
             const data = await res.json();
             setDebtors(data || []);
         } catch (err) {
@@ -74,631 +807,459 @@ export default function ClientPage() {
         }
     };
 
-
-    //// ---------------- HANDLE DOWNLOAD TEMPLATE XLS ----------------
-    const handleDownloadTemplate = () => {
-        const headers = [
-            "name",
-            "email",
-            "telephone",
-            "address",
-            "cedulaIdentidad",
-            "amountOwed",
-        ];
-
-        const exampleRow = [
-            "Juan Perez",
-            "juan@email.com",
-            "0991234567",
-            "Guayaquil",
-            "0123456789",
-            150.50,
-        ];
-
-        const ws = XLSX.utils.aoa_to_sheet([headers, exampleRow]);
-
-        ws["!cols"] = [
-            { wch: 20 },
-            { wch: 30 },
-            { wch: 16 },
-            { wch: 25 },
-            { wch: 16 },
-            { wch: 14 },
-        ];
-
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Debtors");
-
-        XLSX.writeFile(wb, "debtors_template.xlsx");
-    };
-
-//// ---------------- HANDLE FILE UPLOAD ----------------
-    const handleFileUpload = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-
-        reader.onload = async (event) => {
-            const data = new Uint8Array(event.target.result);
-            const workbook = XLSX.read(data, { type: "array" });
-
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-
-            const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-
-            const validRows = [];
-            const errors = [];
-
-            jsonData.forEach((row, index) => {
-                const rowNum = index + 2;
-
-                const { name, amountOwed, cedulaIdentidad, email, telephone } = row;
-
-                if (!name) {
-                    errors.push(`Row ${rowNum}: name required`);
-                    return;
-                }
-
-                if (!amountOwed || isNaN(amountOwed) || parseFloat(amountOwed) <= 0) {
-                    errors.push(`Row ${rowNum}: invalid amount`);
-                    return;
-                }
-
-                if (!cedulaIdentidad) {
-                    errors.push(`Row ${rowNum}: cedula required`);
-                    return;
-                }
-
-                const cedulaStr = String(cedulaIdentidad).padStart(10, "0");
-
-                if (!/^\d{10}$/.test(cedulaStr)) {
-                    errors.push(`Row ${rowNum}: cedula must be 10 digits`);
-                    return;
-                }
-
-                validRows.push({
-                    name,
-                    amountOwed: parseFloat(amountOwed),
-                    cedulaIdentidad: cedulaStr,
-                    email: email || null,
-                    telephone: telephone ? String(telephone) : null,
-                    address: row.address || null,
-                    documentUrl: row.documentUrl || null,
-                });
-            });
-
-            if (validRows.length === 0) {
-                setMessage("No valid rows found in file");
-                console.warn(errors);
-                return;
-            }
-
-            try {
-                const response = await fetch("/api/debtors/upload", {
-                    method: "POST",
-                    credentials: "same-origin", //inclued maybe?
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(validRows),
-                });
-
-                const result = await response.json();
-
-                if (result.errors && result.errors.length > 0) {
-                    setMessage("⚠️ Some rows failed. Check console.");
-                    console.warn(result.errors);
-                } else {
-                    setMessage(`✅ ${validRows.length} debtors uploaded`);
-                }
-
-                await fetchDebtors();
-            } catch (err) {
-                console.error(err);
-                setMessage("Upload failed");
-            }
-        };
-
-        reader.readAsArrayBuffer(file);
-    };
-
-    // Fetch once auth is ready
     useEffect(() => {
         if (!isLoaded || !isSignedIn) return;
         fetchDebtors();
     }, [isLoaded, isSignedIn]);
-    // ---------------- FILTERED DEBTORS ----------------
-    const filteredDebtors = debtors.filter((debtor) => {
-        const matchesSearch =
-            debtor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (debtor.email && debtor.email.toLowerCase().includes(searchTerm.toLowerCase()));
 
-        const matchesStatus =
-            statusFilter === "ALL" ? true : debtor.status === statusFilter;
+    // Stats
+    const stats = useMemo(() => {
+        const total = debtors.length;
+        const totalOwed = debtors.reduce((acc, d) => acc + Number(d.amountOwed), 0);
+        const paid = debtors.filter(d => d.status === "PAGADO").reduce((acc, d) => acc + Number(d.amountOwed), 0);
+        const pending = debtors.filter(d => d.status === "PENDIENTE").length;
+        const byStatus = Object.entries(
+            debtors.reduce((acc, d) => {
+                acc[d.status] = (acc[d.status] || 0) + 1;
+                return acc;
+            }, {})
+        ).map(([name, value]) => ({ name, value, color: STATUS_COLORS[name]?.color || "#443CA3" }));
 
-        let matchesAmount = true;
-        if (amountFilter === "<500") matchesAmount = debtor.amountOwed < 500;
-        if (amountFilter === "500-1000")
-            matchesAmount = debtor.amountOwed >= 500 && debtor.amountOwed <= 1000;
-        if (amountFilter === ">1000") matchesAmount = debtor.amountOwed > 1000;
+        return { total, totalOwed, paid, pending, byStatus };
+    }, [debtors]);
 
-        return matchesSearch && matchesStatus && matchesAmount;
+    // Filtered debtors
+    const filteredDebtors = debtors.filter(d => {
+        const matchesSearch = d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (d.email && d.email.toLowerCase().includes(searchTerm.toLowerCase()));
+        const matchesStatus = statusFilter === "ALL" || d.status === statusFilter;
+        return matchesSearch && matchesStatus;
     });
 
-    // ---------------- VALIDATORS ----------------
+    const totalPages = Math.max(1, Math.ceil(filteredDebtors.length / ITEMS_PER_PAGE));
+    const paginatedDebtors = filteredDebtors.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
     const isValidCedula = (cedula) => {
         if (!/^\d{10}$/.test(cedula)) return false;
-
         const province = parseInt(cedula.substring(0, 2), 10);
         if (province < 1 || (province > 24 && province !== 30)) return false;
-
         const digits = cedula.split("").map(Number);
-        const checkDigit = digits[9];
-
         let sum = 0;
         for (let i = 0; i < 9; i++) {
             let value = digits[i];
-            if (i % 2 === 0) {
-                value *= 2;
-                if (value > 9) value -= 9;
-            }
+            if (i % 2 === 0) { value *= 2; if (value > 9) value -= 9; }
             sum += value;
         }
-
         const nextTen = Math.ceil(sum / 10) * 10;
-        const calculated = nextTen - sum === 10 ? 0 : nextTen - sum;
-        return calculated === checkDigit;
+        return (nextTen - sum === 10 ? 0 : nextTen - sum) === digits[9];
     };
 
     const validateEmail = (value) => {
-        if (!value) {
-            setEmailError("");
-            return;
-        }
-        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        setEmailError(regex.test(value) ? "" : "Correo inválido");
+        if (!value) { setEmailError(""); return; }
+        setEmailError(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? "" : "Correo inválido");
     };
+
     const uploadDocument = async (file) => {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
-
         const isPdf = file.type === "application/pdf";
-        const resourceType = isPdf ? "raw" : "auto";
-
         try {
             const res = await fetch(
-                `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`,
+                `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/${isPdf ? "raw" : "auto"}/upload`,
                 { method: "POST", body: formData }
             );
             const data = await res.json();
             if (!res.ok) throw new Error("Upload failed");
             return data.secure_url;
-        } catch (err) {
-            console.error(err);
-            return null;
-        }
+        } catch (err) { console.error(err); return null; }
+    };
+
+    const handleDownloadTemplate = () => {
+        const headers = ["name", "email", "telephone", "address", "cedulaIdentidad", "amountOwed"];
+        const exampleRow = ["Juan Perez", "juan@email.com", "0991234567", "Guayaquil", "0123456789", 150.50];
+        const ws = XLSX.utils.aoa_to_sheet([headers, exampleRow]);
+        ws["!cols"] = [{ wch: 20 }, { wch: 30 }, { wch: 16 }, { wch: 25 }, { wch: 16 }, { wch: 14 }];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Debtors");
+        XLSX.writeFile(wb, "debtors_template.xlsx");
+    };
+
+    const handleExportExcel = () => {
+        const rows = debtors.map(d => ({
+            Nombre: d.name, Email: d.email || "", Teléfono: d.telephone || "",
+            Cédula: d.cedulaIdentidad, Monto: d.amountOwed, Estado: d.status,
+            Creado: new Date(d.createdAt).toLocaleDateString("es-EC"),
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Deudores");
+        XLSX.writeFile(wb, "mis_deudores.xlsx");
+    };
+
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const data = new Uint8Array(event.target.result);
+            const workbook = XLSX.read(data, { type: "array" });
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+            const validRows = [];
+            jsonData.forEach((row, index) => {
+                const { name, amountOwed, cedulaIdentidad, email, telephone } = row;
+                if (!name || !amountOwed || isNaN(amountOwed) || !cedulaIdentidad) return;
+                const cedulaStr = String(cedulaIdentidad).padStart(10, "0");
+                if (!/^\d{10}$/.test(cedulaStr)) return;
+                validRows.push({ name, amountOwed: parseFloat(amountOwed), cedulaIdentidad: cedulaStr, email: email || null, telephone: telephone ? String(telephone) : null, address: row.address || null });
+            });
+            if (!validRows.length) { setMessage("No valid rows found"); return; }
+            try {
+                const response = await fetch("/api/debtors/upload", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(validRows) });
+                const result = await response.json();
+                setMessage(result.errors?.length ? "⚠️ Some rows failed" : `✅ ${validRows.length} debtors uploaded`);
+                await fetchDebtors();
+            } catch (err) { setMessage("Upload failed"); }
+        };
+        reader.readAsArrayBuffer(file);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setSuccess("");
-        setError("");
-
-        if (email && emailError) {
-            setError("Correo inválido");
-            return;
-        }
-
-        const numericAmount = amountOwed.replace(/,/g, "");
-        const amount = Number(numericAmount);
-
-        if (isNaN(amount) || amount <= 0) {
-            setError("Monto inválido");
-            return;
-        }
-
-        if (!isValidCedula(cedulaIdentidad)) {
-            setError("Cédula inválida");
-            return;
-        }
-
+        setSuccess(""); setError("");
+        if (email && emailError) { setError("Correo inválido"); return; }
+        const amount = Number(amountOwed.replace(/,/g, ""));
+        if (isNaN(amount) || amount <= 0) { setError("Monto inválido"); return; }
+        if (!isValidCedula(cedulaIdentidad)) { setError("Cédula inválida"); return; }
         setLoading(true);
-
         try {
             let documentUrl = null;
-            if (documentFile) {
-                documentUrl = await uploadDocument(documentFile);
-                if (!documentUrl) throw new Error("Document upload failed");
-            }
-
-            const payload = {
-                name,
-                email,
-                telephone,
-                address,
-                cedulaIdentidad,
-                amountOwed: amount.toFixed(2),
-                ...(documentUrl && { documentUrl }),
-            };
-
+            if (documentFile) { documentUrl = await uploadDocument(documentFile); if (!documentUrl) throw new Error("Upload failed"); }
+            const payload = { name, email, telephone, address, cedulaIdentidad, amountOwed: amount.toFixed(2), ...(documentUrl && { documentUrl }) };
             const res = editingId
-                ? await fetch(`/api/debtors/${editingId}`, {
-                    method: "PATCH",
-                    credentials: "include",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload),
-                })
-                : await fetch("/api/debtors", {
-                    method: "POST",
-                    credentials: "include",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload),
-                });
-
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.error || data.message || "Submit failed");
-            }
-            setSuccess(editingId ? "Debtor updated!" : "Debtor added!");
-            setEditingId(null);
-            setName("");
-            setEmail("");
-            setTelephone("");
-            setAddress("");
-            setCedulaIdentidad("");
-            setAmountOwed("");
-            setDocumentFile(null);
-
+                ? await fetch(`/api/debtors/${editingId}`, { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+                : await fetch("/api/debtors", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+            if (!res.ok) { const data = await res.json(); throw new Error(data.error || data.message || "Submit failed"); }
+            setSuccess(editingId ? "¡Deudor actualizado!" : "¡Deudor agregado!");
+            setEditingId(null); setName(""); setEmail(""); setTelephone(""); setAddress(""); setCedulaIdentidad(""); setAmountOwed(""); setDocumentFile(null);
+            setActiveTab("list");
             await fetchDebtors();
-        } catch (err) {
-            console.error(err);
-            setError("Unexpected error");
-        } finally {
-            setLoading(false);
-        }
+        } catch (err) { console.error(err); setError("Error inesperado"); }
+        finally { setLoading(false); }
     };
+
     const handleDelete = async (id) => {
-        if (!confirm("Delete debtor?")) return;
-
-        const res = await fetch(`/api/debtors/${id}`, {
-            method: "DELETE",
-            credentials: "include",   // 🔥 THIS WAS MISSING
-        });
-
-        if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
-            console.error("Delete failed:", data);
-            return;
-        }
-
+        if (!confirm("¿Eliminar este deudor?")) return;
+        const res = await fetch(`/api/debtors/${id}`, { method: "DELETE", credentials: "include" });
+        if (!res.ok) { console.error("Delete failed"); return; }
+        setSelectedDebtor(null);
         fetchDebtors();
-    }
-    // ---------------- SAFE RENDER GUARD ----------------
-    if (!isLoaded || !isSignedIn) {
-        return null;
-    }
+    };
+
+    if (!isLoaded || !isSignedIn) return null;
 
     return (
-        <div className="min-h-screen bg-[#F7F8FF] text-[#443CA3] px-8 py-12">
+        <div className="min-h-screen bg-[#F7F8FF] text-[#443CA3]">
 
             {/* NAVBAR */}
-            <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-[#443CA3]/10">
-
+            <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-[#443CA3]/10">
                 <div className="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center">
-
-                    <img
-                        src="/logo-recupera-purple.png"
-                        alt="Recupera"
-                        className="h-20"
-                    />
-
+                    <img src="/logo-recupera-purple.png" alt="Recupera" className="h-14" />
                     <div className="flex items-center gap-4">
-
-                    <span className="text-lg text-[#443CA3]/70">
-                        {user?.fullName || "Cliente"}
-                    </span>
-
-                        <button
-                            onClick={() => signOut(() => router.push("/sign-in"))}
-                            className=" text-red-800 border border-[#443CA3]/20 bg-red px-6 py-3 rounded-xl hover:bg-[#443CA3] hover:text-white transition"
-                        >
+                        <span className="text-sm text-[#443CA3]/60 font-medium">{user?.fullName || "Cliente"}</span>
+                        <button onClick={() => signOut(() => router.push("/sign-in"))}
+                                className="text-sm border border-[#443CA3]/20 px-4 py-2 rounded-xl hover:bg-[#443CA3] hover:text-white transition">
                             Cerrar Sesión
                         </button>
-
                     </div>
                 </div>
-
             </nav>
 
-            <div className="max-w-7xl mx-auto pt-10">
+            {/* DEBTOR MODAL */}
+            {selectedDebtor && (
+                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setSelectedDebtor(null)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                            <div>
+                                <h2 className="text-xl font-bold text-[#443CA3]">{selectedDebtor.name}</h2>
+                                <StatusBadge status={selectedDebtor.status} />
+                            </div>
+                            <button onClick={() => setSelectedDebtor(null)} className="text-gray-400 hover:text-gray-700 text-2xl">✕</button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-[#F7F8FF] rounded-xl p-4">
+                                    <p className="text-xs text-[#443CA3]/40 mb-1">Monto Adeudado</p>
+                                    <p className="text-xl font-bold text-[#443CA3]">${Number(selectedDebtor.amountOwed).toLocaleString()}</p>
+                                </div>
+                                <div className="bg-[#F7F8FF] rounded-xl p-4">
+                                    <p className="text-xs text-[#443CA3]/40 mb-1">Cédula</p>
+                                    <p className="font-medium text-sm">{selectedDebtor.cedulaIdentidad}</p>
+                                </div>
+                                <div className="bg-[#F7F8FF] rounded-xl p-4">
+                                    <p className="text-xs text-[#443CA3]/40 mb-1">Email</p>
+                                    <p className="font-medium text-sm truncate">{selectedDebtor.email || "—"}</p>
+                                </div>
+                                <div className="bg-[#F7F8FF] rounded-xl p-4">
+                                    <p className="text-xs text-[#443CA3]/40 mb-1">Teléfono</p>
+                                    <p className="font-medium text-sm">{selectedDebtor.telephone || "—"}</p>
+                                </div>
+                                {selectedDebtor.address && (
+                                    <div className="bg-[#F7F8FF] rounded-xl p-4 col-span-2">
+                                        <p className="text-xs text-[#443CA3]/40 mb-1">Dirección</p>
+                                        <p className="font-medium text-sm">{selectedDebtor.address}</p>
+                                    </div>
+                                )}
+                            </div>
+                            {selectedDebtor.documentUrl && (
+                                <a href={selectedDebtor.documentUrl} target="_blank" rel="noopener noreferrer"
+                                   className="flex items-center gap-2 text-sm text-[#443CA3] border border-[#443CA3]/20 rounded-xl px-4 py-3 hover:bg-[#443CA3] hover:text-white transition">
+                                    📄 Ver Documento
+                                </a>
+                            )}
+                            <div className="flex gap-3 pt-2 border-t border-gray-100">
+                                <button onClick={() => {
+                                    setEditingId(selectedDebtor.id);
+                                    setName(selectedDebtor.name);
+                                    setEmail(selectedDebtor.email || "");
+                                    setTelephone(selectedDebtor.telephone || "");
+                                    setAddress(selectedDebtor.address || "");
+                                    setCedulaIdentidad(selectedDebtor.cedulaIdentidad || "");
+                                    setAmountOwed(String(selectedDebtor.amountOwed));
+                                    setSelectedDebtor(null);
+                                    setActiveTab("add");
+                                }} className="flex-1 border border-[#443CA3]/20 text-[#443CA3] py-2 rounded-xl text-sm hover:bg-[#443CA3] hover:text-white transition">
+                                    Editar
+                                </button>
+                                <button onClick={() => handleDelete(selectedDebtor.id)}
+                                        className="flex-1 border border-red-200 text-red-500 py-2 rounded-xl text-sm hover:bg-red-500 hover:text-white transition">
+                                    Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <div className="max-w-7xl mx-auto px-8 py-8">
 
                 {/* HEADER */}
-                <div className="mb-12">
-
-                    <h1
-                        className="text-5xl font-extrabold mb-3"
-                        style={{ fontFamily: "Neulis Alt" }}
-                    >
-                        Panel de Cliente
-                    </h1>
-
-                    <p className="text-[#443CA3]/70 text-lg">
-                        Bienvenido{" "}
-                        <span className="font-bold">
-                        {user?.fullName || "Cliente"}
-                    </span>
-                    </p>
-
+                <div className="mb-8">
+                    <h1 className="text-4xl font-extrabold text-[#443CA3] mb-1">Panel de Cliente</h1>
+                    <p className="text-[#443CA3]/50">Bienvenido, <span className="font-semibold text-[#443CA3]">{user?.fullName || "Cliente"}</span></p>
                 </div>
 
-                {/* KPI */}
-                <div className="grid md:grid-cols-3 gap-6 mb-12">
-
-                    <div className="bg-white border border-[#443CA3]/10 p-6 rounded-2xl">
-                        <p className="text-sm text-[#443CA3]/60">Deudores Totales</p>
-                        <p className="text-3xl font-bold text-[#21FE83]">
-                            {debtors.length}
-                        </p>
-                    </div>
-
-                    <div className="bg-white border border-[#443CA3]/10 p-6 rounded-2xl">
-                        <p className="text-sm text-[#443CA3]/60">Monto Total</p>
-                        <p className="text-3xl font-bold">
-                            $
-                            {debtors
-                                .reduce((acc, d) => acc + Number(d.amountOwed), 0)
-                                .toLocaleString()}
-                        </p>
-                    </div>
-
-                    <div className="bg-white border border-[#443CA3]/10 p-6 rounded-2xl">
-                        <p className="text-sm text-[#443CA3]/60">Activos</p>
-                        <p className="text-3xl font-bold">
-                            {debtors.length}
-                        </p>
-                    </div>
-
+                {/* KPI CARDS */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    <StatCard label="Total Deudores" value={stats.total} accent="#443CA3" />
+                    <StatCard label="Monto Total" value={`$${stats.totalOwed.toLocaleString()}`} accent="#443CA3" />
+                    <StatCard label="Recuperado" value={`$${stats.paid.toLocaleString()}`} accent="#21FE83" sub="Deudores pagados" />
+                    <StatCard label="Pendientes" value={stats.pending} accent="#F59E0B" sub="Sin gestionar" />
                 </div>
 
-                <div className="grid lg:grid-cols-2 gap-12 items-start">
-                    {/* FORM */}
-                    <div className="bg-white border border-[#443CA3]/10 p-8 rounded-2xl">
+                {/* TABS */}
+                <div className="flex gap-2 mb-6 bg-white border border-[#443CA3]/10 rounded-2xl p-1.5 w-fit">
+                    {[
+                        { id: "list", label: "Mis Deudores" },
+                        { id: "add", label: editingId ? "Editar Deudor" : "Agregar Deudor" },
+                        { id: "reports", label: "Reportes" },
+                    ].map(tab => (
+                        <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                                className={`px-5 py-2 rounded-xl text-sm font-medium transition-all ${activeTab === tab.id ? "bg-[#443CA3] text-white shadow-sm" : "text-[#443CA3]/60 hover:text-[#443CA3]"}`}>
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
 
-                        <h2 className="text-2xl font-bold mb-6">
-                            {editingId ? "Editar Deudor" : "Agregar Deudor"}
-                        </h2>
-
-                        <form onSubmit={handleSubmit} className="space-y-4">
-
-                            <input
-                                type="text"
-                                placeholder="Nombre del Deudor"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="w-full p-3 border border-[#443CA3]/20 rounded-xl focus:outline-none focus:border-[#443CA3]"
-                                required
-                            />
-
-                            <input
-                                type="email"
-                                placeholder="Correo (opcional)"
-                                value={email}
-                                onChange={(e) => {
-                                    setEmail(e.target.value);
-                                    validateEmail(e.target.value);
-                                }}
-                                className="w-full p-3 border border-[#443CA3]/20 rounded-xl"
-                            />
-
-                            <PhoneInput
-                                country={"ec"}
-                                value={telephone}
-                                onChange={(phone) => setTelephone(phone)}
-                                enableSearch={true}
-                                inputClass="!w-full !p-3 !rounded-xl !border !border-[#443CA3]/20 !text-[#443CA3]"
-                            />
-
-                            <input
-                                type="text"
-                                placeholder="Cédula"
-                                value={cedulaIdentidad}
-                                onChange={(e) => {
-                                    const v = e.target.value.replace(/\D/g, "");
-                                    if (v.length <= 10) setCedulaIdentidad(v);
-                                }}
-                                className="w-full p-3 border border-[#443CA3]/20 rounded-xl"
-                                required
-                            />
-
-                            <input
-                                type="text"
-                                placeholder="Monto Adeudado"
-                                value={amountOwed}
-                                onChange={(e) => setAmountOwed(e.target.value)}
-                                className="w-full p-3 border border-[#443CA3]/20 rounded-xl"
-                                required
-                            />
-
-                            <input
-                                type="file"
-                                accept="image/*,application/pdf"
-                                onChange={(e) => setDocumentFile(e.target.files[0])}
-                                className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border file:border-[#443CA3]/20 file:bg-white file:text-[#443CA3] hover:file:bg-[#443CA3] hover:file:text-white"
-                            />
-
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="w-full bg-[#443CA3] text-white font-bold py-3 rounded-xl hover:opacity-90 transition"
-                            >
-                                {loading
-                                    ? "Procesando..."
-                                    : editingId
-                                        ? "Actualizar"
-                                        : "Agregar"}
-                            </button>
-
-                        </form>
-
-                    </div>
-
-                    {/* ===== EXCEL IMPORT ===== */} <div className="flex gap-4 mb-120"> <button onClick={handleDownloadTemplate} className="bg-[#21FE83] text-[#443CA3] px-5 py-2 rounded-xl font-bold hover:bg-[#1edb70]" > Descargar Plantilla Excel </button> <button className="bg-[#21FE83] text-[#443CA3] px-5 py-2 rounded-xl font-bold hover:bg-[#1edb70]"> <input className="bg-[#21FE83] text-[#443CA3] px-5 py-2 rounded-xl font-bold hover:bg-[#1edb70]" type="file" accept=".xlsx,.xls,.csv" onChange={handleFileUpload} className="text-md" /> </button> </div> {message && ( <p className="text-sm text-[#CCE8FF] mb-6">{message}</p> )}
-
-                    {/* DEBTOR LIST */}
+                {/* TAB: LIST */}
+                {activeTab === "list" && (
                     <div>
+                        {/* Filters + actions */}
+                        <div className="bg-white border border-[#443CA3]/10 rounded-2xl p-4 mb-6 flex flex-wrap gap-3 items-center justify-between">
+                            <div className="flex flex-wrap gap-3 flex-1">
+                                <input type="text" placeholder="Buscar deudor..."
+                                       value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                                       className="border border-[#443CA3]/20 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-[#443CA3] min-w-[180px]" />
+                                <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                                        className="border border-[#443CA3]/20 rounded-xl px-4 py-2 text-sm text-[#443CA3] focus:outline-none">
+                                    <option value="ALL">Todos los estados</option>
+                                    {Object.entries(STATUS_COLORS).map(([key, val]) => (
+                                        <option key={key} value={key}>{val.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex gap-2">
+                                <button onClick={handleDownloadTemplate}
+                                        className="text-sm border border-[#443CA3]/20 px-4 py-2 rounded-xl text-[#443CA3] hover:bg-[#443CA3] hover:text-white transition">
+                                    📋 Plantilla
+                                </button>
+                                <button onClick={handleExportExcel}
+                                        className="text-sm bg-[#21FE83] text-[#443CA3] px-4 py-2 rounded-xl font-bold hover:bg-[#1edb70] transition">
+                                    ⬇ Exportar
+                                </button>
+                                <label className="text-sm bg-[#443CA3] text-white px-4 py-2 rounded-xl font-bold cursor-pointer hover:opacity-90 transition">
+                                    📤 Importar
+                                    <input type="file" accept=".xlsx,.xls,.csv" onChange={handleFileUpload} className="hidden" />
+                                </label>
+                            </div>
+                        </div>
 
-                        <h2 className="text-2xl font-bold mb-6">
-                            Tus Deudores
-                        </h2>
+                        {message && <p className="text-sm text-[#443CA3] mb-4 bg-white border border-[#443CA3]/10 rounded-xl px-4 py-3">{message}</p>}
 
-                        {/* SEARCH */}
-                        <input
-                            type="text"
-                            placeholder="Buscar deudor..."
-                            value={searchTerm}
-                            onChange={(e) => {
-                                setSearchTerm(e.target.value);
-                                setCurrentPage(1);
-                            }}
-                            className="w-full mb-6 p-3 border border-[#443CA3]/20 rounded-xl"
-                        />
-
-                        {(() => {
-
-                            const filteredDebtors = debtors.filter((debtor) =>
-                                debtor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                (debtor.email && debtor.email.toLowerCase().includes(searchTerm.toLowerCase()))
-                            );
-
-                            const totalPages = Math.ceil(filteredDebtors.length / ITEMS_PER_PAGE);
-
-                            const paginatedDebtors = filteredDebtors.slice(
-                                (currentPage - 1) * ITEMS_PER_PAGE,
-                                currentPage * ITEMS_PER_PAGE
-                            );
-
-                            if (paginatedDebtors.length === 0) {
-                                return (
-                                    <p className="text-[#443CA3]/70">
-                                        No hay deudores registrados.
-                                    </p>
-                                );
-                            }
-
-                            return (
-                                <>
-                                    <div className="space-y-4">
-
-                                        {paginatedDebtors.map((debtor) => (
-
-                                            <div
-                                                key={debtor.id}
-                                                className="bg-white border border-[#443CA3]/10 p-6 rounded-2xl flex justify-between items-center hover:bg-[#EEF1FF] transition"
-                                            >
-
-                                                <div>
-
-                                                    <p className="font-bold text-lg">
-                                                        {debtor.name}
-                                                    </p>
-
-                                                    {debtor.email && (
-                                                        <p className="text-[#443CA3]/60 text-sm">
-                                                            {debtor.email}
-                                                        </p>
-                                                    )}
-
-                                                    <p className="text-sm text-[#443CA3]/60">
-                                                        Cédula: {debtor.cedulaIdentidad}
-                                                    </p>
-
-                                                    <p className="text-sm text-[#443CA3]/60">
-                                                        Teléfono: {debtor.telephone}
-                                                    </p>
-
-                                                    <p className="text-sm text-[#443CA3]/60">
-                                                        Estado: {debtor.status}
-                                                    </p>
-
-
-                                                    <p className="text-[#21FE83] font-bold">
-                                                        ${debtor.amountOwed}
-                                                    </p>
-
-
-                                                </div>
-
-                                                <div className="flex gap-4 text-sm">
-
-                                                    <button
-                                                        onClick={() => {
-                                                            setEditingId(debtor.id);
-                                                            setName(debtor.name);
-                                                            setEmail(debtor.email || "");
-                                                            setTelephone(debtor.telephone || "");
-                                                            setAddress(debtor.address || "");
-                                                            setCedulaIdentidad(debtor.cedulaIdentidad || "");
-                                                            setAmountOwed(String(debtor.amountOwed));
-                                                        }}
-                                                        className="text-[#443CA3] hover:underline"
-                                                    >
-                                                        Editar
-                                                    </button>
-
-                                                    <button
-                                                        onClick={() => handleDelete(debtor.id)}
-                                                        className="text-red-500 hover:underline"
-                                                    >
-                                                        Eliminar
-                                                    </button>
-
-                                                </div>
-
+                        {paginatedDebtors.length === 0 ? (
+                            <div className="text-center py-20 text-[#443CA3]/30">
+                                <p className="text-4xl mb-3">📋</p>
+                                <p>No hay deudores registrados</p>
+                            </div>
+                        ) : (
+                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {paginatedDebtors.map(debtor => (
+                                    <div key={debtor.id} onClick={() => setSelectedDebtor(debtor)}
+                                         className="bg-white border border-[#443CA3]/10 rounded-2xl p-5 hover:shadow-md hover:border-[#443CA3]/30 transition-all cursor-pointer">
+                                        <div className="flex items-start justify-between mb-3">
+                                            <div>
+                                                <p className="font-bold text-[#443CA3]">{debtor.name}</p>
+                                                <p className="text-xs text-[#443CA3]/50 mt-0.5">{debtor.email || "Sin email"}</p>
                                             </div>
-
-                                        ))}
-
-                                    </div>
-
-                                    {/* PAGINATION */}
-                                    {totalPages > 1 && (
-                                        <div className="flex justify-center gap-4 mt-8">
-
-                                            <button
-                                                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                                                className="px-4 py-2 border border-[#443CA3]/20 rounded-xl hover:bg-[#443CA3] hover:text-white transition"
-                                            >
-                                                Prev
-                                            </button>
-
-                                            <span className="text-[#443CA3]/70">
-                                            Página {currentPage} de {totalPages}
-                                        </span>
-
-                                            <button
-                                                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                                                className="px-4 py-2 border border-[#443CA3]/20 rounded-xl hover:bg-[#443CA3] hover:text-white transition"
-                                            >
-                                                Next
-                                            </button>
-
+                                            <StatusBadge status={debtor.status} />
                                         </div>
-                                    )}
+                                        <p className="text-2xl font-bold text-[#443CA3] mb-3">
+                                            ${Number(debtor.amountOwed).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </p>
+                                        <div className="flex items-center justify-between text-xs text-[#443CA3]/40">
+                                            <span>Cédula: {debtor.cedulaIdentidad}</span>
+                                            <span className="text-[#443CA3] font-medium">Ver detalles →</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
 
-                                </>
-                            );
-
-                        })()}
-
+                        {totalPages > 1 && (
+                            <div className="flex justify-center gap-4 mt-8">
+                                <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
+                                        className="px-4 py-2 border border-[#443CA3]/20 rounded-xl text-sm hover:bg-[#443CA3] hover:text-white transition disabled:opacity-30">← Prev</button>
+                                <span className="text-sm text-[#443CA3]/50 self-center">Página {currentPage} de {totalPages}</span>
+                                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
+                                        className="px-4 py-2 border border-[#443CA3]/20 rounded-xl text-sm hover:bg-[#443CA3] hover:text-white transition disabled:opacity-30">Next →</button>
+                            </div>
+                        )}
                     </div>
+                )}
 
-                </div>
+                {/* TAB: ADD/EDIT */}
+                {activeTab === "add" && (
+                    <div className="max-w-xl">
+                        <div className="bg-white border border-[#443CA3]/10 rounded-2xl p-8">
+                            <h2 className="text-2xl font-bold text-[#443CA3] mb-6">{editingId ? "Editar Deudor" : "Agregar Deudor"}</h2>
+                            {error && <p className="text-red-500 text-sm mb-4 bg-red-50 border border-red-100 rounded-xl px-4 py-3">{error}</p>}
+                            {success && <p className="text-green-600 text-sm mb-4 bg-green-50 border border-green-100 rounded-xl px-4 py-3">{success}</p>}
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <input type="text" placeholder="Nombre del Deudor" value={name} onChange={e => setName(e.target.value)}
+                                       className="w-full p-3 border border-[#443CA3]/20 rounded-xl focus:outline-none focus:border-[#443CA3]" required />
+                                <input type="email" placeholder="Correo (opcional)" value={email}
+                                       onChange={e => { setEmail(e.target.value); validateEmail(e.target.value); }}
+                                       className="w-full p-3 border border-[#443CA3]/20 rounded-xl focus:outline-none focus:border-[#443CA3]" />
+                                {emailError && <p className="text-red-500 text-xs">{emailError}</p>}
+                                <PhoneInput country={"ec"} value={telephone} onChange={phone => setTelephone(phone)}
+                                            enableSearch={true} inputClass="!w-full !p-3 !rounded-xl !border !border-[#443CA3]/20 !text-[#443CA3]" />
+                                <input type="text" placeholder="Cédula" value={cedulaIdentidad}
+                                       onChange={e => { const v = e.target.value.replace(/\D/g, ""); if (v.length <= 10) setCedulaIdentidad(v); }}
+                                       className="w-full p-3 border border-[#443CA3]/20 rounded-xl focus:outline-none focus:border-[#443CA3]" required />
+                                <input type="text" placeholder="Monto Adeudado" value={amountOwed} onChange={e => setAmountOwed(e.target.value)}
+                                       className="w-full p-3 border border-[#443CA3]/20 rounded-xl focus:outline-none focus:border-[#443CA3]" required />
+                                <input type="text" placeholder="Dirección (opcional)" value={address} onChange={e => setAddress(e.target.value)}
+                                       className="w-full p-3 border border-[#443CA3]/20 rounded-xl focus:outline-none focus:border-[#443CA3]" />
+                                <input type="file" accept="image/*,application/pdf" onChange={e => setDocumentFile(e.target.files[0])}
+                                       className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border file:border-[#443CA3]/20 file:bg-white file:text-[#443CA3] hover:file:bg-[#443CA3] hover:file:text-white" />
+                                <div className="flex gap-3">
+                                    {editingId && (
+                                        <button type="button" onClick={() => { setEditingId(null); setName(""); setEmail(""); setTelephone(""); setAddress(""); setCedulaIdentidad(""); setAmountOwed(""); setActiveTab("list"); }}
+                                                className="flex-1 border border-[#443CA3]/20 text-[#443CA3] py-3 rounded-xl hover:bg-gray-50 transition text-sm">
+                                            Cancelar
+                                        </button>
+                                    )}
+                                    <button type="submit" disabled={loading}
+                                            className="flex-1 bg-[#443CA3] text-white font-bold py-3 rounded-xl hover:opacity-90 transition disabled:opacity-50">
+                                        {loading ? "Procesando..." : editingId ? "Actualizar" : "Agregar Deudor"}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
 
+                {/* TAB: REPORTS */}
+                {activeTab === "reports" && (
+                    <div className="space-y-6">
+                        <div className="grid md:grid-cols-2 gap-6">
+                            {/* Pie chart */}
+                            <div className="bg-white border border-[#443CA3]/10 rounded-2xl p-6">
+                                <h3 className="font-semibold text-[#443CA3] mb-4">Deudores por Estado</h3>
+                                {stats.byStatus.length === 0 ? (
+                                    <p className="text-[#443CA3]/30 text-sm text-center py-12">Sin datos</p>
+                                ) : (
+                                    <ResponsiveContainer width="100%" height={250}>
+                                        <PieChart>
+                                            <Pie data={stats.byStatus} dataKey="value" nameKey="name" outerRadius={90} innerRadius={50} paddingAngle={3}>
+                                                {stats.byStatus.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                                            </Pie>
+                                            <Tooltip formatter={(val, name) => [val, STATUS_COLORS[name]?.label || name]} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                )}
+                            </div>
+
+                            {/* Bar chart */}
+                            <div className="bg-white border border-[#443CA3]/10 rounded-2xl p-6">
+                                <h3 className="font-semibold text-[#443CA3] mb-4">Distribución por Estado</h3>
+                                <ResponsiveContainer width="100%" height={250}>
+                                    <BarChart data={stats.byStatus} barSize={36}>
+                                        <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#443CA3", opacity: 0.5 }} axisLine={false} tickLine={false}
+                                               tickFormatter={name => STATUS_COLORS[name]?.label?.slice(0, 6) || name} />
+                                        <YAxis hide />
+                                        <Tooltip formatter={(val, name) => [val, STATUS_COLORS[name]?.label || name]} />
+                                        <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                                            {stats.byStatus.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        {/* Status breakdown */}
+                        <div className="bg-white border border-[#443CA3]/10 rounded-2xl p-6">
+                            <h3 className="font-semibold text-[#443CA3] mb-4">Detalle por Estado</h3>
+                            <div className="space-y-3">
+                                {Object.entries(STATUS_COLORS).map(([key, meta]) => {
+                                    const count = debtors.filter(d => d.status === key).length;
+                                    const amount = debtors.filter(d => d.status === key).reduce((acc, d) => acc + Number(d.amountOwed), 0);
+                                    const pct = stats.total > 0 ? ((count / stats.total) * 100).toFixed(0) : 0;
+                                    return (
+                                        <div key={key} className="flex items-center gap-3">
+                                            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: meta.color }} />
+                                            <span className="text-sm text-[#443CA3]/70 w-36">{meta.label}</span>
+                                            <span className="text-sm font-bold text-[#443CA3] w-8">{count}</span>
+                                            <div className="flex-1 h-1.5 bg-[#443CA3]/10 rounded-full overflow-hidden">
+                                                <div className="h-full rounded-full" style={{ width: `${pct}%`, background: meta.color }} />
+                                            </div>
+                                            <span className="text-xs text-[#443CA3]/40 w-16 text-right">${amount.toLocaleString()}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end">
+                            <button onClick={handleExportExcel}
+                                    className="bg-[#443CA3] text-white px-6 py-3 rounded-xl font-bold hover:opacity-90 transition text-sm">
+                                ⬇ Exportar Reporte Excel
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
-
         </div>
     );
 }
