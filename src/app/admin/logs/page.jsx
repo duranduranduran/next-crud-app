@@ -1,31 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 
 const EVENT_LABELS = {
-    STATUS_CHANGED:      { label: "Estado cambiado",   color: "#F59E0B", bg: "#FEF3C7" },
-    NOTE_ADDED:          { label: "Nota agregada",      color: "#443CA3", bg: "#EEEDFE" },
-    NOTE_DELETED:        { label: "Nota eliminada",     color: "#EF4444", bg: "#FEE2E2" },
-    DEBTOR_CREATED:      { label: "Deudor creado",      color: "#10B981", bg: "#D1FAE5" },
-    DEBTOR_DELETED:      { label: "Deudor eliminado",   color: "#EF4444", bg: "#FEE2E2" },
-    REMINDER_SENT:       { label: "Recordatorio enviado", color: "#0EA5E9", bg: "#E0F2FE" },
-    CALL_TRIGGERED:      { label: "Llamada realizada",  color: "#8B5CF6", bg: "#EDE9FE" },
-    BULK_STATUS_CHANGED: { label: "Estado masivo",      color: "#F59E0B", bg: "#FEF3C7" },
+    STATUS_CHANGED:      { label: "Estado cambiado",      color: "#F59E0B", bg: "#FEF3C7" },
+    NOTE_ADDED:          { label: "Nota agregada",         color: "#443CA3", bg: "#EEEDFE" },
+    NOTE_DELETED:        { label: "Nota eliminada",        color: "#EF4444", bg: "#FEE2E2" },
+    DEBTOR_CREATED:      { label: "Deudor creado",         color: "#10B981", bg: "#D1FAE5" },
+    DEBTOR_DELETED:      { label: "Deudor eliminado",      color: "#EF4444", bg: "#FEE2E2" },
+    REMINDER_SENT:       { label: "Recordatorio enviado",  color: "#0EA5E9", bg: "#E0F2FE" },
+    CALL_TRIGGERED:      { label: "Llamada realizada",     color: "#8B5CF6", bg: "#EDE9FE" },
+    BULK_STATUS_CHANGED: { label: "Estado masivo",         color: "#F59E0B", bg: "#FEF3C7" },
 };
 
 const EVENT_FILTERS = [
-    "All", "STATUS_CHANGED", "NOTE_ADDED", "NOTE_DELETED",
-    "DEBTOR_CREATED", "DEBTOR_DELETED", "REMINDER_SENT",
-    "CALL_TRIGGERED", "BULK_STATUS_CHANGED",
+    "All",
+    "STATUS_CHANGED",
+    "NOTE_ADDED",
+    "NOTE_DELETED",
+    "DEBTOR_CREATED",
+    "DEBTOR_DELETED",
+    "REMINDER_SENT",
+    "CALL_TRIGGERED",
+    "BULK_STATUS_CHANGED",
 ];
 
 function formatDate(dateStr) {
     const d = new Date(dateStr);
     return d.toLocaleString("es-EC", {
-        day: "2-digit", month: "short", year: "numeric",
-        hour: "2-digit", minute: "2-digit",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
     });
 }
 
@@ -38,6 +47,9 @@ export default function LogsPage() {
     const [error, setError] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const [eventFilter, setEventFilter] = useState("All");
+    const [dateFrom, setDateFrom] = useState("");
+    const [dateTo, setDateTo] = useState("");
+    const [userFilter, setUserFilter] = useState("ALL");
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 10;
 
@@ -64,14 +76,37 @@ export default function LogsPage() {
         if (isLoaded && user) fetchLogs();
     }, [isLoaded, user]);
 
+    const uniqueUsers = useMemo(() => {
+        const seen = new Set();
+        return logs
+            .filter(l => l.user)
+            .filter(l => {
+                const key = l.user.name || l.user.email;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            })
+            .map(l => ({ label: l.user.name || l.user.email, value: l.user.name || l.user.email }));
+    }, [logs]);
+
     const filteredLogs = logs.filter((log) => {
         const matchesSearch =
             log.detail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             log.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             log.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             log.debtor?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+
         const matchesEvent = eventFilter === "All" || log.event === eventFilter;
-        return matchesSearch && matchesEvent;
+
+        const matchesUser = userFilter === "ALL" ||
+            log.user?.name === userFilter ||
+            log.user?.email === userFilter;
+
+        const logDate = new Date(log.createdAt);
+        const matchesFrom = !dateFrom || logDate >= new Date(dateFrom);
+        const matchesTo = !dateTo || logDate <= new Date(dateTo + "T23:59:59");
+
+        return matchesSearch && matchesEvent && matchesUser && matchesFrom && matchesTo;
     });
 
     const totalPages = Math.max(1, Math.ceil(filteredLogs.length / ITEMS_PER_PAGE));
@@ -81,15 +116,77 @@ export default function LogsPage() {
     );
 
     const stats = {
-        total: logs.length,
-        calls: logs.filter(l => l.event === "CALL_TRIGGERED").length,
-        reminders: logs.filter(l => l.event === "REMINDER_SENT").length,
-        statusChanges: logs.filter(l => l.event === "STATUS_CHANGED" || l.event === "BULK_STATUS_CHANGED").length,
-        notes: logs.filter(l => l.event === "NOTE_ADDED").length,
+        total: filteredLogs.length,
+        calls: filteredLogs.filter(l => l.event === "CALL_TRIGGERED").length,
+        reminders: filteredLogs.filter(l => l.event === "REMINDER_SENT").length,
+        statusChanges: filteredLogs.filter(l => l.event === "STATUS_CHANGED" || l.event === "BULK_STATUS_CHANGED").length,
+        notes: filteredLogs.filter(l => l.event === "NOTE_ADDED").length,
+    };
+
+    const hasActiveFilters = dateFrom || dateTo || userFilter !== "ALL" || searchTerm || eventFilter !== "All";
+
+    const clearFilters = () => {
+        setDateFrom("");
+        setDateTo("");
+        setUserFilter("ALL");
+        setSearchTerm("");
+        setEventFilter("All");
+        setCurrentPage(1);
+    };
+
+    const handleExportLogsExcel = () => {
+        import("xlsx").then(XLSX => {
+            const rows = filteredLogs.map(log => ({
+                "Fecha": new Date(log.createdAt).toLocaleString("es-EC"),
+                "Evento": EVENT_LABELS[log.event]?.label || log.event,
+                "Detalle": log.detail,
+                "Usuario": log.user?.name || log.user?.email || "Sistema",
+                "Deudor": log.debtor?.name || "—",
+            }));
+            const ws = XLSX.utils.json_to_sheet(rows);
+            ws["!cols"] = [{ wch: 20 }, { wch: 22 }, { wch: 50 }, { wch: 20 }, { wch: 20 }];
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Actividad");
+            XLSX.writeFile(wb, `actividad_${new Date().toISOString().split("T")[0]}.xlsx`);
+        });
+    };
+
+    const handleExportLogsPDF = async () => {
+        const { default: jsPDF } = await import("jspdf");
+        const { default: autoTable } = await import("jspdf-autotable");
+
+        const doc = new jsPDF({ orientation: "landscape" });
+        doc.setFontSize(16);
+        doc.setTextColor(68, 60, 163);
+        doc.text("Recupera — Registro de Actividad", 14, 16);
+        doc.setFontSize(10);
+        doc.setTextColor(120, 120, 120);
+        doc.text(`Generado: ${new Date().toLocaleString("es-EC")}`, 14, 23);
+        if (dateFrom || dateTo) {
+            doc.text(`Período: ${dateFrom || "—"} → ${dateTo || "—"}`, 14, 29);
+        }
+
+        autoTable(doc, {
+            startY: dateFrom || dateTo ? 34 : 28,
+            head: [["Fecha", "Evento", "Detalle", "Usuario", "Deudor"]],
+            body: filteredLogs.map(log => [
+                new Date(log.createdAt).toLocaleString("es-EC"),
+                EVENT_LABELS[log.event]?.label || log.event,
+                log.detail,
+                log.user?.name || log.user?.email || "Sistema",
+                log.debtor?.name || "—",
+            ]),
+            headStyles: { fillColor: [68, 60, 163], textColor: 255, fontSize: 9 },
+            bodyStyles: { fontSize: 8 },
+            alternateRowStyles: { fillColor: [247, 248, 255] },
+            columnStyles: { 2: { cellWidth: 80 } },
+        });
+
+        doc.save(`actividad_${new Date().toISOString().split("T")[0]}.pdf`);
     };
 
     if (loading) return (
-        <div className="min-h-screen bg-[#F7F8FF] flex items-center justify-center">
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
             <div className="text-center">
                 <div className="w-8 h-8 border-2 border-[#443CA3] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                 <p className="text-sm text-[#443CA3]/50">Cargando...</p>
@@ -98,7 +195,7 @@ export default function LogsPage() {
     );
 
     if (error) return (
-        <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
             <p className="text-red-500 text-sm">{error}</p>
         </div>
     );
@@ -112,9 +209,16 @@ export default function LogsPage() {
                     <h1 className="text-2xl font-bold text-gray-800">Registro de Actividad</h1>
                     <p className="text-sm text-gray-400 mt-0.5">Historial completo de todas las acciones del sistema y usuarios</p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-[#21FE83] rounded-full animate-pulse"></div>
-                    <span className="text-sm text-gray-400">En vivo</span>
+                <div className="flex items-center gap-3">
+
+                    <button onClick={handleExportLogsExcel}
+                            className="border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-xs font-medium hover:bg-[#443CA3] hover:text-white hover:border-[#443CA3] transition">
+                        ⬇ Excel
+                    </button>
+                    <button onClick={handleExportLogsPDF}
+                            className="border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-xs font-medium hover:bg-[#443CA3] hover:text-white hover:border-[#443CA3] transition">
+                        ⬇ PDF
+                    </button>
                 </div>
             </div>
 
@@ -136,6 +240,8 @@ export default function LogsPage() {
 
             {/* Filters */}
             <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
+
+                {/* Row 1 — search, dates, user, clear */}
                 <div className="flex flex-wrap gap-3 items-center">
                     <input
                         type="text"
@@ -144,21 +250,60 @@ export default function LogsPage() {
                         onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                         className="border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-600 focus:outline-none focus:border-[#443CA3] flex-1 min-w-[200px]"
                     />
-                    <div className="flex flex-wrap gap-2">
-                        {EVENT_FILTERS.map(f => (
-                            <button
-                                key={f}
-                                onClick={() => { setEventFilter(f); setCurrentPage(1); }}
-                                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
-                                    eventFilter === f
-                                        ? "bg-[#443CA3] text-white shadow-sm"
-                                        : "bg-gray-50 text-gray-500 border border-gray-200 hover:border-[#443CA3]/30 hover:text-[#443CA3]"
-                                }`}
-                            >
-                                {f === "All" ? "Todos los eventos" : EVENT_LABELS[f]?.label || f}
-                            </button>
-                        ))}
+
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-400 whitespace-nowrap">Desde</span>
+                        <input
+                            type="date"
+                            value={dateFrom}
+                            onChange={e => { setDateFrom(e.target.value); setCurrentPage(1); }}
+                            className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-600 focus:outline-none focus:border-[#443CA3]"
+                        />
+                        <span className="text-xs text-gray-400 whitespace-nowrap">Hasta</span>
+                        <input
+                            type="date"
+                            value={dateTo}
+                            onChange={e => { setDateTo(e.target.value); setCurrentPage(1); }}
+                            className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-600 focus:outline-none focus:border-[#443CA3]"
+                        />
                     </div>
+
+                    <select
+                        value={userFilter}
+                        onChange={e => { setUserFilter(e.target.value); setCurrentPage(1); }}
+                        className="border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-600 focus:outline-none focus:border-[#443CA3]"
+                    >
+                        <option value="ALL">Todos los usuarios</option>
+                        {uniqueUsers.map((u, i) => (
+                            <option key={i} value={u.value}>{u.label}</option>
+                        ))}
+                    </select>
+
+                    {hasActiveFilters && (
+                        <button
+                            onClick={clearFilters}
+                            className="text-xs text-red-400 border border-red-100 px-3 py-2 rounded-xl hover:bg-red-50 transition whitespace-nowrap"
+                        >
+                            ✕ Limpiar filtros
+                        </button>
+                    )}
+                </div>
+
+                {/* Row 2 — event type pills */}
+                <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-50">
+                    {EVENT_FILTERS.map(f => (
+                        <button
+                            key={f}
+                            onClick={() => { setEventFilter(f); setCurrentPage(1); }}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                                eventFilter === f
+                                    ? "bg-[#443CA3] text-white shadow-sm"
+                                    : "bg-gray-50 text-gray-500 border border-gray-200 hover:border-[#443CA3]/30 hover:text-[#443CA3]"
+                            }`}
+                        >
+                            {f === "All" ? "Todos los eventos" : EVENT_LABELS[f]?.label || f}
+                        </button>
+                    ))}
                 </div>
             </section>
 
@@ -174,7 +319,12 @@ export default function LogsPage() {
                 {paginatedLogs.length === 0 ? (
                     <div className="text-center py-20 text-gray-300">
                         <p className="text-4xl mb-3">📋</p>
-                        <p className="text-sm">No se encontraron registros de actividad</p>
+                        <p className="text-sm">No se encontraron registros</p>
+                        {hasActiveFilters && (
+                            <button onClick={clearFilters} className="mt-3 text-xs text-[#443CA3] underline">
+                                Limpiar filtros
+                            </button>
+                        )}
                     </div>
                 ) : (
                     paginatedLogs.map((log, i) => {
@@ -206,22 +356,27 @@ export default function LogsPage() {
             </section>
 
             {/* Pagination */}
-            <div className="flex items-center justify-center gap-4">
-                <button
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-[#443CA3] hover:text-white hover:border-[#443CA3] transition disabled:opacity-30"
-                >
-                    ← Anterior
-                </button>
-                <span className="text-sm text-gray-400">Página {currentPage} de {totalPages}</span>
-                <button
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    className="px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-[#443CA3] hover:text-white hover:border-[#443CA3] transition disabled:opacity-30"
-                >
-                    Siguiente →
-                </button>
+            <div className="flex items-center justify-between">
+                <p className="text-xs text-gray-400">
+                    Mostrando {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredLogs.length)}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredLogs.length)} de {filteredLogs.length} registros
+                </p>
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-[#443CA3] hover:text-white hover:border-[#443CA3] transition disabled:opacity-30"
+                    >
+                        ← Anterior
+                    </button>
+                    <span className="text-sm text-gray-400">Página {currentPage} de {totalPages}</span>
+                    <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-[#443CA3] hover:text-white hover:border-[#443CA3] transition disabled:opacity-30"
+                    >
+                        Siguiente →
+                    </button>
+                </div>
             </div>
 
         </main>

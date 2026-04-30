@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, SignOutButton } from "@clerk/nextjs";
 
@@ -32,7 +32,6 @@ function SendRemindersButton() {
 
     return (
         <>
-            {/* Toast notification */}
             {toast && (
                 <div className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-4 rounded-2xl shadow-xl border transition-all duration-300 max-w-sm ${
                     toast.type === "success"
@@ -44,7 +43,6 @@ function SendRemindersButton() {
                     <button onClick={() => setToast(null)} className="ml-2 text-gray-300 hover:text-gray-500 text-lg leading-none">✕</button>
                 </div>
             )}
-
             <button
                 onClick={handleSendReminders}
                 disabled={sending}
@@ -57,6 +55,7 @@ function SendRemindersButton() {
         </>
     );
 }
+
 function StatusBadge({ status }) {
     const colors =
         status === "PAGADO" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" :
@@ -80,10 +79,22 @@ function StatusBadge({ status }) {
     );
 }
 
+const LOG_META = {
+    STATUS_CHANGED: { label: "Estado cambiado", color: "#F59E0B", bg: "#FEF3C7" },
+    NOTE_ADDED: { label: "Nota agregada", color: "#443CA3", bg: "#EEEDFE" },
+    NOTE_DELETED: { label: "Nota eliminada", color: "#EF4444", bg: "#FEE2E2" },
+    REMINDER_SENT: { label: "Recordatorio enviado", color: "#0EA5E9", bg: "#E0F2FE" },
+    CALL_TRIGGERED: { label: "Llamada realizada", color: "#8B5CF6", bg: "#EDE9FE" },
+    DEBTOR_CREATED: { label: "Deudor creado", color: "#10B981", bg: "#D1FAE5" },
+    DEBTOR_DELETED: { label: "Deudor eliminado", color: "#EF4444", bg: "#FEE2E2" },
+    BULK_STATUS_CHANGED: { label: "Estado masivo", color: "#F59E0B", bg: "#FEF3C7" },
+};
+
 function DebtorModal({
                          debtor, onClose, onDelete, onToggleAvailability, onUpdateStatus,
                          debtorNotes, setDebtorNotes, onSaveNote, onDeleteNote,
                          selectedDebtors, setSelectedDebtors, clients, setSelectAll,
+                         debtorLogs, logsLoading,
                      }) {
     if (!debtor) return null;
 
@@ -187,7 +198,7 @@ function DebtorModal({
                             Guardar Nota
                         </button>
 
-                        <div className="mt-3 space-y-2 max-h-48 overflow-y-auto">
+                        <div className="mt-3 space-y-2 max-h-40 overflow-y-auto">
                             {debtor.notes?.length > 0 ? debtor.notes.map(note => (
                                 <div key={note.id} className="bg-gray-50 border border-gray-100 p-3 rounded-xl text-sm flex justify-between items-start gap-2">
                                     <div>
@@ -202,6 +213,37 @@ function DebtorModal({
                         </div>
                     </div>
 
+                    <div>
+                        <p className="text-sm font-medium text-gray-700 mb-3">Historial de Actividad</p>
+                        {logsLoading ? (
+                            <div className="flex justify-center py-4">
+                                <div className="w-5 h-5 border-2 border-[#443CA3] border-t-transparent rounded-full animate-spin" />
+                            </div>
+                        ) : debtorLogs.length === 0 ? (
+                            <p className="text-xs text-gray-400">Sin actividad registrada</p>
+                        ) : (
+                            <div className="space-y-2 max-h-48 overflow-y-auto">
+                                {debtorLogs.map(log => {
+                                    const meta = LOG_META[log.event] || { label: log.event, color: "#443CA3", bg: "#EEEDFE" };
+                                    return (
+                                        <div key={log.id} className="flex items-start gap-2.5 p-2.5 bg-gray-50 rounded-xl">
+                                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0 mt-0.5"
+                                                  style={{ color: meta.color, background: meta.bg }}>
+                                                {meta.label}
+                                            </span>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs text-gray-500 truncate">{log.detail}</p>
+                                                <p className="text-[10px] text-gray-300 mt-0.5">
+                                                    {new Date(log.createdAt).toLocaleString("es-EC")} · {log.user?.name || log.user?.email || "Sistema"}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
                     <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                         <button
                             onClick={() => onDelete(debtor.id)}
@@ -213,7 +255,6 @@ function DebtorModal({
                             Cerrar
                         </button>
                     </div>
-
                 </div>
             </div>
         </div>
@@ -224,7 +265,6 @@ export default function AdminPage() {
     const { user, isLoaded } = useUser();
     const router = useRouter();
 
-    const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("ALL");
     const [amountFilter, setAmountFilter] = useState("ALL");
     const [bulkStatus, setBulkStatus] = useState("");
@@ -233,6 +273,10 @@ export default function AdminPage() {
     const [bulkMessage, setBulkMessage] = useState(null);
     const [bulkLoading, setBulkLoading] = useState(false);
     const [selectedDebtor, setSelectedDebtor] = useState(null);
+    const [debtorLogs, setDebtorLogs] = useState([]);
+    const [logsLoading, setLogsLoading] = useState(false);
+    const [globalSearch, setGlobalSearch] = useState("");
+    const [showGlobalSearch, setShowGlobalSearch] = useState(false);
     const ITEMS_PER_PAGE = 6;
     const [debtorPages, setDebtorPages] = useState({});
     const [debtorNotes, setDebtorNotes] = useState({});
@@ -249,10 +293,36 @@ export default function AdminPage() {
     }, [isLoaded, user, router]);
 
     useEffect(() => {
-        const handleKeyDown = e => { if (e.key === "Escape") setSelectedDebtor(null); };
+        const handleKeyDown = e => {
+            if (e.key === "Escape") {
+                setSelectedDebtor(null);
+                setShowGlobalSearch(false);
+                setGlobalSearch("");
+            }
+            if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+                e.preventDefault();
+                setShowGlobalSearch(true);
+            }
+        };
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, []);
+
+    useEffect(() => {
+        if (!selectedDebtor) { setDebtorLogs([]); return; }
+        const fetchDebtorLogs = async () => {
+            setLogsLoading(true);
+            try {
+                const res = await fetch(`/api/admin/debtors/${selectedDebtor.id}/logs`, { credentials: "include" });
+                if (res.ok) setDebtorLogs(await res.json());
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLogsLoading(false);
+            }
+        };
+        fetchDebtorLogs();
+    }, [selectedDebtor?.id]);
 
     const fetchClients = async () => {
         try {
@@ -269,6 +339,21 @@ export default function AdminPage() {
     };
 
     useEffect(() => { fetchClients(); }, []);
+
+    const globalResults = useMemo(() => {
+        if (!globalSearch.trim()) return [];
+        const term = globalSearch.toLowerCase();
+        return clients.flatMap(client =>
+            client.debtorRecords
+                .filter(d =>
+                    d.name?.toLowerCase().includes(term) ||
+                    d.cedulaIdentidad?.includes(term) ||
+                    d.email?.toLowerCase().includes(term) ||
+                    d.telephone?.includes(term)
+                )
+                .map(d => ({ ...d, clientName: client.name, clientEmail: client.email }))
+        ).slice(0, 10);
+    }, [globalSearch, clients]);
 
     const toggleDebtorAvailability = async debtorId => {
         try {
@@ -314,6 +399,8 @@ export default function AdminPage() {
             if (!res.ok) throw new Error("Error al guardar nota");
             setDebtorNotes(prev => ({ ...prev, [debtorId]: "" }));
             await fetchClients();
+            const logsRes = await fetch(`/api/admin/debtors/${debtorId}/logs`, { credentials: "include" });
+            if (logsRes.ok) setDebtorLogs(await logsRes.json());
         } catch (err) { console.error(err); alert("Error al guardar nota"); }
     };
 
@@ -323,20 +410,48 @@ export default function AdminPage() {
             const res = await fetch(`/api/admin/debtors/notes/${noteId}`, { method: "DELETE" });
             if (!res.ok) throw new Error("Error al eliminar");
             await fetchClients();
+            if (selectedDebtor) {
+                const logsRes = await fetch(`/api/admin/debtors/${selectedDebtor.id}/logs`, { credentials: "include" });
+                if (logsRes.ok) setDebtorLogs(await logsRes.json());
+            }
         } catch (err) { console.error(err); alert("Error al eliminar nota"); }
+    };
+
+    const handleExportDebtors = () => {
+        import("xlsx").then(XLSX => {
+            const rows = filteredClients.flatMap(client =>
+                client.debtorRecords.map(d => ({
+                    "Cliente": client.name,
+                    "Deudor": d.name,
+                    "Cédula": d.cedulaIdentidad || "—",
+                    "Email": d.email || "—",
+                    "Teléfono": d.telephone || "—",
+                    "Monto Adeudado": Number(d.amountOwed).toFixed(2),
+                    "Estado": d.status,
+                    "Notificar": d.availableForNotify ? "Sí" : "No",
+                    "Notas": d.notes?.length || 0,
+                }))
+            );
+            const ws = XLSX.utils.json_to_sheet(rows);
+            ws["!cols"] = [
+                { wch: 20 }, { wch: 22 }, { wch: 14 }, { wch: 28 },
+                { wch: 14 }, { wch: 16 }, { wch: 20 }, { wch: 10 }, { wch: 8 },
+            ];
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Deudores");
+            XLSX.writeFile(wb, `deudores_${new Date().toISOString().split("T")[0]}.xlsx`);
+        });
     };
 
     const filteredClients = clients.map(client => ({
         ...client,
         debtorRecords: client.debtorRecords.filter(debtor => {
-            const matchesSearch = debtor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (debtor.email && debtor.email.toLowerCase().includes(searchTerm.toLowerCase()));
             const matchesStatus = statusFilter === "ALL" || debtor.status === statusFilter;
             let matchesAmount = true;
             if (amountFilter === "<500") matchesAmount = debtor.amountOwed < 500;
             if (amountFilter === "500-1000") matchesAmount = debtor.amountOwed >= 500 && debtor.amountOwed <= 1000;
             if (amountFilter === ">1000") matchesAmount = debtor.amountOwed > 1000;
-            return matchesSearch && matchesStatus && matchesAmount;
+            return matchesStatus && matchesAmount;
         }),
     }));
 
@@ -347,17 +462,103 @@ export default function AdminPage() {
     }, [clients]);
 
     if (loading) return (
-        <div className="min-h-screen bg-[#F7F8FF] flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center">
             <div className="text-center">
                 <div className="w-8 h-8 border-2 border-[#443CA3] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                 <p className="text-sm text-[#443CA3]/50">Cargando...</p>
             </div>
         </div>
     );
+
     if (error) return <div className="min-h-screen flex items-center justify-center text-red-500">{error}</div>;
 
     return (
         <main className="min-h-screen bg-gray-50 px-8 py-8">
+
+            {/* GLOBAL SEARCH MODAL */}
+            {showGlobalSearch && (
+                <div className="fixed inset-0 bg-black/40 z-50 flex items-start justify-center pt-24 px-4"
+                     onClick={() => { setShowGlobalSearch(false); setGlobalSearch(""); }}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden"
+                         onClick={e => e.stopPropagation()}>
+
+                        {/* Search input — dark purple header */}
+                        <div className="flex items-center gap-3 px-5 py-4 border-b border-[#3A3391] bg-[#443CA3]">
+                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                                <circle cx="8" cy="8" r="5.5" stroke="white" strokeOpacity="0.6" strokeWidth="1.5"/>
+                                <path d="M12.5 12.5L15.5 15.5" stroke="white" strokeOpacity="0.6" strokeWidth="1.5" strokeLinecap="round"/>
+                            </svg>
+                            <input
+                                autoFocus
+                                type="text"
+                                placeholder="Buscar por nombre, cédula, correo o teléfono..."
+                                value={globalSearch}
+                                onChange={e => setGlobalSearch(e.target.value)}
+                                className="flex-1 text-sm text-white focus:outline-none bg-transparent placeholder-white/40"
+                            />
+                            <kbd className="text-[10px] text-white/40 border border-white/20 rounded px-1.5 py-0.5">ESC</kbd>
+                        </div>
+
+                        {/* Results */}
+                        <div className="max-h-96 overflow-y-auto bg-[#F7F8FF]">
+                            {globalSearch.trim() === "" ? (
+                                <div className="px-5 py-10 text-center text-sm text-[#443CA3]/40">
+                                    Escribe para buscar deudores en todas las carteras
+                                </div>
+                            ) : globalResults.length === 0 ? (
+                                <div className="px-5 py-10 text-center text-sm text-[#443CA3]/40">
+                                    No se encontraron resultados para &quot;{globalSearch}&quot;
+                                </div>
+                            ) : (
+                                <div className="py-2">
+                                    <p className="px-5 py-2 text-[10px] text-[#443CA3]/40 uppercase tracking-widest">
+                                        {globalResults.length} resultado{globalResults.length !== 1 ? "s" : ""}
+                                    </p>
+                                    {globalResults.map(debtor => (
+                                        <button
+                                            key={debtor.id}
+                                            onClick={() => {
+                                                setSelectedDebtor(debtor);
+                                                setShowGlobalSearch(false);
+                                                setGlobalSearch("");
+                                            }}
+                                            className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-[#443CA3]/5 transition text-left border-b border-white last:border-0"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-9 h-9 rounded-full bg-[#443CA3] flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                                                    {debtor.name?.slice(0, 2).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-800">{debtor.name}</p>
+                                                    <p className="text-xs text-gray-500 mt-0.5">
+                                                        {debtor.cedulaIdentidad && <span className="mr-2">CI: {debtor.cedulaIdentidad}</span>}
+                                                        {debtor.email && <span className="mr-2">{debtor.email}</span>}
+                                                        {debtor.telephone && <span>{debtor.telephone}</span>}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right flex-shrink-0 ml-4">
+                                                <p className="text-sm font-bold text-[#443CA3]">
+                                                    USD {Number(debtor.amountOwed).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                </p>
+                                                <p className="text-[10px] text-[#443CA3]/50 mt-0.5 font-medium">{debtor.clientName}</p>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between bg-gray-50">
+                            <p className="text-[10px] text-gray-400">Busca en todas las carteras de clientes</p>
+                            <div className="flex items-center gap-3 text-[10px] text-gray-400">
+                                <span>↵ abrir</span>
+                                <span>ESC cerrar</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <DebtorModal
                 debtor={selectedDebtor}
@@ -373,11 +574,27 @@ export default function AdminPage() {
                 setSelectedDebtors={setSelectedDebtors}
                 clients={clients}
                 setSelectAll={setSelectAll}
+                debtorLogs={debtorLogs}
+                logsLoading={logsLoading}
             />
 
             {/* Top Bar */}
             <div className="flex justify-between items-center bg-white px-6 py-4 rounded-2xl shadow-sm border border-gray-100 mb-8">
                 <img src="/logo-recupera-purple.png" alt="recupera" className="h-14" />
+
+                {/* Global Search Trigger */}
+                <button
+                    onClick={() => setShowGlobalSearch(true)}
+                    className="flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-400 hover:border-[#443CA3]/30 hover:text-[#443CA3] transition w-72"
+                >
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.5"/>
+                        <path d="M10 10L12.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                    <span className="flex-1 text-left">Buscar deudor...</span>
+                    <kbd className="text-[10px] border border-gray-200 rounded px-1.5 py-0.5 text-gray-300">⌘K</kbd>
+                </button>
+
                 <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-full bg-[#443CA3]/10 flex items-center justify-center text-[#443CA3] font-bold text-sm">
                         {user?.firstName?.slice(0, 1) || "A"}
@@ -391,17 +608,20 @@ export default function AdminPage() {
 
             <div className="flex items-center justify-between mb-6">
                 <h1 className="text-2xl font-bold text-gray-800">Mis Deudores</h1>
-                <SendRemindersButton />
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleExportDebtors}
+                        className="border border-[#443CA3]/20 text-[#443CA3] px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-[#443CA3] hover:text-white transition flex items-center gap-2"
+                    >
+                        ⬇ Exportar Excel
+                    </button>
+                    <SendRemindersButton />
+                </div>
             </div>
 
-            {/* FILTER BAR */}
+            {/* Filter Bar — status and amount only, no text search */}
             <section className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
                 <div className="flex flex-wrap gap-3">
-                    <input
-                        type="text" placeholder="Buscar deudor..."
-                        value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-                        className="border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-[#443CA3] flex-1 min-w-[180px]"
-                    />
                     <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
                             className="border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-[#443CA3] text-gray-600">
                         <option value="ALL">Todos los estados</option>
@@ -421,7 +641,7 @@ export default function AdminPage() {
                 </div>
             </section>
 
-            {/* BULK ACTIONS */}
+            {/* Bulk Actions */}
             <section className="mb-6 flex flex-wrap items-center justify-between gap-4 bg-white px-5 py-3.5 rounded-2xl shadow-sm border border-gray-100">
                 <div className="flex items-center gap-4">
                     <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
@@ -479,7 +699,7 @@ export default function AdminPage() {
                 </p>
             )}
 
-            {/* CLIENTS */}
+            {/* Clients */}
             <section className="space-y-6">
                 {filteredClients.map(client => {
                     const currentPage = debtorPages[client.id] || 1;
@@ -509,7 +729,7 @@ export default function AdminPage() {
                                             <div
                                                 key={debtor.id}
                                                 onClick={() => setSelectedDebtor(debtor)}
-                                                className="border border-gray-100 rounded-xl p-4 hover:shadow-md hover:border-[#443CA3]/20 transition-all cursor-pointer group"
+                                                className="border border-gray-100 rounded-xl p-4 hover:shadow-md hover:border-[#443CA3]/20 transition-all cursor-pointer"
                                             >
                                                 <div className="flex items-start justify-between mb-3">
                                                     <div className="flex-1 min-w-0">

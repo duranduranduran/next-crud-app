@@ -30,10 +30,10 @@ export default function AdminSidebar() {
 
                 {/* LOGO */}
                 <div className="flex items-center gap-3 p-6 font-bold text-lg">
-                    <span className="text-blue-500 text-xl">R</span>
+                    <img src="/logo-favicon-white.png" alt="recupera" className="h-10 w-auto flex-shrink-0"/>
                     <span className="opacity-0 group-hover:opacity-100 transition">
-                        Recupera
-                    </span>
+        RECUPERA
+    </span>
                 </div>
 
                 {/* NAVIGATION */}
@@ -55,7 +55,7 @@ export default function AdminSidebar() {
                                 }`}
                             >
 
-                                <Icon size={22} className="shrink-0" />
+                                <Icon size={22} className="shrink-0"/>
 
                                 <span className="whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
         {link.name}
@@ -75,7 +75,8 @@ export default function AdminSidebar() {
 
                 <SignOutButton redirectUrl="/sign-in">
 
-                    <button className="flex items-center gap-4 w-full p-3 rounded-xl text-slate-300 hover:text-white hover:bg-red-600 transition">
+                    <button
+                        className="flex items-center gap-4 w-full p-3 rounded-xl text-slate-300 hover:text-white hover:bg-red-600 transition">
 
                         <LogOut size={22} className="shrink-0" />
 

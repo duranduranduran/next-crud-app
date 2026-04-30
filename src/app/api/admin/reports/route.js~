@@ -1,77 +1,57 @@
-export const runtime = "nodejs";
+export async function GET(req) {
+    const { searchParams } = new URL(req.url);
+    const period = searchParams.get("period") || "all"; // all | 30d | 7d
 
-import { prisma } from '@/lib/prisma';
-import { auth, currentUser } from "@clerk/nextjs/server";
-import { NextResponse } from 'next/server';
+    // Calculate date filter
+    let dateFilter = {};
+    if (period === "7d") {
+        const d = new Date();
+        d.setDate(d.getDate() - 7);
+        dateFilter = { createdAt: { gte: d } };
+    } else if (period === "30d") {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        dateFilter = { createdAt: { gte: d } };
+    }
 
-export async function GET() {
-    try {
-        const { userId } = await auth();
-        if (!userId) {
-            return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-        }
+    // Apply dateFilter to all queries
+    const totalDebtors = await prisma.debtor.count({ where: dateFilter });
 
-        const clerkUser = await currentUser();
-        if (!clerkUser || clerkUser.publicMetadata?.role !== 'admin') {
-            return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
-        }
+    const totalAmount = await prisma.debtor.aggregate({
+        _sum: { amountOwed: true },
+        where: dateFilter,
+    });
 
-        // Existing metrics
-        const totalDebtors = await prisma.debtor.count();
+    const totalPaid = await prisma.debtor.aggregate({
+        _sum: { amountOwed: true },
+        where: { status: "PAGADO", ...dateFilter },
+    });
 
-        const totalAmount = await prisma.debtor.aggregate({
-            _sum: { amountOwed: true }
-        });
+    const statusCounts = await prisma.debtor.groupBy({
+        by: ["status"],
+        _count: { status: true },
+        where: dateFilter,
+    });
 
-        const totalPaid = await prisma.debtor.aggregate({
-            _sum: { amountOwed: true },
-            where: { status: 'PAGADO' }
-        });
+    // ... rest of your metrics (calls, reminders) also filtered
+    const totalCalls = await prisma.activityLog.count({
+        where: { event: "CALL_TRIGGERED", ...dateFilter },
+    });
 
-        const statusCounts = await prisma.debtor.groupBy({
-            by: ['status'],
-            _count: { status: true }
-        });
+    const totalReminders = await prisma.activityLog.count({
+        where: { event: "REMINDER_SENT", ...dateFilter },
+    });
 
-        const formattedStatus = {};
-        statusCounts.forEach(item => {
-            formattedStatus[item.status] = item._count.status;
-        });
+    // calls per day (always last 7 days regardless of period)
+    // ... keep existing callsPerDay logic
 
-        // --- CALL METRICS ---
-
-        // Total calls ever
-        const totalCalls = await prisma.activityLog.count({
-            where: { event: 'CALL_TRIGGERED' }
-        });
-
-        // Calls in last 7 days
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-        const recentCalls = await prisma.activityLog.findMany({
-            where: {
-                event: 'CALL_TRIGGERED',
-                createdAt: { gte: sevenDaysAgo }
-            },
-            select: { createdAt: true }
-        });
-
-        // Group calls by day
-        const callsByDay = {};
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            const key = date.toISOString().split('T')[0];
-            callsByDay[key] = 0;
-        }
-
-        recentCalls.forEach(log => {
-            const key = log.createdAt.toISOString().split('T')[0];
-            if (callsByDay[key] !== undefined) {
-                callsByDay[key]++;
-            }
-        });
-
-        const callsPerDay = Object.entries(callsByDay).map(([date, count]) => ({
-            date: new Date(date).toLocaleDateString('es-EC', { wee
+    return NextResponse.json({
+        totalDebtors,
+        totalAmountOwed: totalAmount._sum.amountOwed || 0,
+        totalCollected: totalPaid._sum.amountOwed || 0,
+        byStatus: formattedStatus,
+        calls: { total: totalCalls, last7Days: recentCalls.length, perDay: callsPerDay },
+        totalReminders,
+        period,
+    });
+}

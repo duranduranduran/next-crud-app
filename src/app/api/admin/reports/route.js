@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from 'next/server';
 
-export async function GET() {
+export async function GET(req) {
     try {
         const { userId } = await auth();
         if (!userId) {
@@ -16,21 +16,40 @@ export async function GET() {
             return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
         }
 
-        // Existing metrics
-        const totalDebtors = await prisma.debtor.count();
+        // --- PERIOD FILTER ---
+        const { searchParams } = new URL(req.url);
+        const period = searchParams.get("period") || "all";
+
+        let dateFilter = {};
+        if (period === "7d") {
+            const d = new Date();
+            d.setDate(d.getDate() - 7);
+            dateFilter = { createdAt: { gte: d } };
+        } else if (period === "30d") {
+            const d = new Date();
+            d.setDate(d.getDate() - 30);
+            dateFilter = { createdAt: { gte: d } };
+        }
+
+        // --- DEBTOR METRICS ---
+        const totalDebtors = await prisma.debtor.count({
+            where: dateFilter,
+        });
 
         const totalAmount = await prisma.debtor.aggregate({
-            _sum: { amountOwed: true }
+            _sum: { amountOwed: true },
+            where: dateFilter,
         });
 
         const totalPaid = await prisma.debtor.aggregate({
             _sum: { amountOwed: true },
-            where: { status: 'PAGADO' }
+            where: { status: 'PAGADO', ...dateFilter },
         });
 
         const statusCounts = await prisma.debtor.groupBy({
             by: ['status'],
-            _count: { status: true }
+            _count: { status: true },
+            where: dateFilter,
         });
 
         const formattedStatus = {};
@@ -38,26 +57,24 @@ export async function GET() {
             formattedStatus[item.status] = item._count.status;
         });
 
-        // --- CALL METRICS ---
-
-        // Total calls ever
+        // --- CALL METRICS (filtered by period) ---
         const totalCalls = await prisma.activityLog.count({
-            where: { event: 'CALL_TRIGGERED' }
+            where: { event: 'CALL_TRIGGERED', ...dateFilter },
         });
 
-        // Calls in last 7 days
+        // Calls in last 7 days (always fixed at 7d for the chart regardless of period)
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
         const recentCalls = await prisma.activityLog.findMany({
             where: {
                 event: 'CALL_TRIGGERED',
-                createdAt: { gte: sevenDaysAgo }
+                createdAt: { gte: sevenDaysAgo },
             },
-            select: { createdAt: true }
+            select: { createdAt: true },
         });
 
-        // Group calls by day
+        // Group calls by day (last 7 days chart — always shown)
         const callsByDay = {};
         for (let i = 6; i >= 0; i--) {
             const date = new Date();
@@ -78,9 +95,9 @@ export async function GET() {
             calls: count,
         }));
 
-        // Total reminders sent
+        // --- REMINDERS (filtered by period) ---
         const totalReminders = await prisma.activityLog.count({
-            where: { event: 'REMINDER_SENT' }
+            where: { event: 'REMINDER_SENT', ...dateFilter },
         });
 
         return NextResponse.json({
@@ -94,6 +111,7 @@ export async function GET() {
                 perDay: callsPerDay,
             },
             totalReminders,
+            period,
         });
 
     } catch (err) {
