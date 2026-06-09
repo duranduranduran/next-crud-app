@@ -4,30 +4,26 @@ import { NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { inngest } from "@/inngest/client";
+import { getOrCreateUser } from "@/lib/getOrCreateUser";
 
 export async function GET() {
     try {
-        // 1. Auth
         const { userId } = await auth();
         if (!userId) {
             return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
         }
 
-        // 2. Role check
         const clerkUser = await currentUser();
         if (!clerkUser || clerkUser.publicMetadata?.role !== "admin") {
             return NextResponse.json({ message: "Forbidden" }, { status: 403 });
         }
 
-        // 3. Find DB user
-        const dbUser = await prisma.user.findUnique({
-            where: { clerkId: userId },
-        });
+        // Replace findUnique with getOrCreateUser
+        const dbUser = await getOrCreateUser();
         if (!dbUser) {
-            return NextResponse.json({ message: "User not found" }, { status: 404 });
+            return NextResponse.json({ message: "User sync failed" }, { status: 500 });
         }
 
-        // 4. Get all debtors available for notification
         const debtorsToNotify = await prisma.debtor.findMany({
             where: { availableForNotify: true },
             include: { user: true },
@@ -37,12 +33,10 @@ export async function GET() {
             return NextResponse.json({ message: "No debtors to notify." });
         }
 
-        // 5. Send event to Inngest with credentials in payload
         await inngest.send({
             name: "reminders/send",
             data: {
                 dbUserId: dbUser.id,
-                // 👇 Pass credentials through event data so steps always have them
                 twilioSid: process.env.TWILIO_ACCOUNT_SID,
                 twilioToken: process.env.TWILIO_AUTH_TOKEN,
                 twilioPhone: process.env.TWILIO_PHONE_NUMBER,
@@ -59,7 +53,6 @@ export async function GET() {
             },
         });
 
-        // 6. Return immediately
         return NextResponse.json({
             message: `Reminders queued for ${debtorsToNotify.length} debtor(s). Email → SMS → 15s wait → Call running in background.`,
             count: debtorsToNotify.length,

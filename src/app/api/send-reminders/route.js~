@@ -37,11 +37,17 @@ export async function GET() {
             return NextResponse.json({ message: "No debtors to notify." });
         }
 
-        // 5. Send event to Inngest — returns instantly
+        // 5. Send event to Inngest with credentials in payload
         await inngest.send({
             name: "reminders/send",
             data: {
                 dbUserId: dbUser.id,
+                // 👇 Pass credentials through event data so steps always have them
+                twilioSid: process.env.TWILIO_ACCOUNT_SID,
+                twilioToken: process.env.TWILIO_AUTH_TOKEN,
+                twilioPhone: process.env.TWILIO_PHONE_NUMBER,
+                emailUser: process.env.EMAIL_USER,
+                emailPass: process.env.EMAIL_PASS,
                 debtors: debtorsToNotify.map((d) => ({
                     id: d.id,
                     name: d.name,
@@ -53,7 +59,7 @@ export async function GET() {
             },
         });
 
-        // 6. Return immediately — Inngest handles the rest
+        // 6. Return immediately
         return NextResponse.json({
             message: `Reminders queued for ${debtorsToNotify.length} debtor(s). Email → SMS → 15s wait → Call running in background.`,
             count: debtorsToNotify.length,
