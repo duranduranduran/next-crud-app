@@ -1,0 +1,377 @@
+"use client";
+
+import { useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
+
+const MOCK_MESSAGES = [
+    {
+        id: "1",
+        debtorName: "Valparian S.A.S.",
+        debtorInitials: "VS",
+        debtorEmail: "notificaciones@valparian.com",
+        debtorId: "mock-1",
+        invoiceNumber: "001-001-000000718",
+        amountOwed: "276.00",
+        status: "PENDIENTE",
+        channel: "email",
+        receivedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        preview: "Quisiera acordar un plan de pago...",
+        tag: "ACUERDO",
+        read: false,
+        clientName: "El Doblez",
+        thread: [
+            { direction: "out", label: "Recupera · recordatorio automático", body: "Estimado Valparian S.A.S., le recordamos que tiene una deuda pendiente de $276.00 correspondiente a la factura 001-001-000000718. Por favor contáctenos para coordinar el pago.", time: "04 may, 09:00" },
+            { direction: "inn", label: "Valparian S.A.S. · respuesta vía email", body: "Hola, quisiera acordar un plan de pago para esta deuda. ¿Es posible dividirlo en 3 cuotas mensuales? Tenemos disponibilidad a partir del 15 de mayo.", time: "04 may, 10:42", isNew: true },
+        ],
+    },
+    {
+        id: "2",
+        debtorName: "Grupo Mendoza Cía.",
+        debtorInitials: "GM",
+        debtorEmail: "contabilidad@mendoza.ec",
+        debtorId: "mock-2",
+        invoiceNumber: "002-001-000000091",
+        amountOwed: "1,840.00",
+        status: "EN_GESTION",
+        channel: "email",
+        receivedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+        preview: "Ya realizamos la transferencia bancaria...",
+        tag: "PAGO",
+        read: false,
+        clientName: "Importadora Torres",
+        thread: [
+            { direction: "out", label: "Recupera · recordatorio automático", body: "Estimado Grupo Mendoza, le recordamos su deuda pendiente de $1,840.00 con factura 002-001-000000091.", time: "03 may, 09:00" },
+            { direction: "inn", label: "Grupo Mendoza Cía. · respuesta vía email", body: "Buenos días. Ya realizamos la transferencia bancaria ayer. Adjunto el comprobante de pago por el monto total. Por favor confirmen la recepción y actualicen nuestro estado.", time: "04 may, 09:15", isNew: true },
+        ],
+    },
+    {
+        id: "3",
+        debtorName: "Carlos Vélez",
+        debtorInitials: "CV",
+        debtorEmail: "carlosv@gmail.com",
+        debtorId: "mock-3",
+        invoiceNumber: "003-002-000000047",
+        amountOwed: "420.00",
+        status: "PENDIENTE",
+        channel: "email",
+        receivedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        preview: "No reconozco esta deuda, creo que hay un error...",
+        tag: "DISPUTA",
+        read: false,
+        clientName: "El Doblez",
+        thread: [
+            { direction: "out", label: "Recupera · recordatorio automático", body: "Estimado Carlos Vélez, le recordamos su deuda pendiente de $420.00 con factura 003-002-000000047.", time: "02 may, 09:00" },
+            { direction: "inn", label: "Carlos Vélez · respuesta vía email", body: "No reconozco esta deuda. Nunca realicé ninguna compra con esta empresa. Creo que hay un error en el sistema. Por favor revisen sus registros.", time: "03 may, 14:22", isNew: true },
+        ],
+    },
+    {
+        id: "4",
+        debtorName: "Ana Suárez",
+        debtorInitials: "AS",
+        debtorEmail: "—",
+        debtorId: "mock-4",
+        invoiceNumber: "004-001-000000203",
+        amountOwed: "180.00",
+        status: "PENDIENTE",
+        channel: "sms",
+        receivedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+        preview: "Pago disponible el viernes...",
+        tag: "",
+        read: true,
+        clientName: "Importadora Torres",
+        thread: [
+            { direction: "out", label: "Recupera · recordatorio SMS", body: "Sra. Ana Suárez, recordamos su deuda de $180.00. Comuníquese al 04-2083299.", time: "28 abr" },
+            { direction: "inn", label: "Ana Suárez · respuesta SMS", body: "Hola. Puedo pagar el viernes que viene. Tendré el dinero disponible ese día.", time: "29 abr", isNew: false },
+        ],
+    },
+];
+
+const TAG_META = {
+    ACUERDO: { label: "Acuerdo", bg: "#D1FAE5", color: "#065F46" },
+    PAGO: { label: "Pago", bg: "#DBEAFE", color: "#1E3A8A" },
+    DISPUTA: { label: "Disputa", bg: "#FEE2E2", color: "#991B1B" },
+};
+
+const STATUS_LABELS = {
+    PENDIENTE: "Pendiente",
+    EN_GESTION: "En Gestión",
+    ACUERDO_DE_PAGO: "Acuerdo de Pago",
+    PAGADO: "Pagado",
+    ESCALADO_JUDICIAL: "Escalado Judicial",
+};
+
+function timeAgo(isoStr) {
+    const diff = Date.now() - new Date(isoStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    const hrs = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    if (mins < 60) return `${mins}m`;
+    if (hrs < 24) return `${hrs}h`;
+    return `${days}d`;
+}
+
+export default function BandejaPage() {
+    const { user, isLoaded } = useUser();
+    const router = useRouter();
+
+    const [messages, setMessages] = useState(MOCK_MESSAGES);
+    const [selected, setSelected] = useState(null);
+    const [filter, setFilter] = useState("all");
+    const [replyText, setReplyText] = useState("");
+
+    useEffect(() => {
+        if (!isLoaded) return;
+        if (!user) { router.push("/sign-in"); return; }
+        if (user.publicMetadata?.role !== "admin") router.push("/client");
+    }, [isLoaded, user, router]);
+
+    const filteredMessages = useMemo(() => {
+        if (filter === "unread") return messages.filter(m => !m.read);
+        if (filter === "email") return messages.filter(m => m.channel === "email");
+        if (filter === "sms") return messages.filter(m => m.channel === "sms");
+        return messages;
+    }, [messages, filter]);
+
+    const unreadCount = messages.filter(m => !m.read).length;
+
+    const stats = useMemo(() => ({
+        nuevas: messages.filter(m => !m.read).length,
+        acuerdos: messages.filter(m => m.tag === "ACUERDO").length,
+        disputas: messages.filter(m => m.tag === "DISPUTA").length,
+        tasa: Math.round((messages.length / 12) * 100),
+    }), [messages]);
+
+    const handleSelect = (msg) => {
+        setSelected(msg);
+        setReplyText("");
+    };
+
+    const handleMarkRead = (id) => {
+        setMessages(prev => prev.map(m => m.id === id ? { ...m, read: true } : m));
+        if (selected?.id === id) setSelected(prev => ({ ...prev, read: true }));
+    };
+
+    const handleMarkUnread = (id) => {
+        setMessages(prev => prev.map(m => m.id === id ? { ...m, read: false } : m));
+        if (selected?.id === id) setSelected(prev => ({ ...prev, read: false }));
+    };
+
+    return (
+        <main className="min-h-screen bg-gray-50 px-8 py-8">
+
+            {/* Header */}
+            <div className="flex items-center justify-between bg-white px-6 py-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-800">Bandeja de Respuestas</h1>
+                    <p className="text-xs text-gray-400 mt-0.5">Mensajes recibidos de deudores · actualización automática</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                        <div className="w-2 h-2 rounded-full bg-[#21FE83] animate-pulse"></div>
+                        En vivo
+                    </div>
+                    <button className="border border-gray-200 text-gray-500 px-3 py-2 rounded-xl text-xs hover:bg-gray-50 transition flex items-center gap-1.5">
+                        ⬇ Exportar
+                    </button>
+                </div>
+            </div>
+
+            {/* KPI Cards */}
+            <div className="grid grid-cols-4 gap-4 mb-6">
+                {[
+                    { label: "Respuestas nuevas", value: stats.nuevas, color: "#443CA3", sub: "hoy" },
+                    { label: "Acuerdos de pago", value: stats.acuerdos, color: "#1D9E75", sub: "este mes" },
+                    { label: "Disputas abiertas", value: stats.disputas, color: "#F59E0B", sub: "sin resolver" },
+                    { label: "Tasa de respuesta", value: `${stats.tasa}%`, color: "#443CA3", sub: "de recordatorios" },
+                ].map((k, i) => (
+                    <div key={i} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">{k.label}</p>
+                        <p className="text-3xl font-bold" style={{ color: k.color }}>{k.value}</p>
+                        <p className="text-xs text-gray-300 mt-1">{k.sub}</p>
+                    </div>
+                ))}
+            </div>
+
+            {/* Main inbox grid */}
+            <div className="grid gap-4" style={{ gridTemplateColumns: "280px 1fr" }}>
+
+                {/* Inbox list */}
+                <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+                    <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
+                        <p className="text-sm font-semibold text-gray-700 flex-1">Mensajes</p>
+                        {unreadCount > 0 && (
+                            <span className="bg-[#443CA3] text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                                {unreadCount}
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Filter tabs */}
+                    <div className="flex gap-1 px-3 py-2 border-b border-gray-50">
+                        {[
+                            { id: "all", label: "Todos" },
+                            { id: "unread", label: "No leídos" },
+                            { id: "email", label: "Email" },
+                            { id: "sms", label: "SMS" },
+                        ].map(f => (
+                            <button key={f.id} onClick={() => setFilter(f.id)}
+                                    className={`text-[10px] px-2.5 py-1 rounded-lg transition-all ${filter === f.id ? "bg-[#443CA3] text-white" : "text-gray-400 hover:text-[#443CA3]"}`}>
+                                {f.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Message rows */}
+                    <div className="flex-1 overflow-y-auto">
+                        {filteredMessages.length === 0 ? (
+                            <div className="text-center py-12 text-gray-300">
+                                <p className="text-3xl mb-2">📭</p>
+                                <p className="text-xs">Sin mensajes</p>
+                            </div>
+                        ) : filteredMessages.map(msg => (
+                            <div key={msg.id}
+                                 onClick={() => handleSelect(msg)}
+                                 className={`px-4 py-3 border-b border-gray-50 cursor-pointer transition-all ${selected?.id === msg.id ? "bg-[#F7F8FF] border-l-2 border-l-[#443CA3]" : "hover:bg-gray-50"}`}>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <p className={`text-xs flex-1 truncate ${msg.read ? "text-gray-500 font-normal" : "text-[#443CA3] font-semibold"}`}>
+                                        {msg.debtorName}
+                                    </p>
+                                    <span className="text-[10px] text-gray-300">{timeAgo(msg.receivedAt)}</span>
+                                </div>
+                                <p className="text-[11px] text-gray-400 truncate mb-1.5">{msg.preview}</p>
+                                <div className="flex items-center gap-1.5">
+                                    <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ${msg.channel === "email" ? "bg-blue-50 text-blue-700" : "bg-emerald-50 text-emerald-700"}`}>
+                                        {msg.channel}
+                                    </span>
+                                    {msg.tag && TAG_META[msg.tag] && (
+                                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-md"
+                                              style={{ background: TAG_META[msg.tag].bg, color: TAG_META[msg.tag].color }}>
+                                            {TAG_META[msg.tag].label}
+                                        </span>
+                                    )}
+                                    <span className="text-[9px] text-gray-300 ml-1">{msg.clientName}</span>
+                                    {!msg.read && <div className="w-1.5 h-1.5 rounded-full bg-[#443CA3] ml-auto flex-shrink-0"></div>}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Thread panel */}
+                <div className="bg-white border border-gray-100 rounded-2xl shadow-sm flex flex-col overflow-hidden" style={{ minHeight: "500px" }}>
+                    {!selected ? (
+                        <div className="flex-1 flex flex-col items-center justify-center text-gray-200 gap-3">
+                            <p className="text-5xl">📬</p>
+                            <p className="text-sm">Selecciona una conversación</p>
+                        </div>
+                    ) : (
+                        <>
+                            {/* Thread header */}
+                            <div className="flex items-start gap-3 px-5 py-4 border-b border-gray-100">
+                                <div className="w-10 h-10 rounded-full bg-[#EEEDFE] flex items-center justify-center text-[#443CA3] font-bold text-sm flex-shrink-0">
+                                    {selected.debtorInitials}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-gray-800">{selected.debtorName}</p>
+                                    <div className="flex items-center gap-3 mt-1 flex-wrap">
+                                        {selected.debtorEmail !== "—" && (
+                                            <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                                                ✉ {selected.debtorEmail}
+                                            </span>
+                                        )}
+                                        <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                                            🧾 {selected.invoiceNumber}
+                                        </span>
+                                        <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                                            💵 USD {selected.amountOwed}
+                                        </span>
+                                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
+                                            {STATUS_LABELS[selected.status] || selected.status}
+                                        </span>
+                                        <span className="text-[10px] text-gray-300">{selected.clientName}</span>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                    {selected.read ? (
+                                        <button onClick={() => handleMarkUnread(selected.id)}
+                                                className="text-[10px] border border-gray-200 rounded-lg px-3 py-1.5 text-gray-400 hover:bg-gray-50 transition flex items-center gap-1">
+                                            ↩ No leído
+                                        </button>
+                                    ) : (
+                                        <button onClick={() => handleMarkRead(selected.id)}
+                                                className="text-[10px] border border-emerald-200 rounded-lg px-3 py-1.5 text-emerald-600 hover:bg-emerald-50 transition flex items-center gap-1">
+                                            ✓ Marcar leído
+                                        </button>
+                                    )}
+                                    <button className="text-[10px] border border-gray-200 rounded-lg px-3 py-1.5 text-gray-400 hover:bg-gray-50 transition">
+                                        👤 Ver deudor
+                                    </button>
+                                    <button className="text-[10px] bg-[#443CA3] text-white rounded-lg px-3 py-1.5 hover:bg-[#3A3391] transition">
+                                        ✓ Acuerdo de pago
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Messages */}
+                            <div className="flex-1 px-5 py-4 flex flex-col gap-3 overflow-y-auto">
+                                {selected.thread.map((msg, i) => (
+                                    <div key={i}>
+                                        {msg.isNew && (
+                                            <div className="flex items-center gap-2 my-2">
+                                                <div className="flex-1 h-px bg-gray-100"></div>
+                                                <span className="text-[9px] font-semibold text-[#443CA3] bg-[#EEEDFE] px-2 py-0.5 rounded-full">
+                                                    respuesta nueva
+                                                </span>
+                                                <div className="flex-1 h-px bg-gray-100"></div>
+                                            </div>
+                                        )}
+                                        <div className={`flex ${msg.direction === "out" ? "justify-end" : "justify-start"}`}>
+                                            <div className="max-w-[72%]">
+                                                <p className={`text-[9px] text-gray-400 mb-1 ${msg.direction === "out" ? "text-right" : ""}`}>
+                                                    {msg.label}
+                                                </p>
+                                                <div className={`px-4 py-3 rounded-2xl text-xs leading-relaxed ${
+                                                    msg.direction === "out"
+                                                        ? "bg-[#443CA3] text-white rounded-br-sm"
+                                                        : "bg-gray-50 text-gray-700 border border-gray-100 rounded-bl-sm"
+                                                }`}>
+                                                    {msg.body}
+                                                </div>
+                                                <p className={`text-[9px] text-gray-300 mt-1 ${msg.direction === "out" ? "text-right" : ""}`}>
+                                                    {msg.time}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Reply bar */}
+                            <div className="px-5 py-3 border-t border-gray-100 flex items-center gap-3">
+                                <input
+                                    type="text"
+                                    placeholder={`Responder a ${selected.debtorName}...`}
+                                    value={replyText}
+                                    onChange={e => setReplyText(e.target.value)}
+                                    className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[#443CA3] bg-gray-50"
+                                />
+                                <button className="border border-gray-200 text-gray-400 px-3 py-2.5 rounded-xl text-xs hover:bg-gray-50 transition">
+                                    📎
+                                </button>
+                                <button className="bg-[#443CA3]/10 text-[#443CA3] border border-[#443CA3]/20 px-4 py-2.5 rounded-xl text-xs font-medium hover:bg-[#443CA3]/15 transition">
+                                    ✨ Redactar con IA
+                                </button>
+                                <button
+                                    disabled={!replyText.trim()}
+                                    className="bg-[#443CA3] text-white px-4 py-2.5 rounded-xl text-xs font-medium hover:bg-[#3A3391] transition disabled:opacity-30">
+                                    Enviar →
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
+        </main>
+    );
+}

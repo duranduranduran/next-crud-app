@@ -8,20 +8,20 @@ datasource db {
 }
 
 model User {
-  id              String           @id @default(cuid())
-  name            String?
-  email           String?          @unique
-  emailVerified   DateTime?
-  image           String?
-  role            String           @default("client")
-  hashedPassword  String?
-  accounts        Account[]
-  sessions        Session[]
-  debtorRecords   Debtor[]
-  clerkId         String           @unique
-  debtorNotes     DebtorNote[]
-  activityLogs    ActivityLog[]
-  inboundMessages InboundMessage[]
+  id             String        @id @default(cuid())
+  name           String?
+  email          String?       @unique
+  emailVerified  DateTime?
+  image          String?
+  role           String        @default("client")
+  hashedPassword String?
+  accounts       Account[]
+  sessions       Session[]
+  debtorRecords  Debtor[]
+  clerkId        String        @unique
+  debtorNotes    DebtorNote[]
+  activityLogs   ActivityLog[]
+  inboundMessages  InboundMessage[]
 }
 
 enum DebtorStatus {
@@ -44,7 +44,7 @@ enum LogEventType {
 }
 
 model Debtor {
-  id                 String           @id @default(uuid())
+  id                 String        @id @default(uuid())
   name               String
   email              String?
   amountOwed         Float
@@ -53,15 +53,14 @@ model Debtor {
   cedulaIdentidad    String?
   ruc                String?
   invoiceNumber      String?
-  createdAt          DateTime         @default(now())
-  user               User             @relation(fields: [userId], references: [id])
+  createdAt          DateTime      @default(now())
+  user               User          @relation(fields: [userId], references: [id])
   userId             String
-  availableForNotify Boolean          @default(false)
+  availableForNotify Boolean       @default(false)
   documentUrl        String?
-  status             DebtorStatus     @default(PENDIENTE)
+  status             DebtorStatus  @default(PENDIENTE)
   notes              DebtorNote[]
   activityLogs       ActivityLog[]
-  inboundMessages    InboundMessage[]
 }
 
 model DebtorNote {
@@ -130,7 +129,6 @@ model InboundMessage {
   debtorId       String
   debtor         Debtor    @relation(fields: [debtorId], references: [id], onDelete: Cascade)
   clientId       String
-  client         User      @relation(fields: [clientId], references: [id])
   channel        String    @default("EMAIL")
   sender         String
   subject        String?

@@ -56,7 +56,20 @@ export default function AdminSidebar() {
                             >
 
                                 <Icon size={22} className="shrink-0"/>
-
+                                <Link href="/admin/bandeja"
+                                      className={`flex flex-col items-center gap-1 py-3 px-2 rounded-xl transition-all group relative ${
+                                          pathname === "/admin/bandeja" ? "bg-white/15" : "hover:bg-white/10"
+                                      }`}>
+                                    <div className="relative">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M22 12h-6l-2 3h-4l-2-3H2"/>
+                                            <path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/>
+                                        </svg>
+                                        {/* unread badge — wire up later */}
+                                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#21FE83] rounded-full border border-[#443CA3]"></span>
+                                    </div>
+                                    <span className="text-[9px] opacity-60 group-hover:opacity-100">Bandeja</span>
+                                </Link>
 
                                 <span className="whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
         {link.name}
@@ -64,23 +77,9 @@ export default function AdminSidebar() {
 
                             </Link>
 
-
                         );
                     })}
-                    <Link href="/admin/bandeja"
-                          className={`flex flex-col items-center gap-1 py-3 px-2 rounded-xl transition-all group relative ${
-                              pathname === "/admin/bandeja" ? "bg-white/15" : "hover:bg-white/10"
-                          }`}>
-                        <div className="relative">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M22 12h-6l-2 3h-4l-2-3H2"/>
-                                <path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/>
-                            </svg>
-                            {/* unread badge — wire up later */}
-                            <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#21FE83] rounded-full border border-[#443CA3]"></span>
-                        </div>
-                        <span className="text-[9px] opacity-60 group-hover:opacity-100">Bandeja</span>
-                    </Link>
+
                 </nav>
 
             </div>

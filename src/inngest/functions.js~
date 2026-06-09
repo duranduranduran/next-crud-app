@@ -80,84 +80,84 @@ export const sendRemindersFunction = inngest.createFunction(
 
                 console.log(`✅ Email sent to ${debtor.name}`);
             });
-            //
-            // // --- SMS ---
-            // await step.run(`sms-${debtor.id}`, async () => {
-            //     if (!phone) {
-            //         console.log(`Skipping SMS for ${debtor.name} — no phone`);
-            //         return;
-            //     }
-            //
-            //     console.log(`Sending SMS to ${debtor.name} (${phone})...`);
-            //     console.log(`Using SID: ${twilioSid?.slice(0, 8)}...`);
-            //
-            //     const client = twilio(twilioSid, twilioToken);
-            //
-            //     await client.messages.create({
-            //         to: phone,
-            //         from: twilioPhone,
-            //         body: `Recupera: Hola ${debtor.name}, debe $${debtor.amountOwed.toFixed(2)}. Contáctenos para regularizar. Gracias.`
-            //         ,
-            //     });
-            //
-            //     await prisma.activityLog.create({
-            //         data: {
-            //             event: "REMINDER_SENT",
-            //             detail: `SMS reminder sent to ${debtor.name} (${phone}) — USD ${debtor.amountOwed.toFixed(2)}`,
-            //             userId: dbUserId,
-            //             debtorId: debtor.id,
-            //         },
-            //     });
-            //
-            //     console.log(`✅ SMS sent to ${debtor.name}`);
-            // });
-            //
-            // // --- WAIT 15s before call ---
-            // if (phone) {
-            //     await step.sleep(`wait-before-call-${debtor.id}`, "15s");
-            // }
-            //
-            // // --- CALL ---
-            // await step.run(`call-${debtor.id}`, async () => {
-            //     if (!phone) {
-            //         console.log(`Skipping call for ${debtor.name} — no phone`);
-            //         return;
-            //     }
-            //
-            //     console.log(`Triggering call to ${debtor.name} (${phone})...`);
-            //
-            //     const client = twilio(twilioSid, twilioToken);
-            //
-            //     await client.calls.create({
-            //         to: phone,
-            //         from: twilioPhone,
-            //         twiml: `
-            //             <Response>
-            //                 <Say language="es-MX" voice="Polly.Mia">
-            //                     Hola, ${debtor.name}.
-            //                     Le contactamos de Recupera para informarle que tiene un saldo pendiente
-            //                     de ${debtor.amountOwed.toFixed(2)} dólares.
-            //                     Por favor comuníquese con nosotros para regularizar su situación.
-            //                     Gracias y que tenga un buen día.
-            //                 </Say>
-            //             </Response>
-            //         `,
-            //     });
-            //
-            //     await prisma.activityLog.create({
-            //         data: {
-            //             event: "CALL_TRIGGERED",
-            //             detail: `Automated call triggered to ${debtor.name} (${phone}) — USD ${debtor.amountOwed.toFixed(2)}`,
-            //             userId: dbUserId,
-            //             debtorId: debtor.id,
-            //         },
-            //     });
-            //
-            //     console.log(`✅ Call triggered for ${debtor.name}`);
-            // });
-            //
-            // // Gap between debtors
-            // await step.sleep(`gap-${debtor.id}`, "2s");
+
+            // --- SMS ---
+            await step.run(`sms-${debtor.id}`, async () => {
+                if (!phone) {
+                    console.log(`Skipping SMS for ${debtor.name} — no phone`);
+                    return;
+                }
+
+                console.log(`Sending SMS to ${debtor.name} (${phone})...`);
+                console.log(`Using SID: ${twilioSid?.slice(0, 8)}...`);
+
+                const client = twilio(twilioSid, twilioToken);
+
+                await client.messages.create({
+                    to: phone,
+                    from: twilioPhone,
+                    body: `Recupera: Hola ${debtor.name}, debe $${debtor.amountOwed.toFixed(2)}. Contáctenos para regularizar. Gracias.`
+                    ,
+                });
+
+                await prisma.activityLog.create({
+                    data: {
+                        event: "REMINDER_SENT",
+                        detail: `SMS reminder sent to ${debtor.name} (${phone}) — USD ${debtor.amountOwed.toFixed(2)}`,
+                        userId: dbUserId,
+                        debtorId: debtor.id,
+                    },
+                });
+
+                console.log(`✅ SMS sent to ${debtor.name}`);
+            });
+
+            // --- WAIT 15s before call ---
+            if (phone) {
+                await step.sleep(`wait-before-call-${debtor.id}`, "15s");
+            }
+
+            // --- CALL ---
+            await step.run(`call-${debtor.id}`, async () => {
+                if (!phone) {
+                    console.log(`Skipping call for ${debtor.name} — no phone`);
+                    return;
+                }
+
+                console.log(`Triggering call to ${debtor.name} (${phone})...`);
+
+                const client = twilio(twilioSid, twilioToken);
+
+                await client.calls.create({
+                    to: phone,
+                    from: twilioPhone,
+                    twiml: `
+                        <Response>
+                            <Say language="es-MX" voice="Polly.Mia">
+                                Hola, ${debtor.name}.
+                                Le contactamos de Recupera para informarle que tiene un saldo pendiente
+                                de ${debtor.amountOwed.toFixed(2)} dólares.
+                                Por favor comuníquese con nosotros para regularizar su situación.
+                                Gracias y que tenga un buen día.
+                            </Say>
+                        </Response>
+                    `,
+                });
+
+                await prisma.activityLog.create({
+                    data: {
+                        event: "CALL_TRIGGERED",
+                        detail: `Automated call triggered to ${debtor.name} (${phone}) — USD ${debtor.amountOwed.toFixed(2)}`,
+                        userId: dbUserId,
+                        debtorId: debtor.id,
+                    },
+                });
+
+                console.log(`✅ Call triggered for ${debtor.name}`);
+            });
+
+            // Gap between debtors
+            await step.sleep(`gap-${debtor.id}`, "2s");
         }
 
         return { processed: debtors.length };

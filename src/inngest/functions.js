@@ -21,7 +21,6 @@ export const sendRemindersFunction = inngest.createFunction(
     },
     async ({ event, step }) => {
 
-        // 🔍 Debug — check what's in event.data
         console.log("=== INNGEST EVENT DATA ===");
         console.log("Keys received:", Object.keys(event.data));
         console.log("twilioSid exists:", !!event.data.twilioSid);
@@ -62,11 +61,35 @@ export const sendRemindersFunction = inngest.createFunction(
                         pass: emailPass,
                     },
                 });
+
+                // Reply-To uses the debtor ID so we can identify who replied
+                const replyToAddress = `reply-${debtor.id}@replies.recupera.it.com`;
+
                 await transporter.sendMail({
                     from: `"Cobranza Automatizada" <${emailUser}>`,
                     to: debtor.email,
+                    replyTo: replyToAddress,
                     subject: "Recordatorio de Pago",
-                    text: `Hola ${debtor.name},\n\nEste es un recordatorio amistoso de que debes $${debtor.amountOwed.toFixed(2)} a ${debtor.clientName || "nuestro cliente"}.\n\nPor favor realiza el pago lo antes posible.\n\nGracias.`,
+                    text: `Hola ${debtor.name},\n\nEste es un recordatorio amistoso de que debes $${debtor.amountOwed.toFixed(2)} a ${debtor.clientName || "nuestro cliente"}.\n\nPor favor realiza el pago lo antes posible o responde este correo para coordinar.\n\nGracias.`,
+                    html: `
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                            <div style="background: #443CA3; padding: 20px; border-radius: 12px 12px 0 0; text-align: center;">
+                                <h1 style="color: #21FE83; margin: 0; font-size: 24px;">RECUPERA</h1>
+                            </div>
+                            <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 12px 12px; border: 1px solid #e0e0e0;">
+                                <p style="color: #333; font-size: 16px;">Hola <strong>${debtor.name}</strong>,</p>
+                                <p style="color: #555;">Este es un recordatorio de que tiene un saldo pendiente de:</p>
+                                <div style="background: #443CA3; color: #21FE83; text-align: center; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                                    <p style="margin: 0; font-size: 32px; font-weight: bold;">$${debtor.amountOwed.toFixed(2)}</p>
+                                    ${debtor.invoiceNumber ? `<p style="margin: 8px 0 0; color: white; font-size: 13px;">Factura: ${debtor.invoiceNumber}</p>` : ""}
+                                </div>
+                                <p style="color: #555;">Por favor realiza el pago lo antes posible o <strong>responde este correo</strong> para coordinar un plan de pago.</p>
+                                <p style="color: #888; font-size: 12px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 15px;">
+                                    Este mensaje fue enviado por Recupera en nombre de ${debtor.clientName || "nuestro cliente"}.
+                                </p>
+                            </div>
+                        </div>
+                    `,
                 });
 
                 await prisma.activityLog.create({
@@ -78,7 +101,7 @@ export const sendRemindersFunction = inngest.createFunction(
                     },
                 });
 
-                console.log(`✅ Email sent to ${debtor.name}`);
+                console.log(`✅ Email sent to ${debtor.name} with Reply-To: ${replyToAddress}`);
             });
 
             // --- SMS ---
@@ -89,15 +112,13 @@ export const sendRemindersFunction = inngest.createFunction(
                 }
 
                 console.log(`Sending SMS to ${debtor.name} (${phone})...`);
-                console.log(`Using SID: ${twilioSid?.slice(0, 8)}...`);
 
                 const client = twilio(twilioSid, twilioToken);
 
                 await client.messages.create({
                     to: phone,
                     from: twilioPhone,
-                    body: `Recupera: Hola ${debtor.name}, debe $${debtor.amountOwed.toFixed(2)}. Contáctenos para regularizar. Gracias.`
-                    ,
+                    body: `Recupera: Hola ${debtor.name}, debe $${debtor.amountOwed.toFixed(2)}. Contáctenos para regularizar. Gracias.`,
                 });
 
                 await prisma.activityLog.create({
@@ -156,7 +177,6 @@ export const sendRemindersFunction = inngest.createFunction(
                 console.log(`✅ Call triggered for ${debtor.name}`);
             });
 
-            // Gap between debtors
             await step.sleep(`gap-${debtor.id}`, "2s");
         }
 

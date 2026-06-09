@@ -314,7 +314,7 @@ export async function PATCH(req) {
             },
         });
 
-        
+
         return NextResponse.json({
             message: "Debtor updated",
             debtor: updatedDebtor,
