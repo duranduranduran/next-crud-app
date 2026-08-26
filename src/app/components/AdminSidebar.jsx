@@ -2,45 +2,65 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { SignOutButton } from "@clerk/nextjs";
+import { SignOutButton, useUser } from "@clerk/nextjs";
 import {
     Users,
     FileText,
     BarChart3,
     Settings,
-    LogOut
+    LogOut,
+    Inbox,
+    Bell,
 } from 'lucide-react';
+import ThemeToggle from './ThemeToggle';
+
+function getInitials(name) {
+    return (name || "??").split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase();
+}
 
 export default function AdminSidebar() {
 
     const pathname = usePathname();
+    const { user } = useUser();
 
     const links = [
         { name: "Deudores", href: "/admin", icon: Users },
         { name: "Logs", href: "/admin/logs", icon: FileText },
         { name: "Reportes", href: "/admin/reportes", icon: BarChart3 },
+        { name: "Notificaciones", href: "/admin/notificaciones", icon: Bell },
+        { name: "Bandeja", href: "/admin/bandeja", icon: Inbox, badge: true },
         // { name: "Configuración", href: "/admin/configuracion", icon: Settings },
     ];
 
+    const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface-raised";
+    const navItemClass = active => `flex items-center gap-4 p-3 rounded-xl border-l-2 transition ${focusRing} ${
+        active
+            ? "bg-surface-hover border-accent text-accent"
+            : "border-transparent text-text-secondary hover:text-text-primary hover:bg-surface-hover"
+    }`;
+
     return (
-        <aside className="group fixed left-0 top-0 h-screen w-20 hover:w-60 bg-slate-900 text-white flex flex-col justify-between transition-all duration-300">
+        <aside data-density="compact" className="group fixed left-0 top-0 h-screen w-20 hover:w-60 bg-surface-raised text-text-primary flex flex-col justify-between transition-all duration-300 z-40 overflow-hidden">
 
             {/* TOP */}
             <div>
 
                 {/* LOGO */}
                 <div className="flex items-center gap-3 p-6 font-bold text-lg">
-                    <img src="/logo-favicon-white.png" alt="recupera" className="h-10 w-auto flex-shrink-0"/>
-                    <span className="opacity-0 group-hover:opacity-100 transition">
-        RECUPERA
-    </span>
+                    {/* Only a white favicon asset exists (no purple variant), so
+                        the mark sits on a fixed-dark chip to stay legible in
+                        light mode too — see --color-logo-chip in tokens.css. */}
+                    <div className="h-10 w-10 rounded-xl bg-logo-chip flex items-center justify-center flex-shrink-0">
+                        <img src="/logo-favicon-white.png" alt="recupera" className="h-6 w-auto"/>
+                    </div>
+                    <span className="whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
+                        RECUPERA
+                    </span>
                 </div>
 
-                {/* NAVIGATION */}
+                {/* NAVIGATION — every item shares the same treatment, Bandeja included */}
                 <nav className="flex flex-col gap-2 px-3">
-
                     {links.map(link => {
-
                         const Icon = link.icon;
                         const active = pathname === link.href;
 
@@ -48,62 +68,48 @@ export default function AdminSidebar() {
                             <Link
                                 key={link.href}
                                 href={link.href}
-                                className={`flex items-center gap-4 p-3 rounded-xl transition ${
-                                    active
-                                        ? "bg-blue-600 text-white"
-                                        : "text-slate-300 hover:text-white hover:bg-slate-800"
-                                }`}
+                                className={navItemClass(active)}
                             >
-
-                                <Icon size={22} className="shrink-0"/>
-
-
+                                <span className="relative shrink-0">
+                                    <Icon size={22} className="shrink-0"/>
+                                    {link.badge && (
+                                        // unread badge — wire up later
+                                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-status-pagado rounded-full border border-surface-raised"/>
+                                    )}
+                                </span>
                                 <span className="whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
-        {link.name}
-    </span>
-
+                                    {link.name}
+                                </span>
                             </Link>
-
-
                         );
                     })}
-                    <Link href="/admin/bandeja"
-                          className={`flex flex-col items-center gap-1 py-3 px-2 rounded-xl transition-all group relative ${
-                              pathname === "/admin/bandeja" ? "bg-white/15" : "hover:bg-white/10"
-                          }`}>
-                        <div className="relative">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M22 12h-6l-2 3h-4l-2-3H2"/>
-                                <path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/>
-                            </svg>
-                            {/* unread badge — wire up later */}
-                            <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#21FE83] rounded-full border border-[#443CA3]"></span>
-                        </div>
-                        <span className="text-[9px] opacity-60 group-hover:opacity-100">Bandeja</span>
-                    </Link>
-                </nav>
 
+                    <ThemeToggle variant="nav" />
+                </nav>
             </div>
 
-
-            {/* LOGOUT */}
-            <div className="p-3">
-
+            {/* ACCOUNT / SIGN OUT — same single-element collapse pattern as the
+                nav links above (icon always visible, label fades in on
+                hover-expand). Two stacked rows rather than side-by-side:
+                collapsed width (w-20/80px) only has room for one icon-sized
+                element per row, not an avatar + button sharing a row. */}
+            <div className="p-3 border-t border-border-subtle flex flex-col gap-1">
+                <div className="flex items-center gap-4 p-1">
+                    <div className="w-8 h-8 rounded-full bg-accent-bg text-accent flex items-center justify-center text-[11px] font-bold flex-shrink-0">
+                        {getInitials(user?.fullName)}
+                    </div>
+                    <p className="text-xs font-medium text-text-primary truncate whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
+                        {user?.fullName || "Admin"}
+                    </p>
+                </div>
                 <SignOutButton redirectUrl="/sign-in">
-
-                    <button
-                        className="flex items-center gap-4 w-full p-3 rounded-xl text-slate-300 hover:text-white hover:bg-red-600 transition">
-
+                    <button className={`flex items-center gap-4 p-3 rounded-xl border-l-2 border-transparent text-text-secondary hover:text-danger hover:bg-danger-bg transition ${focusRing}`}>
                         <LogOut size={22} className="shrink-0" />
-
-                        <span className="opacity-0 group-hover:opacity-100 transition">
-            Sign Out
-        </span>
-
+                        <span className="whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
+                            Cerrar sesión
+                        </span>
                     </button>
-
                 </SignOutButton>
-
             </div>
 
         </aside>

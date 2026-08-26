@@ -5,14 +5,16 @@ import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 
 const EVENT_LABELS = {
-    STATUS_CHANGED:      { label: "Estado cambiado",      color: "#F59E0B", bg: "#FEF3C7" },
-    NOTE_ADDED:          { label: "Nota agregada",         color: "#443CA3", bg: "#EEEDFE" },
-    NOTE_DELETED:        { label: "Nota eliminada",        color: "#EF4444", bg: "#FEE2E2" },
-    DEBTOR_CREATED:      { label: "Deudor creado",         color: "#10B981", bg: "#D1FAE5" },
-    DEBTOR_DELETED:      { label: "Deudor eliminado",      color: "#EF4444", bg: "#FEE2E2" },
-    REMINDER_SENT:       { label: "Recordatorio enviado",  color: "#0EA5E9", bg: "#E0F2FE" },
-    CALL_TRIGGERED:      { label: "Llamada realizada",     color: "#8B5CF6", bg: "#EDE9FE" },
-    BULK_STATUS_CHANGED: { label: "Estado masivo",         color: "#F59E0B", bg: "#FEF3C7" },
+    STATUS_CHANGED:      { label: "Estado cambiado",      color: "var(--color-neutral-event)", bg: "var(--color-neutral-event-bg)" },
+    NOTE_ADDED:          { label: "Nota agregada",         color: "var(--color-accent)", bg: "var(--color-accent-bg)" },
+    NOTE_DELETED:        { label: "Nota eliminada",        color: "var(--color-danger)", bg: "var(--color-danger-bg)" },
+    DEBTOR_CREATED:      { label: "Deudor creado",         color: "var(--color-success)", bg: "var(--color-success-bg)" },
+    DEBTOR_DELETED:      { label: "Deudor eliminado",      color: "var(--color-danger)", bg: "var(--color-danger-bg)" },
+    REMINDER_SENT:       { label: "Recordatorio enviado",  color: "var(--color-info)", bg: "var(--color-info-bg)" },
+    CALL_TRIGGERED:      { label: "Llamada realizada",     color: "var(--color-info)", bg: "var(--color-info-bg)" },
+    BULK_STATUS_CHANGED: { label: "Estado masivo",         color: "var(--color-neutral-event)", bg: "var(--color-neutral-event-bg)" },
+    NOTIFICATION_SENT:   { label: "Notificación enviada",  color: "var(--color-accent)", bg: "var(--color-accent-bg)" },
+    LEGAL_NOTICE_SENT:   { label: "Aviso legal enviado",   color: "var(--color-danger)", bg: "var(--color-danger-bg)" },
 };
 
 const EVENT_FILTERS = [
@@ -25,6 +27,8 @@ const EVENT_FILTERS = [
     "REMINDER_SENT",
     "CALL_TRIGGERED",
     "BULK_STATUS_CHANGED",
+    "NOTIFICATION_SENT",
+    "LEGAL_NOTICE_SENT",
 ];
 
 function formatDate(dateStr) {
@@ -186,37 +190,37 @@ export default function LogsPage() {
     };
 
     if (loading) return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div data-density="compact" className="min-h-screen bg-surface-page flex items-center justify-center">
             <div className="text-center">
-                <div className="w-8 h-8 border-2 border-[#443CA3] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                <p className="text-sm text-[#443CA3]/50">Cargando...</p>
+                <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-sm text-accent/50">Cargando...</p>
             </div>
         </div>
     );
 
     if (error) return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-            <p className="text-red-500 text-sm">{error}</p>
+        <div className="min-h-screen bg-surface-page flex items-center justify-center">
+            <p className="text-danger text-sm">{error}</p>
         </div>
     );
 
     return (
-        <main className="min-h-screen bg-gray-50 px-8 py-8">
+        <main data-density="compact" className="min-h-screen bg-surface-page px-8 py-8">
 
             {/* Header */}
-            <div className="flex justify-between items-center bg-white px-6 py-4 rounded-2xl shadow-sm border border-gray-100 mb-8">
+            <div className="flex justify-between items-center bg-surface-raised px-6 py-4 rounded-2xl shadow-sm border border-border-subtle mb-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Registro de Actividad</h1>
-                    <p className="text-sm text-gray-400 mt-0.5">Historial completo de todas las acciones del sistema y usuarios</p>
+                    <h1 className="text-2xl font-bold text-text-primary">Registro de Actividad</h1>
+                    <p className="text-sm text-text-tertiary mt-0.5">Historial completo de todas las acciones del sistema y usuarios</p>
                 </div>
                 <div className="flex items-center gap-3">
 
                     <button onClick={handleExportLogsExcel}
-                            className="border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-xs font-medium hover:bg-[#443CA3] hover:text-white hover:border-[#443CA3] transition">
+                            className="border border-border-default text-text-secondary px-3 py-2 rounded-xl text-xs font-medium hover:bg-accent hover:text-surface-page hover:border-accent transition">
                         ⬇ Excel
                     </button>
                     <button onClick={handleExportLogsPDF}
-                            className="border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-xs font-medium hover:bg-[#443CA3] hover:text-white hover:border-[#443CA3] transition">
+                            className="border border-border-default text-text-secondary px-3 py-2 rounded-xl text-xs font-medium hover:bg-accent hover:text-surface-page hover:border-accent transition">
                         ⬇ PDF
                     </button>
                 </div>
@@ -225,21 +229,21 @@ export default function LogsPage() {
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
                 {[
-                    { label: "Total Eventos", value: stats.total, color: "text-gray-700" },
-                    { label: "Llamadas Realizadas", value: stats.calls, color: "text-[#8B5CF6]" },
-                    { label: "Recordatorios Enviados", value: stats.reminders, color: "text-[#0EA5E9]" },
-                    { label: "Cambios de Estado", value: stats.statusChanges, color: "text-[#F59E0B]" },
-                    { label: "Notas Agregadas", value: stats.notes, color: "text-[#443CA3]" },
+                    { label: "Total Eventos", value: stats.total, color: "text-text-primary" },
+                    { label: "Llamadas Realizadas", value: stats.calls, color: "text-info" },
+                    { label: "Recordatorios Enviados", value: stats.reminders, color: "text-info" },
+                    { label: "Cambios de Estado", value: stats.statusChanges, color: "text-neutral-event" },
+                    { label: "Notas Agregadas", value: stats.notes, color: "text-accent" },
                 ].map((s, i) => (
-                    <div key={i} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all">
-                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">{s.label}</p>
+                    <div key={i} className="bg-surface-raised rounded-2xl shadow-sm border border-border-subtle p-5 hover:shadow-md transition-all">
+                        <p className="text-xs text-text-tertiary uppercase tracking-wide mb-2">{s.label}</p>
                         <p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
                     </div>
                 ))}
             </div>
 
             {/* Filters */}
-            <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
+            <section className="bg-surface-raised rounded-2xl shadow-sm border border-border-subtle p-4 mb-6">
 
                 {/* Row 1 — search, dates, user, clear */}
                 <div className="flex flex-wrap gap-3 items-center">
@@ -248,30 +252,30 @@ export default function LogsPage() {
                         placeholder="Buscar detalle, deudor o usuario..."
                         value={searchTerm}
                         onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                        className="border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-600 focus:outline-none focus:border-[#443CA3] flex-1 min-w-[200px]"
+                        className="border border-border-default rounded-xl px-4 py-2 text-sm text-text-secondary focus:outline-none focus:border-accent flex-1 min-w-[200px]"
                     />
 
                     <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-400 whitespace-nowrap">Desde</span>
+                        <span className="text-xs text-text-tertiary whitespace-nowrap">Desde</span>
                         <input
                             type="date"
                             value={dateFrom}
                             onChange={e => { setDateFrom(e.target.value); setCurrentPage(1); }}
-                            className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-600 focus:outline-none focus:border-[#443CA3]"
+                            className="border border-border-default rounded-xl px-3 py-2 text-sm text-text-secondary focus:outline-none focus:border-accent"
                         />
-                        <span className="text-xs text-gray-400 whitespace-nowrap">Hasta</span>
+                        <span className="text-xs text-text-tertiary whitespace-nowrap">Hasta</span>
                         <input
                             type="date"
                             value={dateTo}
                             onChange={e => { setDateTo(e.target.value); setCurrentPage(1); }}
-                            className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-600 focus:outline-none focus:border-[#443CA3]"
+                            className="border border-border-default rounded-xl px-3 py-2 text-sm text-text-secondary focus:outline-none focus:border-accent"
                         />
                     </div>
 
                     <select
                         value={userFilter}
                         onChange={e => { setUserFilter(e.target.value); setCurrentPage(1); }}
-                        className="border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-600 focus:outline-none focus:border-[#443CA3]"
+                        className="border border-border-default rounded-xl px-4 py-2 text-sm text-text-secondary focus:outline-none focus:border-accent"
                     >
                         <option value="ALL">Todos los usuarios</option>
                         {uniqueUsers.map((u, i) => (
@@ -282,7 +286,7 @@ export default function LogsPage() {
                     {hasActiveFilters && (
                         <button
                             onClick={clearFilters}
-                            className="text-xs text-red-400 border border-red-100 px-3 py-2 rounded-xl hover:bg-red-50 transition whitespace-nowrap"
+                            className="text-xs text-danger border border-danger/25 px-3 py-2 rounded-xl hover:bg-danger-bg transition whitespace-nowrap"
                         >
                             ✕ Limpiar filtros
                         </button>
@@ -290,15 +294,15 @@ export default function LogsPage() {
                 </div>
 
                 {/* Row 2 — event type pills */}
-                <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-50">
+                <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-border-subtle">
                     {EVENT_FILTERS.map(f => (
                         <button
                             key={f}
                             onClick={() => { setEventFilter(f); setCurrentPage(1); }}
                             className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
                                 eventFilter === f
-                                    ? "bg-[#443CA3] text-white shadow-sm"
-                                    : "bg-gray-50 text-gray-500 border border-gray-200 hover:border-[#443CA3]/30 hover:text-[#443CA3]"
+                                    ? "bg-accent text-surface-page shadow-sm"
+                                    : "bg-surface-hover text-text-secondary border border-border-default hover:border-accent/30 hover:text-accent"
                             }`}
                         >
                             {f === "All" ? "Todos los eventos" : EVENT_LABELS[f]?.label || f}
@@ -308,45 +312,45 @@ export default function LogsPage() {
             </section>
 
             {/* Table */}
-            <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6">
-                <div className="grid grid-cols-[160px_160px_1fr_150px] px-6 py-3 border-b border-gray-100 bg-gray-50">
-                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Fecha y Hora</span>
-                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Evento</span>
-                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Detalle</span>
-                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Usuario</span>
+            <section className="bg-surface-raised rounded-2xl shadow-sm border border-border-subtle overflow-hidden mb-6">
+                <div className="grid grid-cols-[160px_160px_1fr_150px] px-6 py-3 border-b border-border-subtle bg-surface-hover">
+                    <span className="text-xs font-medium text-text-tertiary uppercase tracking-wide">Fecha y Hora</span>
+                    <span className="text-xs font-medium text-text-tertiary uppercase tracking-wide">Evento</span>
+                    <span className="text-xs font-medium text-text-tertiary uppercase tracking-wide">Detalle</span>
+                    <span className="text-xs font-medium text-text-tertiary uppercase tracking-wide">Usuario</span>
                 </div>
 
                 {paginatedLogs.length === 0 ? (
-                    <div className="text-center py-20 text-gray-300">
+                    <div className="text-center py-20 text-text-tertiary">
                         <p className="text-4xl mb-3">📋</p>
                         <p className="text-sm">No se encontraron registros</p>
                         {hasActiveFilters && (
-                            <button onClick={clearFilters} className="mt-3 text-xs text-[#443CA3] underline">
+                            <button onClick={clearFilters} className="mt-3 text-xs text-accent underline">
                                 Limpiar filtros
                             </button>
                         )}
                     </div>
                 ) : (
                     paginatedLogs.map((log, i) => {
-                        const meta = EVENT_LABELS[log.event] || { label: log.event, color: "#443CA3", bg: "#EEEDFE" };
+                        const meta = EVENT_LABELS[log.event] || { label: log.event, color: "var(--color-accent)", bg: "var(--color-accent-bg)" };
                         return (
                             <div
                                 key={log.id}
-                                className={`grid grid-cols-[160px_160px_1fr_150px] px-6 py-4 border-b border-gray-50 items-center hover:bg-gray-50/50 transition-colors ${
-                                    i % 2 === 1 ? "bg-gray-50/30" : ""
+                                className={`grid grid-cols-[160px_160px_1fr_150px] px-6 py-4 border-b border-border-subtle items-center hover:bg-surface-hover/50 transition-colors ${
+                                    i % 2 === 1 ? "bg-surface-hover/30" : ""
                                 }`}
                             >
-                                <span className="text-xs text-gray-400 font-mono">{formatDate(log.createdAt)}</span>
+                                <span className="text-xs text-text-tertiary font-mono">{formatDate(log.createdAt)}</span>
                                 <div>
                                     <span className="text-xs font-semibold px-2.5 py-1 rounded-full inline-block"
                                           style={{ color: meta.color, background: meta.bg }}>
                                         {meta.label}
                                     </span>
                                 </div>
-                                <span className="text-sm text-gray-600 px-4 overflow-hidden text-ellipsis whitespace-nowrap">
+                                <span className="text-sm text-text-secondary px-4 overflow-hidden text-ellipsis whitespace-nowrap">
                                     {log.detail}
                                 </span>
-                                <span className="text-xs text-gray-400 truncate">
+                                <span className="text-xs text-text-tertiary truncate">
                                     {log.user?.name || log.user?.email || "Sistema"}
                                 </span>
                             </div>
@@ -357,22 +361,22 @@ export default function LogsPage() {
 
             {/* Pagination */}
             <div className="flex items-center justify-between">
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-text-tertiary">
                     Mostrando {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredLogs.length)}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredLogs.length)} de {filteredLogs.length} registros
                 </p>
                 <div className="flex items-center gap-4">
                     <button
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
-                        className="px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-[#443CA3] hover:text-white hover:border-[#443CA3] transition disabled:opacity-30"
+                        className="px-4 py-2 border border-border-default rounded-xl text-sm text-text-secondary hover:bg-accent hover:text-surface-page hover:border-accent transition disabled:opacity-30"
                     >
                         ← Anterior
                     </button>
-                    <span className="text-sm text-gray-400">Página {currentPage} de {totalPages}</span>
+                    <span className="text-sm text-text-tertiary">Página {currentPage} de {totalPages}</span>
                     <button
                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages}
-                        className="px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-[#443CA3] hover:text-white hover:border-[#443CA3] transition disabled:opacity-30"
+                        className="px-4 py-2 border border-border-default rounded-xl text-sm text-text-secondary hover:bg-accent hover:text-surface-page hover:border-accent transition disabled:opacity-30"
                     >
                         Siguiente →
                     </button>

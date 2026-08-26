@@ -105,6 +105,13 @@ export async function PATCH(req, { params }) {
     }
 
     try {
+        // NOTE: this is a generic status update, not a notification trigger.
+        // Masiva template 3 (5-day legal notice) must never fire automatically
+        // from a status transition here (e.g. -> ESCALADO_JUDICIAL) — it
+        // requires its own endpoint, its own confirmation dialog, and
+        // deliberate client authorization. Do not wire an SMS send into this
+        // handler for template 3.
+
         // 5. Get current debtor BEFORE updating
         const existingDebtor = await prisma.debtor.findUnique({
             where: { id },

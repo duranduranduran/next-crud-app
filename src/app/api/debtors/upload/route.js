@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { nanoid } from "nanoid";
 
 // BULK CREATE debtors
 export async function POST(req) {
@@ -84,6 +85,7 @@ export async function POST(req) {
                 amountOwed: parsedAmount,
                 documentUrl: documentUrl || null,
                 userId: user.id,
+                publicToken: nanoid(8),
             });
         }
 

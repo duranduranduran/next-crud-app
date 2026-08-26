@@ -24,6 +24,14 @@ export async function GET(req) {
         if (channel && channel !== "all") where.channel = channel;
         if (unreadOnly) where.readByClientAt = null;
 
+        // No clientId filter here on purpose: this route is gated to admin
+        // role above and is meant to surface every inbound message, including
+        // unmatched SMS with a null debtor/clientId (the Masiva account is
+        // shared across tenants, so an unmatched from_number has no derivable
+        // client). If a client-facing version of this query is ever built,
+        // it must add `where: { clientId: dbUser.id }` — a plain equality
+        // filter already excludes null-clientId rows under SQL semantics, so
+        // that's sufficient on its own; do not also OR in `clientId: null`.
         const messages = await prisma.inboundMessage.findMany({
             where,
             orderBy: { receivedAt: "desc" },

@@ -1,8 +1,8 @@
 'use client';
 
-import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import Logo from "../components/Logo";
 
 const plans = [
     {
@@ -83,18 +83,13 @@ export default function PlanesPage() {
     const [annual, setAnnual] = useState(false);
 
     return (
-        <div className="min-h-screen bg-white text-[#443CA3]">
+        <div className="min-h-screen bg-surface-page text-accent">
 
             {/* NAVBAR */}
             <nav
-                className="sticky top-0 z-50 flex items-center justify-between px-8 max-w-7xl mx-auto bg-white py-4 border-b border-[#443CA3]/10">
+                className="sticky top-0 z-50 flex items-center justify-between px-8 max-w-7xl mx-auto bg-surface-raised py-4 border-b border-accent/10">
                 <Link href="/">
-                    <Image
-                        src="/logo-recupera-purple.png"
-                        alt="Recupera"
-                        width={150}
-                        height={25}
-                    />
+                    <Logo className="h-[25px] w-auto" />
                 </Link>
                 <ul className="flex space-x-6 items-center">
                     <li><Link href="/about" className="hover:underline">Quienes Somos</Link></li>
@@ -104,7 +99,7 @@ export default function PlanesPage() {
                     <li>
                         <Link
                             href="/sign-in"
-                            className="border border-[#443CA3] px-5 py-2 rounded-lg hover:bg-[#443CA3] hover:text-white transition"
+                            className="border border-accent px-5 py-2 rounded-lg hover:bg-accent hover:text-surface-page transition"
                         >
                             Iniciar Sesión
                         </Link>
@@ -114,32 +109,32 @@ export default function PlanesPage() {
 
             {/* HEADER */}
             <section className="pt-20 pb-12 px-8 text-center max-w-3xl mx-auto">
-                <p className="text-sm font-medium tracking-widest text-[#443CA3]/50 uppercase mb-4">Precios</p>
+                <p className="text-sm font-medium tracking-widest text-accent/50 uppercase mb-4">Precios</p>
                 <h1 className="text-5xl md:text-6xl font-extrabold leading-tight mb-6">
                     Elige el plan que impulsa tu recuperación
                 </h1>
-                <p className="text-lg text-[#443CA3]/60 mb-10">
+                <p className="text-lg text-accent/60 mb-10">
                     Sin contratos largos. Sin sorpresas. Cancela cuando quieras.
                 </p>
 
                 {/* Toggle */}
-                <div className="inline-flex items-center gap-4 border border-[#443CA3]/20 rounded-xl px-5 py-3">
+                <div className="inline-flex items-center gap-4 border border-accent/20 rounded-xl px-5 py-3">
                     <span
-                        className={`text-sm font-medium ${!annual ? 'text-[#443CA3]' : 'text-[#443CA3]/40'}`}>Mensual</span>
+                        className={`text-sm font-medium ${!annual ? 'text-accent' : 'text-accent/40'}`}>Mensual</span>
                     <div
                         onClick={() => setAnnual(!annual)}
                         className="relative w-12 h-6 rounded-full cursor-pointer transition-colors duration-300"
-                        style={{background: annual ? '#443CA3' : '#443CA320'}}
+                        style={{background: annual ? 'var(--color-accent)' : 'var(--color-accent-bg)'}}
                     >
                         <div
-                            className="absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300"
+                            className="absolute top-1 w-4 h-4 bg-surface-page rounded-full transition-all duration-300"
                             style={{left: annual ? '28px' : '4px'}}
                         />
                     </div>
-                    <span className={`text-sm font-medium ${annual ? 'text-[#443CA3]' : 'text-[#443CA3]/40'}`}>
+                    <span className={`text-sm font-medium ${annual ? 'text-accent' : 'text-accent/40'}`}>
                         Anual
                         <span
-                            className="ml-2 text-xs bg-[#21FE83] text-[#443CA3] px-2 py-0.5 rounded-full font-bold">-20%</span>
+                            className="ml-2 text-xs bg-brand-mint text-accent px-2 py-0.5 rounded-full font-bold">-20%</span>
                     </span>
                 </div>
             </section>
@@ -152,22 +147,22 @@ export default function PlanesPage() {
                             key={plan.id}
                             className={`relative rounded-2xl p-7 flex flex-col transition-all duration-300 ${
                                 plan.highlight
-                                    ? 'border-2 border-[#443CA3] bg-white shadow-xl shadow-[#443CA3]/10'
-                                    : 'border border-[#443CA3]/20 bg-white hover:border-[#443CA3]/50 hover:shadow-lg hover:shadow-[#443CA3]/5'
+                                    ? 'border-2 border-accent bg-surface-raised shadow-xl shadow-accent/10'
+                                    : 'border border-accent/20 bg-surface-raised hover:border-accent/50 hover:shadow-lg hover:shadow-accent/5'
                             }`}
                         >
                             {/* Badge */}
                             {plan.badge && (
                                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                                     <span
-                                        className="bg-[#443CA3] text-white text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
+                                        className="bg-accent text-surface-page text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
                                         {plan.badge}
                                     </span>
                                 </div>
                             )}
 
                             {/* Plan name */}
-                            <p className="text-xs font-bold tracking-widest text-[#443CA3]/50 mb-3">{plan.name}</p>
+                            <p className="text-xs font-bold tracking-widest text-accent/50 mb-3">{plan.name}</p>
 
                             {/* Price */}
                             <div className="mb-2">
@@ -176,7 +171,7 @@ export default function PlanesPage() {
                                         <span className="text-5xl font-extrabold">
                                             ${annual ? Math.round(plan.price * 0.8) : plan.price}
                                         </span>
-                                        <span className="text-[#443CA3]/50 mb-2">/mes</span>
+                                        <span className="text-accent/50 mb-2">/mes</span>
                                     </div>
                                 ) : (
                                     <p className="text-4xl font-extrabold">A consultar</p>
@@ -184,7 +179,7 @@ export default function PlanesPage() {
                             </div>
 
                             {/* Debtors */}
-                            <p className="text-sm font-semibold text-[#443CA3]/70 mb-6 pb-6 border-b border-[#443CA3]/10">
+                            <p className="text-sm font-semibold text-accent/70 mb-6 pb-6 border-b border-accent/10">
                                 {plan.debtors}
                             </p>
 
@@ -194,18 +189,18 @@ export default function PlanesPage() {
                                     <li key={i} className="flex items-center gap-3 text-sm">
                                         {feature.included ? (
                                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                                <circle cx="8" cy="8" r="8" fill="#21FE83" fillOpacity="0.2"/>
-                                                <path d="M5 8l2 2 4-4" stroke="#21FE83" strokeWidth="1.5"
+                                                <circle cx="8" cy="8" r="8" fill="var(--color-brand-mint)" fillOpacity="0.2"/>
+                                                <path d="M5 8l2 2 4-4" stroke="var(--color-brand-mint)" strokeWidth="1.5"
                                                       strokeLinecap="round" strokeLinejoin="round"/>
                                             </svg>
                                         ) : (
                                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                                <circle cx="8" cy="8" r="8" fill="#443CA3" fillOpacity="0.08"/>
-                                                <path d="M5.5 10.5l5-5M10.5 10.5l-5-5" stroke="#443CA3"
+                                                <circle cx="8" cy="8" r="8" fill="var(--color-accent)" fillOpacity="0.08"/>
+                                                <path d="M5.5 10.5l5-5M10.5 10.5l-5-5" stroke="var(--color-accent)"
                                                       strokeOpacity="0.3" strokeWidth="1.5" strokeLinecap="round"/>
                                             </svg>
                                         )}
-                                        <span className={feature.included ? 'text-[#443CA3]' : 'text-[#443CA3]/30'}>
+                                        <span className={feature.included ? 'text-accent' : 'text-accent/30'}>
                                             {feature.label}
                                         </span>
                                     </li>
@@ -214,7 +209,7 @@ export default function PlanesPage() {
 
                             {/* Note */}
                             {plan.note && (
-                                <p className="text-xs text-[#443CA3]/40 mb-4 text-center">{plan.note}</p>
+                                <p className="text-xs text-accent/40 mb-4 text-center">{plan.note}</p>
                             )}
 
                             {/* CTA */}
@@ -222,8 +217,8 @@ export default function PlanesPage() {
                                 href={plan.id === 'enterprise' ? '/contact' : '/sign-up'}
                                 className={`w-full text-center py-3 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 ${
                                     plan.highlight
-                                        ? 'bg-[#443CA3] text-white hover:opacity-90'
-                                        : 'border border-[#443CA3]/30 text-[#443CA3] hover:bg-[#443CA3] hover:text-white'
+                                        ? 'bg-accent text-surface-page hover:opacity-90'
+                                        : 'border border-accent/30 text-accent hover:bg-accent hover:text-surface-page'
                                 }`}
                             >
                                 {plan.id === 'enterprise' ? 'Contactar' : 'Ver detalles'}
@@ -237,14 +232,14 @@ export default function PlanesPage() {
                 </div>
 
                 {/* Bottom note */}
-                <p className="text-center text-sm text-[#443CA3]/40 mt-10">
+                <p className="text-center text-sm text-accent/40 mt-10">
                     Todos los planes incluyen soporte por email · Datos seguros y encriptados · Cancela en cualquier
                     momento
                 </p>
             </section>
 
             {/* FAQ */}
-            <section className="border-t border-[#443CA3]/10 px-8 py-20 max-w-3xl mx-auto">
+            <section className="border-t border-accent/10 px-8 py-20 max-w-3xl mx-auto">
                 <h2 className="text-3xl font-bold text-center mb-12">Preguntas frecuentes</h2>
                 <div className="space-y-4">
                     {[
@@ -267,13 +262,13 @@ export default function PlanesPage() {
                     ].map((faq, i) => (
                         <div
                             key={i}
-                            className="group border border-[#443CA3]/10 rounded-xl overflow-hidden cursor-pointer hover:border-[#443CA3]/40 hover:shadow-md hover:shadow-[#443CA3]/5 transition-all duration-300"
+                            className="group border border-accent/10 rounded-xl overflow-hidden cursor-pointer hover:border-accent/40 hover:shadow-md hover:shadow-accent/5 transition-all duration-300"
                         >
                             <div className="p-6">
                                 <div className="flex items-center justify-between">
-                                    <p className="font-bold group-hover:text-[#443CA3]">{faq.q}</p>
+                                    <p className="font-bold group-hover:text-accent">{faq.q}</p>
                                     <div
-                                        className="w-6 h-6 rounded-full border border-[#443CA3]/20 flex items-center justify-center flex-shrink-0 ml-4 group-hover:bg-[#443CA3] group-hover:border-[#443CA3] transition-all duration-300">
+                                        className="w-6 h-6 rounded-full border border-accent/20 flex items-center justify-center flex-shrink-0 ml-4 group-hover:bg-accent group-hover:border-accent transition-all duration-300">
                                         <svg
                                             width="12"
                                             height="12"
@@ -283,14 +278,14 @@ export default function PlanesPage() {
                                         >
                                             <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5"
                                                   strokeLinecap="round" strokeLinejoin="round"
-                                                  className="group-hover:stroke-white"/>
+                                                  className="group-hover:stroke-surface-page"/>
                                         </svg>
                                     </div>
                                 </div>
                                 <div
                                     className="grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-all duration-300 ease-in-out">
                                     <div className="overflow-hidden">
-                                        <p className="text-sm text-[#443CA3]/60 mt-4 pt-4 border-t border-[#443CA3]/10">
+                                        <p className="text-sm text-accent/60 mt-4 pt-4 border-t border-accent/10">
                                             {faq.a}
                                         </p>
                                     </div>
@@ -305,17 +300,17 @@ export default function PlanesPage() {
             <section className="px-8 pb-24 text-center">
                 <h2 className="text-3xl font-bold mb-6">¿Listo para recuperar tu liquidez?</h2>
                 <Link href="/sign-up"
-                      className="bg-[#443CA3] text-white px-10 py-4 rounded-lg font-bold hover:opacity-90 inline-block">
+                      className="bg-accent text-surface-page px-10 py-4 rounded-lg font-bold hover:opacity-90 inline-block">
                     Crear Cuenta Gratis
                 </Link>
             </section>
 
             {/* FOOTER */}
-            <footer className="border-t border-[#443CA3]/10 py-8 px-8 text-sm">
+            <footer className="border-t border-accent/10 py-8 px-8 text-sm">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-                    <p className="text-[#443CA3]/70">© {new Date().getFullYear()} <span
+                    <p className="text-accent/70">© {new Date().getFullYear()} <span
                         className="font-bold">Recupera</span></p>
-                    <div className="flex gap-6 text-[#443CA3]/70">
+                    <div className="flex gap-6 text-accent/70">
                         <Link href="#">Privacidad</Link>
                         <Link href="#">Términos</Link>
                         <Link href="#">Contacto</Link>

@@ -37,17 +37,13 @@ export async function GET() {
             name: "reminders/send",
             data: {
                 dbUserId: dbUser.id,
-                twilioSid: process.env.TWILIO_ACCOUNT_SID,
-                twilioToken: process.env.TWILIO_AUTH_TOKEN,
-                twilioPhone: process.env.TWILIO_PHONE_NUMBER,
-                emailUser: process.env.EMAIL_USER,
-                emailPass: process.env.EMAIL_PASS,
                 debtors: debtorsToNotify.map((d) => ({
                     id: d.id,
                     name: d.name,
                     email: d.email,
                     telephone: d.telephone,
                     amountOwed: d.amountOwed,
+                    smsOptOut: d.smsOptOut,
                     clientName: d.user?.name || null,
                 })),
             },

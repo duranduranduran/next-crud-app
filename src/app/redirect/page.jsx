@@ -27,10 +27,10 @@ export default function RedirectPage() {
     }, [isLoaded, user]);
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-white">
+        <div data-density="compact" className="min-h-screen flex items-center justify-center bg-surface-page">
             <div className="text-center">
-                <div className="w-8 h-8 border-2 border-[#443CA3] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                <p className="text-sm text-[#443CA3]/50">Cargando...</p>
+                <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-sm text-accent/50">Cargando...</p>
             </div>
         </div>
     );

@@ -37,8 +37,8 @@ const STEPS = [
 
 function MockStep1() {
     return (
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#443CA3]/8">
-            <p className="text-xs font-semibold text-[#443CA3]/40 uppercase tracking-widest mb-4">Agregar Deudor</p>
+        <div className="bg-surface-raised rounded-2xl p-5 shadow-sm border border-accent/8">
+            <p className="text-xs font-semibold text-accent/40 uppercase tracking-widest mb-4">Agregar Deudor</p>
             <div className="flex flex-col gap-2">
                 {[
                     { label: "Nombre", value: "Elena Torres" },
@@ -48,26 +48,26 @@ function MockStep1() {
                     { label: "Monto", value: "$ 558.03" },
                 ].map((f, i) => (
                     <div key={i} className="flex items-center gap-3">
-                        <span className="text-[10px] text-[#443CA3]/30 w-14 flex-shrink-0">{f.label}</span>
-                        <div className="flex-1 bg-[#F7F8FF] rounded-lg px-3 py-2 text-xs text-[#443CA3]/80 border border-[#443CA3]/6">{f.value}</div>
+                        <span className="text-[10px] text-accent/30 w-14 flex-shrink-0">{f.label}</span>
+                        <div className="flex-1 bg-surface-hover rounded-lg px-3 py-2 text-xs text-accent/80 border border-accent/6">{f.value}</div>
                     </div>
                 ))}
             </div>
-            <div className="mt-4 bg-[#443CA3] text-white text-center text-xs font-medium py-2.5 rounded-xl">Agregar Deudor</div>
+            <div className="mt-4 bg-accent text-surface-page text-center text-xs font-medium py-2.5 rounded-xl">Agregar Deudor</div>
         </div>
     );
 }
 
 function MockStep2() {
     return (
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#443CA3]/8">
-            <p className="text-xs font-semibold text-[#443CA3]/40 uppercase tracking-widest mb-4">Importar Excel</p>
-            <div className="bg-[#F7F8FF] border-2 border-dashed border-[#443CA3]/15 rounded-xl p-5 text-center mb-4">
-                <div className="w-8 h-8 bg-[#21FE83]/20 rounded-lg mx-auto mb-2 flex items-center justify-center">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v8M3.5 6.5L7 10l3.5-3.5" stroke="#21a86a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M1.5 12h11" stroke="#21a86a" strokeWidth="1.5" strokeLinecap="round"/></svg>
+        <div className="bg-surface-raised rounded-2xl p-5 shadow-sm border border-accent/8">
+            <p className="text-xs font-semibold text-accent/40 uppercase tracking-widest mb-4">Importar Excel</p>
+            <div className="bg-surface-hover border-2 border-dashed border-accent/15 rounded-xl p-5 text-center mb-4">
+                <div className="w-8 h-8 bg-brand-mint/20 rounded-lg mx-auto mb-2 flex items-center justify-center">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v8M3.5 6.5L7 10l3.5-3.5" stroke="var(--color-brand-mint)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M1.5 12h11" stroke="var(--color-brand-mint)" strokeWidth="1.5" strokeLinecap="round"/></svg>
                 </div>
-                <p className="text-xs text-[#443CA3]/40">Arrastra tu archivo aquí</p>
-                <p className="text-[10px] text-[#443CA3]/25 mt-1">.xlsx · .xls · .csv</p>
+                <p className="text-xs text-accent/40">Arrastra tu archivo aquí</p>
+                <p className="text-[10px] text-accent/25 mt-1">.xlsx · .xls · .csv</p>
             </div>
             <div className="flex flex-col gap-1.5 mb-4">
                 {[
@@ -75,18 +75,18 @@ function MockStep2() {
                     { n: "David López", a: "$1,007", ok: true },
                     { n: "Juan Pérez", a: "$320", ok: false },
                 ].map((r, i) => (
-                    <div key={i} className={`flex justify-between items-center px-3 py-2 rounded-xl text-xs border ${r.ok ? "bg-[#F7F8FF] border-[#443CA3]/6" : "bg-red-50 border-red-100"}`}>
-                        <span className="text-[#443CA3]/60">{r.n}</span>
+                    <div key={i} className={`flex justify-between items-center px-3 py-2 rounded-xl text-xs border ${r.ok ? "bg-surface-hover border-accent/6" : "bg-danger-bg border-danger/20"}`}>
+                        <span className="text-accent/60">{r.n}</span>
                         <div className="flex items-center gap-2">
-                            <span className="font-semibold text-[#443CA3]">{r.a}</span>
-                            <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] text-white ${r.ok ? "bg-[#21FE83]" : "bg-red-400"}`}>{r.ok ? "✓" : "!"}</div>
+                            <span className="font-semibold text-accent">{r.a}</span>
+                            <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] text-surface-page ${r.ok ? "bg-brand-mint" : "bg-danger"}`}>{r.ok ? "✓" : "!"}</div>
                         </div>
                     </div>
                 ))}
             </div>
             <div className="flex gap-2">
-                <div className="flex-1 border border-[#443CA3]/15 rounded-xl py-2 text-xs text-center text-[#443CA3]/60">Plantilla</div>
-                <div className="flex-1 bg-[#443CA3] rounded-xl py-2 text-xs text-center text-white font-medium">Importar 2 filas</div>
+                <div className="flex-1 border border-accent/15 rounded-xl py-2 text-xs text-center text-accent/60">Plantilla</div>
+                <div className="flex-1 bg-accent rounded-xl py-2 text-xs text-center text-surface-page font-medium">Importar 2 filas</div>
             </div>
         </div>
     );
@@ -94,26 +94,26 @@ function MockStep2() {
 
 function MockStep3() {
     return (
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#443CA3]/8">
+        <div className="bg-surface-raised rounded-2xl p-5 shadow-sm border border-accent/8">
             <div className="flex justify-between items-center mb-4">
-                <p className="text-xs font-semibold text-[#443CA3]/40 uppercase tracking-widest">Mis Deudores</p>
-                <div className="bg-[#443CA3] text-white text-[10px] px-3 py-1.5 rounded-lg font-medium">Enviar Recordatorios</div>
+                <p className="text-xs font-semibold text-accent/40 uppercase tracking-widest">Mis Deudores</p>
+                <div className="bg-accent text-surface-page text-[10px] px-3 py-1.5 rounded-lg font-medium">Enviar Recordatorios</div>
             </div>
             <div className="flex flex-col gap-2">
                 {[
-                    { n: "Elena Torres", a: "$558", on: true, s: "Pendiente", sc: "#F59E0B", sb: "#FEF3C7" },
-                    { n: "David López", a: "$1,007", on: true, s: "En Gestión", sc: "#443CA3", sb: "#EEEDFE" },
-                    { n: "Lucía Sánchez", a: "$897", on: false, s: "Pendiente", sc: "#F59E0B", sb: "#FEF3C7" },
+                    { n: "Elena Torres", a: "$558", on: true, s: "Pendiente", sc: "var(--color-status-pendiente)", sb: "var(--color-status-pendiente-bg)" },
+                    { n: "David López", a: "$1,007", on: true, s: "En Gestión", sc: "var(--color-status-en-gestion)", sb: "var(--color-status-en-gestion-bg)" },
+                    { n: "Lucía Sánchez", a: "$897", on: false, s: "Pendiente", sc: "var(--color-status-pendiente)", sb: "var(--color-status-pendiente-bg)" },
                 ].map((d, i) => (
-                    <div key={i} className="border border-[#443CA3]/8 rounded-xl px-3 py-2.5 flex justify-between items-center">
+                    <div key={i} className="border border-accent/8 rounded-xl px-3 py-2.5 flex justify-between items-center">
                         <div>
-                            <p className="text-xs font-semibold text-[#443CA3] mb-1">{d.n}</p>
+                            <p className="text-xs font-semibold text-accent mb-1">{d.n}</p>
                             <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ color: d.sc, background: d.sb }}>{d.s}</span>
                         </div>
                         <div className="flex items-center gap-3">
-                            <span className="text-xs font-bold text-[#443CA3]">{d.a}</span>
-                            <div className="w-8 h-4 rounded-full relative flex-shrink-0 transition-colors" style={{ background: d.on ? "#21FE83" : "#E5E7EB" }}>
-                                <div className="absolute top-0.5 w-3 h-3 bg-white rounded-full shadow-sm transition-all" style={{ left: d.on ? "18px" : "2px" }} />
+                            <span className="text-xs font-bold text-accent">{d.a}</span>
+                            <div className="w-8 h-4 rounded-full relative flex-shrink-0 transition-colors" style={{ background: d.on ? "var(--color-brand-mint)" : "var(--color-border-default)" }}>
+                                <div className="absolute top-0.5 w-3 h-3 bg-surface-page rounded-full shadow-sm transition-all" style={{ left: d.on ? "18px" : "2px" }} />
                             </div>
                         </div>
                     </div>
@@ -125,49 +125,49 @@ function MockStep3() {
 
 function MockStep4() {
     return (
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#443CA3]/8">
-            <p className="text-xs font-semibold text-[#443CA3]/40 uppercase tracking-widest mb-4">Reportes</p>
+        <div className="bg-surface-raised rounded-2xl p-5 shadow-sm border border-accent/8">
+            <p className="text-xs font-semibold text-accent/40 uppercase tracking-widest mb-4">Reportes</p>
             <div className="grid grid-cols-2 gap-2 mb-4">
-                <div className="bg-[#F7F8FF] rounded-xl p-3.5">
-                    <p className="text-[10px] text-[#443CA3]/30 uppercase tracking-wide mb-1">Deudores</p>
-                    <p className="text-2xl font-bold text-[#443CA3]">25</p>
+                <div className="bg-surface-hover rounded-xl p-3.5">
+                    <p className="text-[10px] text-accent/30 uppercase tracking-wide mb-1">Deudores</p>
+                    <p className="text-2xl font-bold text-accent">25</p>
                 </div>
-                <div className="bg-[#443CA3] rounded-xl p-3.5">
-                    <p className="text-[10px] text-white/40 uppercase tracking-wide mb-1">Recuperado</p>
-                    <p className="text-2xl font-bold text-[#21FE83]">$4.2K</p>
+                <div className="bg-accent rounded-xl p-3.5">
+                    <p className="text-[10px] text-surface-page/40 uppercase tracking-wide mb-1">Recuperado</p>
+                    <p className="text-2xl font-bold text-brand-mint">$4.2K</p>
                 </div>
             </div>
             <div className="mb-4">
-                <div className="flex justify-between text-[10px] text-[#443CA3]/30 mb-1.5"><span>Progreso de recuperación</span><span>34%</span></div>
-                <div className="bg-[#443CA3]/8 rounded-full h-1.5 overflow-hidden">
-                    <div className="bg-[#21FE83] h-full rounded-full" style={{ width: "34%" }} />
+                <div className="flex justify-between text-[10px] text-accent/30 mb-1.5"><span>Progreso de recuperación</span><span>34%</span></div>
+                <div className="bg-accent/8 rounded-full h-1.5 overflow-hidden">
+                    <div className="bg-brand-mint h-full rounded-full" style={{ width: "34%" }} />
                 </div>
             </div>
             <div className="flex items-end gap-1.5 h-14">
                 {[4, 7, 3, 9, 5, 8, 6].map((h, i) => (
-                    <div key={i} className="flex-1 rounded-t-sm" style={{ height: `${h * 5}px`, background: `rgba(68,60,163,${0.3 + i * 0.07})` }} />
+                    <div key={i} className="flex-1 rounded-t-sm" style={{ height: `${h * 5}px`, background: `color-mix(in srgb, var(--color-accent) ${Math.round((0.3 + i * 0.07) * 100)}%, transparent)` }} />
                 ))}
             </div>
-            <p className="text-[9px] text-[#443CA3]/25 text-center mt-2">Llamadas · últimos 7 días</p>
+            <p className="text-[9px] text-accent/25 text-center mt-2">Llamadas · últimos 7 días</p>
         </div>
     );
 }
 
 function MockStep5() {
     return (
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#443CA3]/8">
-            <p className="text-xs font-semibold text-[#443CA3]/40 uppercase tracking-widest mb-4">Registro de Actividad</p>
+        <div className="bg-surface-raised rounded-2xl p-5 shadow-sm border border-accent/8">
+            <p className="text-xs font-semibold text-accent/40 uppercase tracking-widest mb-4">Registro de Actividad</p>
             <div className="flex flex-col gap-2">
                 {[
-                    { e: "Llamada", d: "Elena Torres — $558", sc: "#EF4444", sb: "#FEE2E2", t: "18:04" },
-                    { e: "Email", d: "David López — $1,007", sc: "#0EA5E9", sb: "#E0F2FE", t: "17:49" },
-                    { e: "Estado", d: "Pedro → Acuerdo de Pago", sc: "#F59E0B", sb: "#FEF3C7", t: "09:55" },
-                    { e: "Nota", d: "\"Prometió pagar el viernes\"", sc: "#443CA3", sb: "#EEEDFE", t: "Ayer" },
+                    { e: "Llamada", d: "Elena Torres — $558", sc: "var(--color-danger)", sb: "var(--color-danger-bg)", t: "18:04" },
+                    { e: "Email", d: "David López — $1,007", sc: "var(--color-info)", sb: "var(--color-info-bg)", t: "17:49" },
+                    { e: "Estado", d: "Pedro → Acuerdo de Pago", sc: "var(--color-neutral-event)", sb: "var(--color-neutral-event-bg)", t: "09:55" },
+                    { e: "Nota", d: "\"Prometió pagar el viernes\"", sc: "var(--color-accent)", sb: "var(--color-accent-bg)", t: "Ayer" },
                 ].map((l, i) => (
-                    <div key={i} className="flex items-center gap-2.5 px-3 py-2 bg-[#F7F8FF] rounded-xl">
+                    <div key={i} className="flex items-center gap-2.5 px-3 py-2 bg-surface-hover rounded-xl">
                         <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0" style={{ color: l.sc, background: l.sb }}>{l.e}</span>
-                        <span className="text-[11px] text-[#443CA3]/50 flex-1 truncate">{l.d}</span>
-                        <span className="text-[10px] text-[#443CA3]/25 whitespace-nowrap">{l.t}</span>
+                        <span className="text-[11px] text-accent/50 flex-1 truncate">{l.d}</span>
+                        <span className="text-[10px] text-accent/25 whitespace-nowrap">{l.t}</span>
                     </div>
                 ))}
             </div>
@@ -212,11 +212,11 @@ export default function FeatureGuide() {
     return (
         <section className="px-8 pt-0 pb-16 max-w-7xl mx-auto">
             <div className="text-center mb-10">
-                <p className="text-xs font-semibold tracking-[0.2em] text-[#443CA3]/30 uppercase mb-5">Cómo funciona</p>
-                <h2 className="text-4xl md:text-5xl font-extrabold text-[#443CA3] mb-5 leading-[1.05]">
+                <p className="text-xs font-semibold tracking-[0.2em] text-accent/30 uppercase mb-5">Cómo funciona</p>
+                <h2 className="text-4xl md:text-5xl font-extrabold text-accent mb-5 leading-[1.05]">
                     Todo lo que necesitas,<br/>en un solo lugar
                 </h2>
-                <p className="text-lg text-[#443CA3]/40 max-w-md mx-auto">Gestiona, notifica y recupera. Así de
+                <p className="text-lg text-accent/40 max-w-md mx-auto">Gestiona, notifica y recupera. Así de
                     simple.</p>
             </div>
 
@@ -227,14 +227,14 @@ export default function FeatureGuide() {
                         key={i}
                         onClick={() => goTo(i, true)}
                         className="group flex flex-col items-center gap-2 px-4 py-2 rounded-2xl transition-all duration-500"
-                        style={{background: i === current ? "#443CA308" : "transparent"}}
+                        style={{background: i === current ? "var(--color-accent-bg)" : "transparent"}}
                     >
                         <span
-                            className={`text-xs font-bold transition-all duration-500 ${i === current ? "text-[#443CA3]" : "text-[#443CA3]/25"}`}>
+                            className={`text-xs font-bold transition-all duration-500 ${i === current ? "text-accent" : "text-accent/25"}`}>
                             {s.label}
                         </span>
                         <div
-                            className={`h-0.5 rounded-full transition-all duration-500 ${i === current ? "w-8 bg-[#443CA3]" : "w-4 bg-[#443CA3]/15"}`}/>
+                            className={`h-0.5 rounded-full transition-all duration-500 ${i === current ? "w-8 bg-accent" : "w-4 bg-accent/15"}`}/>
                     </button>
                 ))}
             </div>
@@ -248,10 +248,10 @@ export default function FeatureGuide() {
                     style={{animation: "fadeUp 0.5s cubic-bezier(0.4,0,0.2,1) forwards"}}
                 >
                     <div className="inline-flex items-center gap-2 mb-6">
-                        <span className="text-4xl font-black text-[#443CA3]/8">{step.label}</span>
+                        <span className="text-4xl font-black text-accent/8">{step.label}</span>
                     </div>
-                    <h3 className="text-3xl font-extrabold text-[#443CA3] mb-4 leading-tight">{step.title}</h3>
-                    <p className="text-base text-[#443CA3]/50 leading-relaxed mb-8">{step.desc}</p>
+                    <h3 className="text-3xl font-extrabold text-accent mb-4 leading-tight">{step.title}</h3>
+                    <p className="text-base text-accent/50 leading-relaxed mb-8">{step.desc}</p>
                     <div className="flex flex-col gap-3.5">
                         {step.checks.map((c, i) => (
                             <div
@@ -263,13 +263,13 @@ export default function FeatureGuide() {
                                 }}
                             >
                                 <div
-                                    className="w-5 h-5 rounded-full bg-[#21FE83] flex items-center justify-center flex-shrink-0">
+                                    className="w-5 h-5 rounded-full bg-brand-mint flex items-center justify-center flex-shrink-0">
                                     <svg width="9" height="9" viewBox="0 0 9 9">
-                                        <path d="M1.5 4.5l2 2 4-4" stroke="#443CA3" strokeWidth="1.5"
+                                        <path d="M1.5 4.5l2 2 4-4" stroke="var(--color-accent)" strokeWidth="1.5"
                                               strokeLinecap="round" strokeLinejoin="round" fill="none"/>
                                     </svg>
                                 </div>
-                                <span className="text-sm text-[#443CA3]/60">{c}</span>
+                                <span className="text-sm text-accent/60">{c}</span>
                             </div>
                         ))}
                     </div>
@@ -279,7 +279,7 @@ export default function FeatureGuide() {
                         <button
                             onClick={() => navigate(-1, true)}
                             disabled={current === 0}
-                            className="w-10 h-10 rounded-full border border-[#443CA3]/15 flex items-center justify-center text-[#443CA3]/40 hover:border-[#443CA3]/40 hover:text-[#443CA3] transition-all disabled:opacity-20"
+                            className="w-10 h-10 rounded-full border border-accent/15 flex items-center justify-center text-accent/40 hover:border-accent/40 hover:text-accent transition-all disabled:opacity-20"
                         >
                             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                                 <path d="M9 3L5 7l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
@@ -289,14 +289,14 @@ export default function FeatureGuide() {
                         <button
                             onClick={() => navigate(1, true)}
                             disabled={current === STEPS.length - 1}
-                            className="w-10 h-10 rounded-full border border-[#443CA3]/15 flex items-center justify-center text-[#443CA3]/40 hover:border-[#443CA3]/40 hover:text-[#443CA3] transition-all disabled:opacity-20"
+                            className="w-10 h-10 rounded-full border border-accent/15 flex items-center justify-center text-accent/40 hover:border-accent/40 hover:text-accent transition-all disabled:opacity-20"
                         >
                             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                                 <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
                                       strokeLinejoin="round"/>
                             </svg>
                         </button>
-                        <span className="text-xs text-[#443CA3]/25 ml-2">{current + 1} / {STEPS.length}</span>
+                        <span className="text-xs text-accent/25 ml-2">{current + 1} / {STEPS.length}</span>
                     </div>
                 </div>
 
@@ -313,9 +313,9 @@ export default function FeatureGuide() {
             {/* Progress bar */}
             <div className="flex gap-1.5 mt-16 max-w-xs mx-auto">
                 {STEPS.map((_, i) => (
-                    <div key={i} className="flex-1 h-0.5 rounded-full overflow-hidden bg-[#443CA3]/10">
+                    <div key={i} className="flex-1 h-0.5 rounded-full overflow-hidden bg-accent/10">
                         <div
-                            className="h-full rounded-full bg-[#443CA3] transition-all duration-500"
+                            className="h-full rounded-full bg-accent transition-all duration-500"
                             style={{
                                 width: i === current ? "100%" : i < current ? "100%" : "0%",
                                 opacity: i < current ? 0.3 : 1

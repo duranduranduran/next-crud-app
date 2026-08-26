@@ -1,26 +1,32 @@
 @import "tailwindcss";
+@import "../styles/tokens.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* --background/--foreground were leftover create-next-app boilerplate with
+   hardcoded hex values and an inverted prefers-color-scheme check (unrelated
+   to and out of sync with the real token system below) — removed in favor of
+   the actual design tokens, which already handle both themes correctly. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body {
+  background: var(--color-surface-page);
+  color: var(--color-text-primary);
+  font-family: Arial, Helvetica, sans-serif;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Site-wide focus ring for every interactive element, instead of hand-adding
+   focus classes to every button/input/select/link/textarea individually.
+   :focus-visible skips the ring for mouse clicks and only shows it for
+   keyboard/assistive-tech focus. */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
 }

@@ -1,9 +1,44 @@
 'use client';
 
 import { SignIn } from "@clerk/nextjs";
+import { dark } from "@clerk/themes";
 import Link from "next/link";
 import Image from "next/image";
 import { useMemo } from "react";
+
+// Clerk doesn't read our CSS — it themes through the appearance prop.
+// variables map to our tokens by CSS var() reference (not retyped hexes),
+// which resolve correctly because <html> carries data-theme globally
+// block wraps this whole page and is an ancestor of Clerk's rendered DOM.
+const clerkAppearance = {
+    baseTheme: dark,
+    variables: {
+        colorPrimary: "var(--color-accent)",
+        colorBackground: "var(--color-surface-raised)",
+        colorText: "var(--color-text-primary)",
+        colorTextSecondary: "var(--color-text-secondary)",
+        colorInputBackground: "var(--color-surface-page)",
+        colorInputText: "var(--color-text-primary)",
+        borderRadius: "var(--radius-md)",
+    },
+    elements: {
+        // Not reachable via `variables` — Clerk has no border-color or
+        // focus-ring variable, so these stay as element class overrides.
+        card: "shadow-none border border-border-default",
+        headerTitle: "text-text-primary font-bold",
+        headerSubtitle: "text-text-secondary",
+        formButtonPrimary:
+            "text-surface-page font-bold hover:bg-accent-hover " +
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface-raised",
+        socialButtonsBlockButton:
+            "border border-border-default hover:bg-surface-hover text-text-primary " +
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface-raised",
+        formFieldInput:
+            "border border-border-default focus:border-accent " +
+            "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-surface-page",
+        footerActionLink: "text-accent hover:underline",
+    },
+};
 
 export default function SignInPage() {
 
@@ -16,40 +51,40 @@ export default function SignInPage() {
     );
 
     return (
-        <div className="min-h-screen bg-white text-[#443CA3] relative overflow-hidden">
+        <div data-density="compact" className="min-h-screen bg-surface-page text-text-primary relative overflow-hidden">
 
             {/* ================= NAVBAR ================= */}
             <nav
-                className="sticky top-0 z-50 flex items-center justify-between px-8 max-w-7xl mx-auto bg-white py-4 border-b border-[#443CA3]/10">
+                className="sticky top-0 z-50 flex items-center justify-between px-8 max-w-7xl mx-auto bg-surface-page py-4 border-b border-border-subtle">
                 <Link href="/">
                     <Image
-                        src="/logo-recupera-purple.png"
+                        src="/logo-recupera-white.png"
                         alt="Recupera"
-                        width={150}
-                        height={25}
+                        width={140}
+                        height={43}
                     />
                 </Link>
 
                 <ul className="flex space-x-6">
                     <li>
-                        <Link href="/about" className="hover:underline">
+                        <Link href="/about" className="hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface-page rounded-sm">
                             Quienes Somos
                         </Link>
                     </li>
                     <li>
-                        <Link href="/services" className="hover:underline">
+                        <Link href="/services" className="hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface-page rounded-sm">
                             Servicios
                         </Link>
                     </li>
                     <li>
-                        <Link href="/contact" className="hover:underline">
+                        <Link href="/contact" className="hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface-page rounded-sm">
                             Contactanos
                         </Link>
                     </li>
                     <li>
                         <Link
                             href="/sign-in"
-                            className="border border-[#443CA3] px-5 py-2 rounded-lg hover:bg-[#443CA3] hover:text-white transition"
+                            className="border border-accent px-5 py-2 rounded-lg hover:bg-accent hover:text-surface-page transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface-page"
                         >
                             Iniciar Sesión
                         </Link>
@@ -65,7 +100,7 @@ export default function SignInPage() {
                     {particles.map((p, i) => (
                         <div
                             key={i}
-                            className="absolute w-1 h-1 bg-[#443CA3] rounded-full"
+                            className="absolute w-1 h-1 bg-accent rounded-full"
                             style={{
                                 top: `${p.top}%`,
                                 left: `${p.left}%`,
@@ -85,7 +120,7 @@ export default function SignInPage() {
                             sin fricción
                         </h1>
 
-                        <p className="text-[#443CA3]/70 max-w-md">
+                        <p className="text-text-secondary max-w-md">
                             Automatiza tu cobranza, optimiza tus flujos y transforma
                             deudas en ingresos con una plataforma diseñada para escalar.
                         </p>
@@ -94,12 +129,12 @@ export default function SignInPage() {
                         <div className="relative mt-10">
 
                             <div
-                                className="absolute -left-6 top-0 border border-[#443CA3]/20 p-4 rounded-lg bg-white animate-floatSlow text-sm">
+                                className="absolute -left-6 top-0 border border-border-default p-4 rounded-lg bg-surface-raised animate-floatSlow text-sm">
                                 +92% recuperación
                             </div>
 
                             <div
-                                className="absolute left-32 top-16 border border-[#443CA3]/20 p-4 rounded-lg bg-white animate-floatSlowReverse text-sm">
+                                className="absolute left-32 top-16 border border-border-default p-4 rounded-lg bg-surface-raised animate-floatSlowReverse text-sm">
                                 Automatización 24/7
                             </div>
 
@@ -111,21 +146,7 @@ export default function SignInPage() {
 
                         <SignIn
                             forceRedirectUrl="/redirect"
-                            appearance={{
-                                elements: {
-                                    card: "bg-white border border-[#443CA3]/20 shadow-none rounded-xl",
-                                    headerTitle: "text-[#443CA3] font-bold",
-                                    headerSubtitle: "text-[#443CA3]/70",
-                                    formButtonPrimary:
-                                        "bg-[#443CA3] hover:opacity-90 text-white font-bold",
-                                    socialButtonsBlockButton:
-                                        "border border-[#443CA3]/20 hover:bg-[#443CA3] hover:text-white",
-                                    formFieldInput:
-                                        "border border-[#443CA3]/20 focus:border-[#443CA3] focus:ring-0",
-                                    footerActionLink:
-                                        "text-[#443CA3] hover:underline",
-                                },
-                            }}
+                            appearance={clerkAppearance}
                         />
 
                     </div>

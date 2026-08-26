@@ -1,8 +1,8 @@
 'use client';
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import Logo from "../components/Logo";
 
 export default function QuienesSomosPage() {
 
@@ -30,8 +30,8 @@ export default function QuienesSomosPage() {
             tag: "Quiénes somos",
             title: "Una plataforma inteligente y ética",
             body: "Impulsamos la recuperación de liquidez de empresas y emprendedores a través de tecnología y respaldo legal, transformando la cobranza en un proceso eficiente, seguro y sin hostigamientos.",
-            accent: "#443CA3",
-            light: "#EEEDFE",
+            accent: "var(--color-accent)",
+            light: "var(--color-accent-bg)",
             side: "left",
             float: { label: "Clientes activos", value: "+500" },
         },
@@ -39,8 +39,8 @@ export default function QuienesSomosPage() {
             tag: "Nuestra Misión",
             title: "Recuperar lo que es tuyo",
             body: "Impulsar la recuperación de liquidez de empresas y emprendedores a través de una plataforma digital inteligente y ética, que combina tecnología y respaldo legal para transformar la cobranza en un proceso eficiente, seguro y sin hostigamientos.",
-            accent: "#21FE83",
-            light: "#E6FFF2",
+            accent: "var(--color-brand-mint)",
+            light: "var(--color-brand-mint-bg)",
             side: "right",
             float: { label: "Tasa de contactabilidad", value: "+92%" },
         },
@@ -48,8 +48,8 @@ export default function QuienesSomosPage() {
             tag: "Nuestra Visión",
             title: "Líderes en Latinoamérica",
             body: "Ser la plataforma líder en Latinoamérica en la recuperación de liquidez empresarial mediante gestión de cobranza inteligente, reconocida por su innovación, eficiencia y ética en la protección de la relación entre acreedores y clientes.",
-            accent: "#443CA3",
-            light: "#EEEDFE",
+            accent: "var(--color-accent)",
+            light: "var(--color-accent-bg)",
             side: "left",
             float: { label: "Automatización", value: "24/7" },
         },
@@ -63,12 +63,12 @@ export default function QuienesSomosPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-white text-[#443CA3] overflow-x-hidden">
+        <div className="min-h-screen bg-surface-page text-accent overflow-x-hidden">
 
             {/* NAVBAR */}
-            <nav className="sticky top-0 z-50 flex items-center justify-between px-8 max-w-7xl mx-auto bg-white py-4 border-b border-[#443CA3]/10">
+            <nav className="sticky top-0 z-50 flex items-center justify-between px-8 max-w-7xl mx-auto bg-surface-raised py-4 border-b border-accent/10">
                 <Link href="/">
-                    <Image src="/logo-recupera-purple.png" alt="Recupera" width={150} height={25} />
+                    <Logo className="h-[25px] w-auto" />
                 </Link>
                 <ul className="flex space-x-6 items-center">
                     <li><Link href="/about" className="font-bold underline underline-offset-4">Quienes Somos</Link></li>
@@ -76,7 +76,7 @@ export default function QuienesSomosPage() {
                     <li><Link href="/planes" className="hover:underline">Planes</Link></li>
                     <li><Link href="/contact" className="hover:underline">Contactanos</Link></li>
                     <li>
-                        <Link href="/sign-in" className="border border-[#443CA3] px-5 py-2 rounded-lg hover:bg-[#443CA3] hover:text-white transition">
+                        <Link href="/sign-in" className="border border-accent px-5 py-2 rounded-lg hover:bg-accent hover:text-surface-page transition">
                             Iniciar Sesión
                         </Link>
                     </li>
@@ -87,46 +87,46 @@ export default function QuienesSomosPage() {
             <section className="relative pt-24 pb-16 px-8 text-center overflow-hidden" onMouseMove={handleMouseMove}>
                 <div className="absolute inset-0 opacity-5 pointer-events-none">
                     {particles.map((p, i) => (
-                        <div key={i} className="absolute w-1 h-1 bg-[#443CA3] rounded-full"
+                        <div key={i} className="absolute w-1 h-1 bg-accent rounded-full"
                              style={{ top: `${p.top}%`, left: `${p.left}%` }} />
                     ))}
                 </div>
 
                 {/* Floating cards */}
-                <div className="group absolute top-28 left-12 border border-[#443CA3]/20 p-4 rounded-xl w-48 bg-white animate-floatSlow hover:bg-[#21FE83] transition-all duration-300 hidden lg:block text-left">
-                    <p className="text-xs text-[#443CA3]/50 mb-1 group-hover:text-[#443CA3]">Casos activos</p>
-                    <p className="text-xl font-bold group-hover:text-[#443CA3]">+10,000</p>
+                <div className="group absolute top-28 left-12 border border-accent/20 p-4 rounded-xl w-48 bg-surface-raised animate-floatSlow hover:bg-brand-mint transition-all duration-300 hidden lg:block text-left">
+                    <p className="text-xs text-accent/50 mb-1 group-hover:text-accent">Casos activos</p>
+                    <p className="text-xl font-bold group-hover:text-accent">+10,000</p>
                 </div>
-                <div className="group absolute top-40 right-12 border border-[#443CA3]/20 p-4 rounded-xl w-48 bg-white animate-floatSlowReverse hover:bg-[#FFFF76] transition-all duration-300 hidden lg:block text-left">
-                    <p className="text-xs text-[#443CA3]/50 mb-1 group-hover:text-[#443CA3]">Alcance</p>
-                    <p className="text-xl font-bold group-hover:text-[#443CA3]">LATAM 🌎</p>
+                <div className="group absolute top-40 right-12 border border-accent/20 p-4 rounded-xl w-48 bg-surface-raised animate-floatSlowReverse hover:bg-brand-yellow transition-all duration-300 hidden lg:block text-left">
+                    <p className="text-xs text-accent/50 mb-1 group-hover:text-accent">Alcance</p>
+                    <p className="text-xl font-bold group-hover:text-accent">LATAM 🌎</p>
                 </div>
 
                 <div className="relative max-w-2xl mx-auto">
-                    <p className="text-xs font-bold tracking-widest text-[#443CA3]/30 uppercase mb-5">Quienes Somos</p>
+                    <p className="text-xs font-bold tracking-widest text-accent/30 uppercase mb-5">Quienes Somos</p>
                     <h1 className="text-6xl md:text-7xl font-extrabold leading-[0.95] mb-6">
                         Recupera<br />
                         <span className="relative inline-block">
                             tu liquidez
-                            <span className="absolute -bottom-1 left-0 w-full h-1 bg-[#21FE83] rounded-full"></span>
+                            <span className="absolute -bottom-1 left-0 w-full h-1 bg-brand-mint rounded-full"></span>
                         </span>
                     </h1>
-                    <p className="text-lg text-[#443CA3]/60 leading-relaxed">
+                    <p className="text-lg text-accent/60 leading-relaxed">
                         Somos la plataforma que combina tecnología, ética y respaldo legal para transformar la cobranza empresarial en Latinoamérica.
                     </p>
                 </div>
 
                 {/* Stats strip */}
-                <div className="max-w-3xl mx-auto mt-16 grid grid-cols-4 gap-0 border border-[#443CA3]/10 rounded-2xl overflow-hidden">
+                <div className="max-w-3xl mx-auto mt-16 grid grid-cols-4 gap-0 border border-accent/10 rounded-2xl overflow-hidden">
                     {[
                         { value: "+92%", label: "Contactabilidad" },
                         { value: "24/7", label: "Automatización" },
                         { value: "+10K", label: "Casos activos" },
                         { value: "LATAM", label: "Alcance" },
                     ].map((s, i) => (
-                        <div key={i} className={`group py-6 px-4 cursor-default hover:bg-[#F7F8FF] transition-colors duration-300 ${i < 3 ? 'border-r border-[#443CA3]/10' : ''}`}>
-                            <p className="text-2xl font-extrabold group-hover:text-[#443CA3] transition-colors">{s.value}</p>
-                            <p className="text-xs text-[#443CA3]/40 mt-1 uppercase tracking-wide">{s.label}</p>
+                        <div key={i} className={`group py-6 px-4 cursor-default hover:bg-surface-hover transition-colors duration-300 ${i < 3 ? 'border-r border-accent/10' : ''}`}>
+                            <p className="text-2xl font-extrabold group-hover:text-accent transition-colors">{s.value}</p>
+                            <p className="text-xs text-accent/40 mt-1 uppercase tracking-wide">{s.label}</p>
                         </div>
                     ))}
                 </div>
@@ -136,7 +136,7 @@ export default function QuienesSomosPage() {
             <section className="px-8 py-24 max-w-5xl mx-auto relative">
 
                 {/* Center line */}
-                <div className="absolute left-1/2 top-24 bottom-24 w-px bg-[#443CA3]/10 -translate-x-1/2 hidden md:block"></div>
+                <div className="absolute left-1/2 top-24 bottom-24 w-px bg-accent/10 -translate-x-1/2 hidden md:block"></div>
 
                 <div className="space-y-24">
                     {timeline.map((item, i) => (
@@ -144,7 +144,7 @@ export default function QuienesSomosPage() {
 
                             {/* Center dot */}
                             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block z-10">
-                                <div className="w-4 h-4 rounded-full border-2 bg-white"
+                                <div className="w-4 h-4 rounded-full border-2 bg-surface-raised"
                                      style={{ borderColor: item.accent }}>
                                 </div>
                             </div>
@@ -152,7 +152,7 @@ export default function QuienesSomosPage() {
                             {/* Content — alternates sides */}
                             <div className={`${item.side === 'right' ? 'md:col-start-2' : ''} group`}>
                                 <div
-                                    className="border border-[#443CA3]/10 rounded-2xl p-8 hover:shadow-xl transition-all duration-500 hover:-translate-y-1 relative overflow-hidden"
+                                    className="border border-accent/10 rounded-2xl p-8 hover:shadow-xl transition-all duration-500 hover:-translate-y-1 relative overflow-hidden"
                                     style={{ '--accent': item.accent }}
                                 >
                                     {/* Accent corner */}
@@ -164,18 +164,18 @@ export default function QuienesSomosPage() {
                                         {item.tag}
                                     </span>
                                     <h2 className="text-2xl font-bold mb-4 ml-4">{item.title}</h2>
-                                    <p className="text-[#443CA3]/60 leading-relaxed ml-4">{item.body}</p>
+                                    <p className="text-accent/60 leading-relaxed ml-4">{item.body}</p>
                                 </div>
                             </div>
 
                             {/* Floating stat — opposite side */}
                             <div className={`${item.side === 'right' ? 'md:col-start-1 md:row-start-1' : ''} flex ${item.side === 'right' ? 'md:justify-end' : 'md:justify-start'} items-center`}>
                                 <div
-                                    className="group border border-[#443CA3]/10 rounded-2xl p-8 w-48 hover:scale-105 transition-all duration-300 cursor-default animate-floatSlow text-center"
+                                    className="group border border-accent/10 rounded-2xl p-8 w-48 hover:scale-105 transition-all duration-300 cursor-default animate-floatSlow text-center"
                                     style={{ animationDelay: `${i * 0.5}s` }}
                                 >
                                     <p className="text-4xl font-extrabold mb-2" style={{ color: item.accent }}>{item.float.value}</p>
-                                    <p className="text-xs text-[#443CA3]/40 uppercase tracking-wide">{item.float.label}</p>
+                                    <p className="text-xs text-accent/40 uppercase tracking-wide">{item.float.label}</p>
                                 </div>
                             </div>
 
@@ -185,17 +185,17 @@ export default function QuienesSomosPage() {
             </section>
 
             {/* VALUES */}
-            <section className="bg-[#F7F8FF] px-8 py-24">
+            <section className="bg-surface-hover px-8 py-24">
                 <div className="max-w-5xl mx-auto">
-                    <p className="text-xs font-bold tracking-widest text-[#443CA3]/30 uppercase text-center mb-3">Nuestros valores</p>
+                    <p className="text-xs font-bold tracking-widest text-accent/30 uppercase text-center mb-3">Nuestros valores</p>
                     <h2 className="text-4xl font-bold text-center mb-14">Lo que nos define</h2>
                     <div className="grid md:grid-cols-4 gap-6">
                         {values.map((v, i) => (
                             <div key={i}
-                                 className="group bg-white border border-[#443CA3]/10 rounded-2xl p-7 hover:border-[#443CA3]/40 hover:-translate-y-2 hover:shadow-lg hover:shadow-[#443CA3]/5 transition-all duration-300 cursor-default text-center">
+                                 className="group bg-surface-raised border border-accent/10 rounded-2xl p-7 hover:border-accent/40 hover:-translate-y-2 hover:shadow-lg hover:shadow-accent/5 transition-all duration-300 cursor-default text-center">
                                 <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300 inline-block">{v.icon}</div>
                                 <h3 className="font-bold text-lg mb-2">{v.title}</h3>
-                                <p className="text-sm text-[#443CA3]/50 leading-relaxed">{v.desc}</p>
+                                <p className="text-sm text-accent/50 leading-relaxed">{v.desc}</p>
                             </div>
                         ))}
                     </div>
@@ -206,12 +206,12 @@ export default function QuienesSomosPage() {
             <section className="px-8 py-24 text-center">
                 <div className="max-w-xl mx-auto">
                     <h2 className="text-4xl font-bold mb-4">¿Listo para comenzar?</h2>
-                    <p className="text-[#443CA3]/60 mb-10">Únete a miles de empresas que ya recuperan su liquidez con Recupera.</p>
+                    <p className="text-accent/60 mb-10">Únete a miles de empresas que ya recuperan su liquidez con Recupera.</p>
                     <div className="flex gap-4 justify-center">
-                        <Link href="/sign-up" className="bg-[#443CA3] text-white px-8 py-4 rounded-xl font-bold hover:opacity-90 transition">
+                        <Link href="/sign-up" className="bg-accent text-surface-page px-8 py-4 rounded-xl font-bold hover:opacity-90 transition">
                             Crear Cuenta
                         </Link>
-                        <Link href="/planes" className="border border-[#443CA3] px-8 py-4 rounded-xl font-bold hover:bg-[#443CA3] hover:text-white transition">
+                        <Link href="/planes" className="border border-accent px-8 py-4 rounded-xl font-bold hover:bg-accent hover:text-surface-page transition">
                             Ver Planes
                         </Link>
                     </div>
@@ -219,10 +219,10 @@ export default function QuienesSomosPage() {
             </section>
 
             {/* FOOTER */}
-            <footer className="border-t border-[#443CA3]/10 py-8 px-8 text-sm">
+            <footer className="border-t border-accent/10 py-8 px-8 text-sm">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-                    <p className="text-[#443CA3]/70">© {new Date().getFullYear()} <span className="font-bold">Recupera</span></p>
-                    <div className="flex gap-6 text-[#443CA3]/70">
+                    <p className="text-accent/70">© {new Date().getFullYear()} <span className="font-bold">Recupera</span></p>
+                    <div className="flex gap-6 text-accent/70">
                         <Link href="#">Privacidad</Link>
                         <Link href="#">Términos</Link>
                         <Link href="#">Contacto</Link>

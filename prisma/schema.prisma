@@ -3,25 +3,32 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model User {
-  id              String           @id @default(cuid())
+  id              String            @id @default(cuid())
   name            String?
-  email           String?          @unique
+  email           String?           @unique
   emailVerified   DateTime?
   image           String?
-  role            String           @default("client")
+  role            String            @default("client")
   hashedPassword  String?
+  // Max 12 chars, enforced at the application layer (Postgres has no
+  // portable "check length" shorthand in Prisma). Required before SMS can
+  // be enabled for a client — the template allocator budgets a fixed slot
+  // for it, so an unbounded client name would blow every character budget.
+  shortName       String?
   accounts        Account[]
   sessions        Session[]
   debtorRecords   Debtor[]
-  clerkId         String           @unique
+  clerkId         String            @unique
   debtorNotes     DebtorNote[]
   activityLogs    ActivityLog[]
   inboundMessages InboundMessage[]
+  notificationLogs NotificationLog[] @relation("NotificationSender")
 }
 
 enum DebtorStatus {
@@ -41,10 +48,28 @@ enum LogEventType {
   DEBTOR_CREATED
   DEBTOR_DELETED
   BULK_STATUS_CHANGED
+  NOTIFICATION_SENT
+  LEGAL_NOTICE_SENT
+}
+
+enum NotificationChannel {
+  SMS
+  EMAIL
+}
+
+// SENT = accepted by the provider (a 200 from Masiva means accepted, not
+// delivered — that gap is the whole reason an earlier delivery failure went
+// undiagnosed). DELIVERED is only reached via the shipped-report poll cron.
+enum NotificationStatus {
+  SENT
+  DELIVERED
+  FAILED
+  INVALID_NUMBER
+  OPT_OUT
 }
 
 model Debtor {
-  id                 String           @id @default(uuid())
+  id                 String            @id @default(uuid())
   name               String
   email              String?
   amountOwed         Float
@@ -53,15 +78,27 @@ model Debtor {
   cedulaIdentidad    String?
   ruc                String?
   invoiceNumber      String?
-  createdAt          DateTime         @default(now())
-  user               User             @relation(fields: [userId], references: [id])
+  createdAt          DateTime          @default(now())
+  user               User              @relation(fields: [userId], references: [id])
   userId             String
-  availableForNotify Boolean          @default(false)
+  availableForNotify Boolean           @default(false)
   documentUrl        String?
-  status             DebtorStatus     @default(PENDIENTE)
+  status             DebtorStatus      @default(PENDIENTE)
+  smsOptOut          Boolean           @default(false)
+  // 8-char nanoid, not 4 — the public page at /p/[token] exposes name,
+  // amount, and creditor (personal financial data under LOPDP), and a
+  // 4-char token is enumerable. Generated at creation time in every
+  // debtor-create code path (no DB default — see api/debtors/route.js and
+  // api/debtors/upload/route.js); existing rows were backfilled by this
+  // migration.
+  publicToken        String            @unique
   notes              DebtorNote[]
   activityLogs       ActivityLog[]
   inboundMessages    InboundMessage[]
+  smsDeliveryLogs    SmsDeliveryLog[]
+  notificationLogs   NotificationLog[]
+
+  @@index([telephone])
 }
 
 model DebtorNote {
@@ -127,15 +164,73 @@ model NotificationSettings {
 
 model InboundMessage {
   id             String    @id @default(cuid())
-  debtorId       String
-  debtor         Debtor    @relation(fields: [debtorId], references: [id], onDelete: Cascade)
-  clientId       String
-  client         User      @relation(fields: [clientId], references: [id])
+  debtorId       String?
+  debtor         Debtor?   @relation(fields: [debtorId], references: [id], onDelete: SetNull)
+  clientId       String?
+  client         User?     @relation(fields: [clientId], references: [id], onDelete: SetNull)
   channel        String    @default("EMAIL")
+  providerId     String?
   sender         String
   subject        String?
   content        String
   receivedAt     DateTime  @default(now())
   readByClientAt DateTime?
   rawPayload     String?
+
+  @@unique([channel, providerId])
+}
+
+model ProviderToken {
+  provider  String   @id
+  token     String
+  expiresAt DateTime
+  updatedAt DateTime @updatedAt
+}
+
+model SmsDeliveryLog {
+  id        String   @id @default(cuid())
+  debtorId  String
+  debtor    Debtor   @relation(fields: [debtorId], references: [id], onDelete: Cascade)
+  campaign  String
+  sendDate  String
+  status    String
+  detail    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([debtorId, campaign, sendDate])
+}
+
+// General outgoing-notification log — SMS AND email, both the automatic
+// daily reminder cron and the manual admin composer. Deliberately a
+// separate model from SmsDeliveryLog rather than an extension of it:
+// SmsDeliveryLog's @@unique([debtorId, campaign, sendDate]) exists only to
+// dedupe the once-a-day automatic cron, which is the wrong shape for a
+// manually-triggered send (an admin may legitimately resend the same
+// template to the same debtor twice in one day) and doesn't fit email at
+// all. See the schema-decision writeup delivered with this feature for the
+// full reasoning.
+model NotificationLog {
+  id          String              @id @default(cuid())
+  debtorId    String?
+  debtor      Debtor?             @relation(fields: [debtorId], references: [id], onDelete: SetNull)
+  // Who triggered it — null for the automatic reminder cron.
+  userId      String?
+  user        User?               @relation("NotificationSender", fields: [userId], references: [id], onDelete: SetNull)
+  channel     NotificationChannel
+  // "template_1".."template_5" for SMS, "custom" for free-compose email,
+  // "reminder_cron" for the automatic daily reminder's own message.
+  template    String
+  recipient   String
+  status      NotificationStatus
+  detail      String?
+  // Masiva message/campaign id when available, for the shipped-report
+  // correlation poll. Not populated for email (no equivalent yet).
+  providerId  String?
+  sentAt      DateTime            @default(now())
+  deliveredAt DateTime?
+
+  @@index([debtorId])
+  @@index([status])
+  @@index([channel])
 }

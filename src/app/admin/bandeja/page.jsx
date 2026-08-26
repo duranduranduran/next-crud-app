@@ -13,20 +13,27 @@ const STATUS_LABELS = {
 };
 
 const STATUS_COLORS = {
-    PENDIENTE: { bg: "#FEF3C7", color: "#92400E" },
-    EN_GESTION: { bg: "#EEEDFE", color: "#443CA3" },
-    ACUERDO_DE_PAGO: { bg: "#D1FAE5", color: "#065F46" },
-    PAGADO: { bg: "#D1FAE5", color: "#065F46" },
-    ESCALADO_JUDICIAL: { bg: "#FEE2E2", color: "#991B1B" },
+    // ACUERDO_DE_PAGO and PAGADO used to share identical color values here
+    // (both #D1FAE5/#065F46) — two different statuses rendering visually
+    // identical. Fixed as a side effect of mapping each to its own token.
+    PENDIENTE: { bg: "var(--color-status-pendiente-bg)", color: "var(--color-status-pendiente)" },
+    EN_GESTION: { bg: "var(--color-status-en-gestion-bg)", color: "var(--color-status-en-gestion)" },
+    ACUERDO_DE_PAGO: { bg: "var(--color-status-acuerdo-de-pago-bg)", color: "var(--color-status-acuerdo-de-pago)" },
+    PAGADO: { bg: "var(--color-status-pagado-bg)", color: "var(--color-status-pagado)" },
+    ESCALADO_JUDICIAL: { bg: "var(--color-status-escalado-judicial-bg)", color: "var(--color-status-escalado-judicial)" },
 };
 
 const LOG_META = {
-    STATUS_CHANGED: { label: "Estado cambiado", color: "#F59E0B", bg: "#FEF3C7" },
-    NOTE_ADDED: { label: "Nota agregada", color: "#443CA3", bg: "#EEEDFE" },
-    NOTE_DELETED: { label: "Nota eliminada", color: "#EF4444", bg: "#FEE2E2" },
-    REMINDER_SENT: { label: "Recordatorio enviado", color: "#0EA5E9", bg: "#E0F2FE" },
-    CALL_TRIGGERED: { label: "Llamada realizada", color: "#8B5CF6", bg: "#EDE9FE" },
-    DEBTOR_CREATED: { label: "Deudor creado", color: "#10B981", bg: "#D1FAE5" },
+    // Generic tokens, not status ones — same rule as admin/page.jsx's
+    // LOG_META (an activity-log event type is not a debtor status).
+    STATUS_CHANGED: { label: "Estado cambiado", color: "var(--color-neutral-event)", bg: "var(--color-neutral-event-bg)" },
+    NOTE_ADDED: { label: "Nota agregada", color: "var(--color-accent)", bg: "var(--color-accent-bg)" },
+    NOTE_DELETED: { label: "Nota eliminada", color: "var(--color-danger)", bg: "var(--color-danger-bg)" },
+    REMINDER_SENT: { label: "Recordatorio enviado", color: "var(--color-info)", bg: "var(--color-info-bg)" },
+    CALL_TRIGGERED: { label: "Llamada realizada", color: "var(--color-info)", bg: "var(--color-info-bg)" },
+    DEBTOR_CREATED: { label: "Deudor creado", color: "var(--color-success)", bg: "var(--color-success-bg)" },
+    NOTIFICATION_SENT: { label: "Notificación enviada", color: "var(--color-accent)", bg: "var(--color-accent-bg)" },
+    LEGAL_NOTICE_SENT: { label: "Aviso legal enviado", color: "var(--color-danger)", bg: "var(--color-danger-bg)" },
 };
 
 function timeAgo(isoStr) {
@@ -46,12 +53,13 @@ function getInitials(name) {
 }
 
 function Avatar({ name, size = "md" }) {
+    // Decorative, not status — a distinct-but-token-based hue per name hash.
     const colors = [
-        ["#443CA3", "#EEEDFE"],
-        ["#065F46", "#D1FAE5"],
-        ["#92400E", "#FEF3C7"],
-        ["#1E3A8A", "#DBEAFE"],
-        ["#991B1B", "#FEE2E2"],
+        ["var(--color-accent)", "var(--color-accent-bg)"],
+        ["var(--color-success)", "var(--color-success-bg)"],
+        ["var(--color-neutral-event)", "var(--color-neutral-event-bg)"],
+        ["var(--color-info)", "var(--color-info-bg)"],
+        ["var(--color-danger)", "var(--color-danger-bg)"],
     ];
     const idx = (name || "").charCodeAt(0) % colors.length;
     const [text, bg] = colors[idx];
@@ -116,7 +124,7 @@ function DebtorSlidePanel({ debtor, onClose }) {
 
             {/* Backdrop */}
             <div
-                className="fixed inset-0 bg-black/20 z-40 backdrop-blur-sm"
+                className="fixed inset-0 bg-surface-page/20 z-40 backdrop-blur-sm"
                 onClick={handleClose}
                 style={{
                     animation: closing
@@ -127,7 +135,7 @@ function DebtorSlidePanel({ debtor, onClose }) {
 
             {/* Panel */}
             <div
-                className="fixed right-0 top-0 bottom-0 w-96 bg-white shadow-2xl z-50 flex flex-col"
+                className="fixed right-0 top-0 bottom-0 w-96 bg-surface-overlay shadow-2xl z-50 flex flex-col"
                 style={{
                     animation: closing
                         ? "panelSlideOut 0.2s ease-in forwards"
@@ -135,11 +143,11 @@ function DebtorSlidePanel({ debtor, onClose }) {
                 }}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-                    <p className="text-sm font-semibold text-gray-700">Perfil del Deudor</p>
+                <div className="flex items-center justify-between px-6 py-5 border-b border-border-subtle">
+                    <p className="text-sm font-semibold text-text-primary">Perfil del Deudor</p>
                     <button
                         onClick={handleClose}
-                        className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200 hover:text-gray-600 transition text-sm"
+                        className="w-7 h-7 rounded-full bg-surface-hover flex items-center justify-center text-text-tertiary hover:bg-border-default hover:text-text-secondary transition text-sm"
                     >
                         ✕
                     </button>
@@ -152,12 +160,12 @@ function DebtorSlidePanel({ debtor, onClose }) {
                     <div className="flex items-start gap-4">
                         <Avatar name={debtor?.name} size="xl" />
                         <div className="flex-1 min-w-0">
-                            <h2 className="text-base font-bold text-gray-800 truncate">{debtor?.name}</h2>
+                            <h2 className="text-base font-bold text-text-primary truncate">{debtor?.name}</h2>
                             {debtor?.status && (
                                 <span className="inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
                                       style={{
-                                          background: STATUS_COLORS[debtor.status]?.bg || "#F3F4F6",
-                                          color: STATUS_COLORS[debtor.status]?.color || "#374151"
+                                          background: STATUS_COLORS[debtor.status]?.bg || "var(--color-surface-hover)",
+                                          color: STATUS_COLORS[debtor.status]?.color || "var(--color-text-secondary)"
                                       }}>
                                     {STATUS_LABELS[debtor.status] || debtor.status}
                                 </span>
@@ -166,9 +174,9 @@ function DebtorSlidePanel({ debtor, onClose }) {
                     </div>
 
                     {/* Amount */}
-                    <div className="bg-[#443CA3] rounded-2xl px-5 py-4 text-center">
-                        <p className="text-xs text-white/50 uppercase tracking-wide mb-1">Monto Adeudado</p>
-                        <p className="text-3xl font-bold text-[#21FE83]">
+                    <div className="bg-accent rounded-2xl px-5 py-4 text-center">
+                        <p className="text-xs text-surface-page/50 uppercase tracking-wide mb-1">Monto Adeudado</p>
+                        <p className="text-3xl font-bold text-success">
                             USD {Number(debtor?.amountOwed || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </p>
                     </div>
@@ -183,43 +191,43 @@ function DebtorSlidePanel({ debtor, onClose }) {
                             { label: "N° Factura", value: debtor?.invoiceNumber || "—" },
                             { label: "Creado", value: debtor?.createdAt ? new Date(debtor.createdAt).toLocaleDateString("es-EC") : "—" },
                         ].map((item, i) => (
-                            <div key={i} className="bg-gray-50 rounded-xl px-3 py-2.5">
-                                <p className="text-[9px] text-gray-400 uppercase tracking-wide mb-0.5">{item.label}</p>
-                                <p className="text-xs font-medium text-gray-700 truncate">{item.value}</p>
+                            <div key={i} className="bg-surface-hover rounded-xl px-3 py-2.5">
+                                <p className="text-[9px] text-text-tertiary uppercase tracking-wide mb-0.5">{item.label}</p>
+                                <p className="text-xs font-medium text-text-primary truncate">{item.value}</p>
                             </div>
                         ))}
                     </div>
 
                     {/* Address */}
                     {debtor?.address && (
-                        <div className="bg-gray-50 rounded-xl px-3 py-2.5">
-                            <p className="text-[9px] text-gray-400 uppercase tracking-wide mb-0.5">Dirección</p>
-                            <p className="text-xs font-medium text-gray-700">{debtor.address}</p>
+                        <div className="bg-surface-hover rounded-xl px-3 py-2.5">
+                            <p className="text-[9px] text-text-tertiary uppercase tracking-wide mb-0.5">Dirección</p>
+                            <p className="text-xs font-medium text-text-primary">{debtor.address}</p>
                         </div>
                     )}
 
                     {/* Activity log */}
                     <div>
-                        <p className="text-xs font-semibold text-gray-500 mb-3">Historial de Actividad</p>
+                        <p className="text-xs font-semibold text-text-secondary mb-3">Historial de Actividad</p>
                         {logsLoading ? (
                             <div className="flex justify-center py-4">
-                                <div className="w-5 h-5 border-2 border-[#443CA3] border-t-transparent rounded-full animate-spin"></div>
+                                <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
                             </div>
                         ) : logs.length === 0 ? (
-                            <p className="text-xs text-gray-300 text-center py-4">Sin actividad registrada</p>
+                            <p className="text-xs text-text-tertiary text-center py-4">Sin actividad registrada</p>
                         ) : (
                             <div className="space-y-2">
                                 {logs.slice(0, 8).map(log => {
-                                    const meta = LOG_META[log.event] || { label: log.event, color: "#443CA3", bg: "#EEEDFE" };
+                                    const meta = LOG_META[log.event] || { label: log.event, color: "var(--color-accent)", bg: "var(--color-accent-bg)" };
                                     return (
-                                        <div key={log.id} className="flex items-start gap-2.5 p-2.5 bg-gray-50 rounded-xl">
+                                        <div key={log.id} className="flex items-start gap-2.5 p-2.5 bg-surface-hover rounded-xl">
                                             <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0 mt-0.5"
                                                   style={{ color: meta.color, background: meta.bg }}>
                                                 {meta.label}
                                             </span>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-[10px] text-gray-500 truncate">{log.detail}</p>
-                                                <p className="text-[9px] text-gray-300 mt-0.5">
+                                                <p className="text-[10px] text-text-secondary truncate">{log.detail}</p>
+                                                <p className="text-[9px] text-text-tertiary mt-0.5">
                                                     {new Date(log.createdAt).toLocaleString("es-EC")}
                                                 </p>
                                             </div>
@@ -232,9 +240,9 @@ function DebtorSlidePanel({ debtor, onClose }) {
                 </div>
 
                 {/* Footer */}
-                <div className="px-6 py-4 border-t border-gray-100">
+                <div className="px-6 py-4 border-t border-border-subtle">
                     <a href="/admin"
-                       className="block w-full text-center text-xs font-semibold text-[#443CA3] border border-[#443CA3]/20 py-2.5 rounded-xl hover:bg-[#443CA3] hover:text-white transition">
+                       className="block w-full text-center text-xs font-semibold text-accent border border-accent/20 py-2.5 rounded-xl hover:bg-accent hover:text-surface-page transition">
                         Ver en Panel Administrativo →
                     </a>
                 </div>
@@ -360,16 +368,16 @@ export default function BandejaPage() {
     }, [messages, filter]);
 
     if (loading) return (
-        <div className="min-h-screen bg-[#F7F8FF] flex items-center justify-center">
+        <div data-density="compact" className="min-h-screen bg-surface-page flex items-center justify-center">
             <div className="text-center">
-                <div className="w-8 h-8 border-2 border-[#443CA3] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                <p className="text-sm text-[#443CA3]/50">Cargando bandeja...</p>
+                <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-sm text-accent/50">Cargando bandeja...</p>
             </div>
         </div>
     );
 
     return (
-        <main className="min-h-screen bg-[#F7F8FF]">
+        <main data-density="compact" className="min-h-screen bg-surface-page">
 
             {slideDebtor && (
                 <DebtorSlidePanel
@@ -379,19 +387,19 @@ export default function BandejaPage() {
             )}
 
             {/* Top bar */}
-            <div className="bg-white border-b border-gray-100 px-8 py-5">
+            <div className="bg-surface-raised border-b border-border-subtle px-8 py-5">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-xl font-bold text-gray-900">Bandeja de Respuestas</h1>
-                        <p className="text-xs text-gray-400 mt-0.5">Mensajes recibidos de deudores · actualización cada 30s</p>
+                        <h1 className="text-xl font-bold text-text-primary">Bandeja de Respuestas</h1>
+                        <p className="text-xs text-text-tertiary mt-0.5">Mensajes recibidos de deudores · actualización cada 30s</p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1.5 text-xs text-emerald-500 bg-emerald-50 px-3 py-1.5 rounded-full">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                        <div className="flex items-center gap-1.5 text-xs text-success bg-success-bg px-3 py-1.5 rounded-full">
+                            <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></div>
                             En vivo
                         </div>
                         <button onClick={fetchMessages}
-                                className="text-xs text-gray-500 border border-gray-200 px-3 py-1.5 rounded-xl hover:bg-gray-50 transition">
+                                className="text-xs text-text-secondary border border-border-default px-3 py-1.5 rounded-xl hover:bg-surface-hover transition">
                             ↻ Actualizar
                         </button>
                     </div>
@@ -399,26 +407,26 @@ export default function BandejaPage() {
             </div>
 
             {error && (
-                <div className="mx-8 mt-4 bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm text-red-500 flex items-center justify-between">
+                <div className="mx-8 mt-4 bg-danger-bg border border-danger/25 rounded-xl px-4 py-3 text-sm text-danger flex items-center justify-between">
                     {error}
-                    <button onClick={() => setError("")} className="text-red-300 hover:text-red-500">✕</button>
+                    <button onClick={() => setError("")} className="text-danger/60 hover:text-danger">✕</button>
                 </div>
             )}
 
             {/* KPI strip */}
             <div className="grid grid-cols-4 gap-4 px-8 pt-6 pb-4">
                 {[
-                    { label: "Sin leer", value: stats.nuevas, color: "#443CA3", bg: "#EEEDFE" },
-                    { label: "Total", value: stats.total, color: "#374151", bg: "#F3F4F6" },
-                    { label: "Email", value: stats.email, color: "#185FA5", bg: "#E6F1FB" },
-                    { label: "SMS", value: stats.sms, color: "#065F46", bg: "#D1FAE5" },
+                    { label: "Sin leer", value: stats.nuevas, color: "var(--color-accent)", bg: "var(--color-accent-bg)" },
+                    { label: "Total", value: stats.total, color: "var(--color-text-secondary)", bg: "var(--color-surface-hover)" },
+                    { label: "Email", value: stats.email, color: "var(--color-info)", bg: "var(--color-info-bg)" },
+                    { label: "SMS", value: stats.sms, color: "var(--color-success)", bg: "var(--color-success-bg)" },
                 ].map((k, i) => (
-                    <div key={i} className="bg-white rounded-2xl px-5 py-4 border border-gray-100 shadow-sm flex items-center gap-4">
+                    <div key={i} className="bg-surface-raised rounded-2xl px-5 py-4 border border-border-subtle shadow-sm flex items-center gap-4">
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold flex-shrink-0"
                              style={{ background: k.bg, color: k.color }}>
                             {k.value}
                         </div>
-                        <p className="text-xs text-gray-400">{k.label}</p>
+                        <p className="text-xs text-text-tertiary">{k.label}</p>
                     </div>
                 ))}
             </div>
@@ -427,17 +435,17 @@ export default function BandejaPage() {
             <div className="px-8 pb-8 grid gap-4" style={{ gridTemplateColumns: "300px 1fr", minHeight: "calc(100vh - 220px)" }}>
 
                 {/* Left — message list */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
-                    <div className="px-4 pt-4 pb-3 border-b border-gray-50">
+                <div className="bg-surface-raised rounded-2xl border border-border-subtle shadow-sm overflow-hidden flex flex-col">
+                    <div className="px-4 pt-4 pb-3 border-b border-border-subtle">
                         <div className="flex items-center justify-between mb-3">
-                            <p className="text-sm font-semibold text-gray-700">Mensajes</p>
+                            <p className="text-sm font-semibold text-text-primary">Mensajes</p>
                             {unreadCount > 0 && (
-                                <span className="bg-[#443CA3] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                <span className="bg-accent text-surface-page text-[10px] font-bold px-2 py-0.5 rounded-full">
                                     {unreadCount} nuevos
                                 </span>
                             )}
                         </div>
-                        <div className="flex gap-1 bg-gray-50 p-1 rounded-xl">
+                        <div className="flex gap-1 bg-surface-hover p-1 rounded-xl">
                             {[
                                 { id: "all", label: "Todos" },
                                 { id: "unread", label: "Sin leer" },
@@ -447,8 +455,8 @@ export default function BandejaPage() {
                                 <button key={f.id} onClick={() => setFilter(f.id)}
                                         className={`flex-1 text-[10px] py-1.5 rounded-lg font-medium transition-all ${
                                             filter === f.id
-                                                ? "bg-white text-[#443CA3] shadow-sm"
-                                                : "text-gray-400 hover:text-gray-600"
+                                                ? "bg-surface-raised text-accent shadow-sm"
+                                                : "text-text-tertiary hover:text-text-secondary"
                                         }`}>
                                     {f.label}
                                 </button>
@@ -458,7 +466,7 @@ export default function BandejaPage() {
 
                     <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
                         {filteredMessages.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-16 text-gray-300 gap-3">
+                            <div className="flex flex-col items-center justify-center py-16 text-text-tertiary gap-3">
                                 <span className="text-4xl">📭</span>
                                 <p className="text-xs">{filter === "unread" ? "Todo al día" : "Sin mensajes"}</p>
                             </div>
@@ -469,27 +477,27 @@ export default function BandejaPage() {
                                 <div key={msg.id}
                                      onClick={() => handleSelect(msg)}
                                      className={`px-4 py-3.5 cursor-pointer transition-all relative ${
-                                         isSel ? "bg-[#F7F8FF]" : "hover:bg-gray-50/80"
+                                         isSel ? "bg-surface-hover" : "hover:bg-surface-hover/80"
                                      }`}>
-                                    {isSel && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#443CA3] rounded-r-full"></div>}
+                                    {isSel && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-accent rounded-r-full"></div>}
                                     <div className="flex items-start gap-3">
                                         <Avatar name={msg.debtor?.name} />
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-0.5">
-                                                <p className={`text-xs flex-1 truncate ${isRead ? "text-gray-500 font-normal" : "text-gray-800 font-semibold"}`}>
+                                                <p className={`text-xs flex-1 truncate ${isRead ? "text-text-secondary font-normal" : "text-text-primary font-semibold"}`}>
                                                     {msg.debtor?.name || "Desconocido"}
                                                 </p>
-                                                <span className="text-[9px] text-gray-300 flex-shrink-0">{timeAgo(msg.receivedAt)}</span>
+                                                <span className="text-[9px] text-text-tertiary flex-shrink-0">{timeAgo(msg.receivedAt)}</span>
                                             </div>
-                                            {msg.subject && <p className="text-[10px] text-gray-500 truncate mb-0.5">{msg.subject}</p>}
-                                            <p className="text-[11px] text-gray-400 truncate">{msg.content}</p>
+                                            {msg.subject && <p className="text-[10px] text-text-secondary truncate mb-0.5">{msg.subject}</p>}
+                                            <p className="text-[11px] text-text-tertiary truncate">{msg.content}</p>
                                             <div className="flex items-center gap-1.5 mt-1.5">
                                                 <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-md ${
-                                                    msg.channel === "EMAIL" ? "bg-blue-50 text-blue-600" : "bg-emerald-50 text-emerald-600"
+                                                    msg.channel === "EMAIL" ? "bg-info-bg text-info" : "bg-success-bg text-success"
                                                 }`}>
                                                     {msg.channel === "EMAIL" ? "✉ email" : "💬 sms"}
                                                 </span>
-                                                {!isRead && <div className="w-1.5 h-1.5 rounded-full bg-[#443CA3] ml-auto flex-shrink-0"></div>}
+                                                {!isRead && <div className="w-1.5 h-1.5 rounded-full bg-accent ml-auto flex-shrink-0"></div>}
                                             </div>
                                         </div>
                                     </div>
@@ -500,46 +508,46 @@ export default function BandejaPage() {
                 </div>
 
                 {/* Right — thread view */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col overflow-hidden">
+                <div className="bg-surface-raised rounded-2xl border border-border-subtle shadow-sm flex flex-col overflow-hidden">
                     {!selected ? (
-                        <div className="flex-1 flex flex-col items-center justify-center gap-4 text-gray-200">
-                            <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center text-3xl">📬</div>
-                            <p className="text-sm text-gray-300">Selecciona una conversación</p>
+                        <div className="flex-1 flex flex-col items-center justify-center gap-4 text-text-disabled">
+                            <div className="w-16 h-16 rounded-2xl bg-surface-hover flex items-center justify-center text-3xl">📬</div>
+                            <p className="text-sm text-text-tertiary">Selecciona una conversación</p>
                         </div>
                     ) : (
                         <>
                             {/* Thread header */}
-                            <div className="px-6 py-4 border-b border-gray-100">
+                            <div className="px-6 py-4 border-b border-border-subtle">
                                 <div className="flex items-start gap-4">
                                     <button onClick={() => setSlideDebtor(selected.debtor)} className="group relative flex-shrink-0">
                                         <Avatar name={selected.debtor?.name} size="lg" />
-                                        <div className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center">
-                                            <span className="text-[8px] text-white opacity-0 group-hover:opacity-100 font-bold">ver</span>
+                                        <div className="absolute inset-0 rounded-full bg-scrim/0 group-hover:bg-scrim/10 transition flex items-center justify-center">
+                                            <span className="text-[8px] text-surface-page opacity-0 group-hover:opacity-100 font-bold">ver</span>
                                         </div>
                                     </button>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-3 mb-1">
                                             <button onClick={() => setSlideDebtor(selected.debtor)}
-                                                    className="text-base font-bold text-gray-800 hover:text-[#443CA3] transition truncate">
+                                                    className="text-base font-bold text-text-primary hover:text-accent transition truncate">
                                                 {selected.debtor?.name || "Desconocido"}
                                             </button>
                                             {selected.debtor?.status && (
                                                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
                                                       style={{
-                                                          background: STATUS_COLORS[selected.debtor.status]?.bg || "#F3F4F6",
-                                                          color: STATUS_COLORS[selected.debtor.status]?.color || "#374151"
+                                                          background: STATUS_COLORS[selected.debtor.status]?.bg || "var(--color-surface-hover)",
+                                                          color: STATUS_COLORS[selected.debtor.status]?.color || "var(--color-text-secondary)"
                                                       }}>
                                                     {STATUS_LABELS[selected.debtor.status] || selected.debtor.status}
                                                 </span>
                                             )}
                                         </div>
                                         <div className="flex items-center gap-4 flex-wrap">
-                                            <span className="text-[11px] text-gray-400">✉ {selected.sender}</span>
+                                            <span className="text-[11px] text-text-tertiary">✉ {selected.sender}</span>
                                             {selected.debtor?.invoiceNumber && (
-                                                <span className="text-[11px] text-gray-400">🧾 {selected.debtor.invoiceNumber}</span>
+                                                <span className="text-[11px] text-text-tertiary">🧾 {selected.debtor.invoiceNumber}</span>
                                             )}
                                             {selected.debtor?.amountOwed && (
-                                                <span className="text-[11px] font-semibold text-[#443CA3]">
+                                                <span className="text-[11px] font-semibold text-accent">
                                                     USD {Number(selected.debtor.amountOwed).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                                 </span>
                                             )}
@@ -547,17 +555,17 @@ export default function BandejaPage() {
                                     </div>
                                     <div className="flex items-center gap-2 flex-shrink-0">
                                         <button onClick={() => setSlideDebtor(selected.debtor)}
-                                                className="text-[10px] border border-[#443CA3]/20 text-[#443CA3] rounded-lg px-3 py-1.5 hover:bg-[#443CA3] hover:text-white transition">
+                                                className="text-[10px] border border-accent/20 text-accent rounded-lg px-3 py-1.5 hover:bg-accent hover:text-surface-page transition">
                                             👤 Ver perfil
                                         </button>
                                         {selected.readByClientAt ? (
                                             <button onClick={() => handleMarkRead(selected.id, false)}
-                                                    className="text-[10px] border border-gray-200 rounded-lg px-3 py-1.5 text-gray-400 hover:bg-gray-50 transition">
+                                                    className="text-[10px] border border-border-default rounded-lg px-3 py-1.5 text-text-tertiary hover:bg-surface-hover transition">
                                                 ↩ No leído
                                             </button>
                                         ) : (
                                             <button onClick={() => handleMarkRead(selected.id, true)}
-                                                    className="text-[10px] border border-emerald-200 rounded-lg px-3 py-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition">
+                                                    className="text-[10px] border border-success/30 rounded-lg px-3 py-1.5 text-success bg-success-bg hover:bg-success-bg/70 transition">
                                                 ✓ Leído
                                             </button>
                                         )}
@@ -574,36 +582,36 @@ export default function BandejaPage() {
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2 mb-2">
                                             <button onClick={() => setSlideDebtor(selected.debtor)}
-                                                    className="text-xs font-semibold text-gray-600 hover:text-[#443CA3] transition">
+                                                    className="text-xs font-semibold text-text-secondary hover:text-accent transition">
                                                 {selected.debtor?.name}
                                             </button>
-                                            <span className="text-[9px] text-gray-300">
+                                            <span className="text-[9px] text-text-tertiary">
                                                 {new Date(selected.receivedAt).toLocaleString("es-EC")}
                                             </span>
                                             <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-md ${
-                                                selected.channel === "EMAIL" ? "bg-blue-50 text-blue-600" : "bg-emerald-50 text-emerald-600"
+                                                selected.channel === "EMAIL" ? "bg-info-bg text-info" : "bg-success-bg text-success"
                                             }`}>
                                                 {selected.channel === "EMAIL" ? "✉ email" : "💬 sms"}
                                             </span>
                                         </div>
                                         {selected.subject && (
-                                            <p className="text-xs text-gray-500 font-medium mb-2">Asunto: {selected.subject}</p>
+                                            <p className="text-xs text-text-secondary font-medium mb-2">Asunto: {selected.subject}</p>
                                         )}
-                                        <div className="bg-gray-50 border border-gray-100 rounded-2xl rounded-tl-sm px-5 py-4 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap max-w-2xl">
+                                        <div className="bg-surface-hover border border-border-subtle rounded-2xl rounded-tl-sm px-5 py-4 text-sm text-text-primary leading-relaxed whitespace-pre-wrap max-w-2xl">
                                             {selected.content}
                                         </div>
                                     </div>
                                 </div>
 
                                 {replySuccess && (
-                                    <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3 text-sm text-emerald-600 mb-4">
+                                    <div className="flex items-center gap-2 bg-success-bg border border-success/20 rounded-xl px-4 py-3 text-sm text-success mb-4">
                                         <span>✓</span> Respuesta enviada correctamente
                                     </div>
                                 )}
                             </div>
 
                             {/* Reply bar */}
-                            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+                            <div className="px-6 py-4 border-t border-border-subtle bg-surface-hover/50">
                                 <div className="flex items-start gap-3">
                                     <Avatar name={user?.fullName || "Admin"} />
                                     <div className="flex-1">
@@ -615,22 +623,22 @@ export default function BandejaPage() {
                                             onKeyDown={e => {
                                                 if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSendReply();
                                             }}
-                                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#443CA3] bg-white resize-none leading-relaxed"
+                                            className="w-full border border-border-default rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-accent bg-surface-raised resize-none leading-relaxed"
                                         />
                                         <div className="flex items-center justify-between mt-2">
-                                            <p className="text-[10px] text-gray-300">⌘ + Enter para enviar</p>
+                                            <p className="text-[10px] text-text-tertiary">⌘ + Enter para enviar</p>
                                             <div className="flex items-center gap-2">
                                                 <button onClick={() => setReplyText("")}
-                                                        className="text-xs text-gray-400 px-3 py-1.5 hover:text-gray-600 transition">
+                                                        className="text-xs text-text-tertiary px-3 py-1.5 hover:text-text-secondary transition">
                                                     Limpiar
                                                 </button>
                                                 <button
                                                     onClick={handleSendReply}
                                                     disabled={!replyText.trim() || sending}
-                                                    className="bg-[#443CA3] text-white px-5 py-1.5 rounded-xl text-xs font-semibold hover:bg-[#3A3391] transition disabled:opacity-30 flex items-center gap-1.5">
+                                                    className="bg-accent text-surface-page px-5 py-1.5 rounded-xl text-xs font-semibold hover:bg-accent-hover transition disabled:opacity-30 flex items-center gap-1.5">
                                                     {sending ? (
                                                         <>
-                                                            <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                                                            <div className="w-3 h-3 border border-surface-page border-t-transparent rounded-full animate-spin"></div>
                                                             Enviando...
                                                         </>
                                                     ) : "Enviar respuesta →"}

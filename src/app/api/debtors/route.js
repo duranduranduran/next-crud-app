@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getOrCreateUser } from "@/lib/getOrCreateUser";
+import { nanoid } from "nanoid";
 
 // CREATE a debtor
 export async function POST(req) {
@@ -50,6 +51,7 @@ export async function POST(req) {
                 amountOwed: parseFloat(amountOwed),
                 documentUrl: documentUrl || null,
                 userId: user.id,
+                publicToken: nanoid(8),
             },
         });
 

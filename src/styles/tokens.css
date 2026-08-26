@@ -1,0 +1,272 @@
+/*
+ * WARNING: never put an asterisk immediately before a slash inside a
+ * comment — that two-character sequence closes a CSS comment early and
+ * everything after it leaks into the stylesheet as garbage. This means: do
+ * not write two wildcard token names back to back separated by a slash
+ * (the trailing asterisk of the first one plus the following slash forms
+ * the closing sequence). Write "--text- and --radius-" instead, or use a
+ * word instead of a slash between them. This has broken the build three times.
+ *
+ * RULE: status tokens (--color-status-*) mean debtor status and nothing
+ * else. They are only valid inside StatusBadge. Any other purpose — a
+ * success toast, a toggle's on-state, a log-event chip, a destructive
+ * action — uses a generic token instead: --color-success, --color-danger,
+ * --color-info, --color-neutral-event. Several of these have the same hex
+ * value as a status token by coincidence, not by reference (each theme
+ * block declares them independently), so that retuning a status color
+ * never silently changes unrelated UI. This rule was enforced five
+ * separate times during the initial theming pass.
+ *
+ * Design tokens — dense UI (Linear/Vercel-adjacent), light + dark themes.
+ *
+ * Two independent attributes:
+ *
+ *   data-theme="dark" | "light"  -> real color values, see below.
+ *   data-density="compact"       -> --text-, --radius-, --spacing-row-
+ *                                    overrides. Independent of theme —
+ *                                    marketing pages get theme without
+ *                                    density (large type on a themed bg).
+ *
+ * COLOR ARCHITECTURE:
+ * - @theme declares every --color- token once with a value (required for
+ *   Tailwind to generate the utility classes at all — custom-named tokens
+ *   have no Tailwind-internal default the way --text-/--radius- do). The
+ *   @theme value is a fallback only; in practice every themed page sets
+ *   data-theme on <html> before paint (see root layout), so an element is
+ *   never actually rendered against the bare @theme value.
+ * - [data-theme="dark"] and [data-theme="light"] each redeclare every
+ *   --color- token with real, independently-chosen values. Both are
+ *   unlayered (outside @theme's `theme` layer), so per CSS cascade-layer
+ *   rules they win over the layered @theme fallback regardless of
+ *   selector specificity — confirmed by inspecting compiled output during
+ *   the original dark-only pass.
+ * - --color-accent (not --color-accent-dark) is the token name components
+ *   use. It used to be named --color-accent-dark from the dark-only phase
+ *   of this project; renamed now that it's a real theme-swapped value
+ *   (#443CA3 light / #8C7FFF dark) rather than a fixed dark-context color.
+ *   --color-accent-light remains as a SEPARATE, theme-INDEPENDENT constant
+ *   (#443CA3 always) — not part of the switching system, kept only for
+ *   contexts outside this token system entirely (email HTML, which uses
+ *   literal hex and can't read CSS custom properties).
+ * - --color-ring aliases --color-accent via var() (the one deliberate
+ *   exception to "independent values" — ring color SHOULD always track
+ *   the accent, that's the actual design intent, not a coincidence).
+ *
+ * DENSITY: --text- and --radius- are Tailwind's OWN built-in theme keys,
+ * already backing text-sm/rounded-md/etc. classes used throughout
+ * marketing pages. Redeclaring them in @theme would silently retheme
+ * every page. So they are NOT in @theme at all — this file only overrides
+ * the custom property VALUE inside [data-density="compact"].
+ *
+ * --spacing-control-sm and --shadow-overlay are neither color nor density
+ * in this split's sense — new names, no collision, left in @theme
+ * unconditionally (not theme- or density-scoped).
+ */
+
+@theme {
+    --color-surface-page: #0A0A0B;
+    --color-surface-raised: #101012;
+    --color-surface-overlay: #16161A;
+    --color-surface-hover: #1C1C1F;
+
+    --color-border-subtle: rgba(255, 255, 255, 0.06);
+    --color-border-default: rgba(255, 255, 255, 0.12);
+
+    --color-text-primary: #EDEDEF;
+    --color-text-secondary: #A1A1AA;
+    --color-text-tertiary: #6B6B74;
+    --color-text-disabled: #45454C;
+
+    /* Fixed, theme-independent brand purple — for contexts outside this
+       token system (email HTML). Not part of the light/dark switch. */
+    --color-accent-light: #443CA3;
+
+    /* Marketing-only decorative brand colors (landing page hero badges, hover
+       highlights, CTA button). Fixed in both themes — these are flourish
+       accents, not semantic UI state, so they don't belong in the status/
+       danger/success/info token set and don't need to flip with theme. */
+    --color-brand-mint: #21FE83;
+    --color-brand-mint-bg: rgba(33, 254, 131, 0.12);
+    --color-brand-yellow: #FFFF76;
+
+    /* Scrim — a hover/press dim overlay on photographic content (avatars,
+       document thumbnails). Deliberately fixed black in both themes, same
+       as Material's scrim token: it darkens arbitrary imagery, which a
+       theme-flipping surface token can't do (surface-page is light in
+       light mode and would brighten instead of dim). */
+    --color-scrim: #000000;
+
+    /* Fixed dark chip background for the sidebar's small favicon mark, which
+       only exists as a white-on-transparent asset (no purple favicon variant
+       in /public). Keeps the mark legible in light mode without a new asset —
+       see Logo.jsx, which swaps the full wordmark properly by theme. */
+    --color-logo-chip: #16161A;
+
+    --color-accent: #8C7FFF;
+    --color-accent-hover: #A399FF;
+    --color-accent-bg: rgba(140, 127, 255, 0.12);
+
+    --color-ring: var(--color-accent);
+
+    --color-status-pendiente: #F5B94D;
+    --color-status-pendiente-bg: rgba(245, 185, 77, 0.12);
+    --color-status-en-gestion: #5EA7F5;
+    --color-status-en-gestion-bg: rgba(94, 167, 245, 0.12);
+    --color-status-acuerdo-de-pago: #4DD4C7;
+    --color-status-acuerdo-de-pago-bg: rgba(77, 212, 199, 0.12);
+    --color-status-pagado: #4ADE80;
+    --color-status-pagado-bg: rgba(74, 222, 128, 0.12);
+    --color-status-escalado-judicial: #F87171;
+    --color-status-escalado-judicial-bg: rgba(248, 113, 113, 0.12);
+
+    --color-danger: #F87171;
+    --color-danger-bg: rgba(248, 113, 113, 0.12);
+    --color-info: #5EA7F5;
+    --color-info-bg: rgba(94, 167, 245, 0.12);
+    --color-success: #4ADE80;
+    --color-success-bg: rgba(74, 222, 128, 0.12);
+    --color-neutral-event: #F5B94D;
+    --color-neutral-event-bg: rgba(245, 185, 77, 0.12);
+
+    --spacing-control-sm: 1.75rem;
+    --shadow-overlay: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+/*
+ * DARK — unchanged values from the original dark-only pass. Contrast
+ * (WCAG relative luminance), confirmed in earlier phases:
+ *   accent #8C7FFF        vs page 6.2:1  vs raised 6.0:1  vs overlay 5.7:1  vs hover 5.3:1
+ *   status-pendiente #F5B94D   vs page 11.25:1  vs raised 10.79:1
+ *   status-en-gestion #5EA7F5  vs page  7.85:1  vs raised  7.53:1
+ *   status-acuerdo #4DD4C7     vs page 10.90:1  vs raised 10.46:1
+ *   status-pagado #4ADE80      vs page 11.37:1  vs raised 10.91:1
+ *   status-escalado #F87171    vs page  7.16:1  vs raised  6.87:1
+ */
+[data-theme="dark"] {
+    --color-surface-page: #0A0A0B;
+    --color-surface-raised: #101012;
+    --color-surface-overlay: #16161A;
+    --color-surface-hover: #1C1C1F;
+
+    --color-border-subtle: rgba(255, 255, 255, 0.06);
+    --color-border-default: rgba(255, 255, 255, 0.12);
+
+    --color-text-primary: #EDEDEF;
+    --color-text-secondary: #A1A1AA;
+    --color-text-tertiary: #6B6B74;
+    --color-text-disabled: #45454C;
+
+    --color-accent: #8C7FFF;
+    --color-accent-hover: #A399FF;
+    --color-accent-bg: rgba(140, 127, 255, 0.12);
+
+    --color-status-pendiente: #F5B94D;
+    --color-status-pendiente-bg: rgba(245, 185, 77, 0.12);
+    --color-status-en-gestion: #5EA7F5;
+    --color-status-en-gestion-bg: rgba(94, 167, 245, 0.12);
+    --color-status-acuerdo-de-pago: #4DD4C7;
+    --color-status-acuerdo-de-pago-bg: rgba(77, 212, 199, 0.12);
+    --color-status-pagado: #4ADE80;
+    --color-status-pagado-bg: rgba(74, 222, 128, 0.12);
+    --color-status-escalado-judicial: #F87171;
+    --color-status-escalado-judicial-bg: rgba(248, 113, 113, 0.12);
+
+    --color-danger: #F87171;
+    --color-danger-bg: rgba(248, 113, 113, 0.12);
+    --color-info: #5EA7F5;
+    --color-info-bg: rgba(94, 167, 245, 0.12);
+    --color-success: #4ADE80;
+    --color-success-bg: rgba(74, 222, 128, 0.12);
+    --color-neutral-event: #F5B94D;
+    --color-neutral-event-bg: rgba(245, 185, 77, 0.12);
+}
+
+/*
+ * LIGHT — not an inverted dark palette. Designed independently: base
+ * canvas is a soft off-white (not pure #FFF), elevated surfaces go to
+ * white with shadow doing separation work (shadows DO read on light,
+ * unlike dark), hover/active states go DARKER (the only direction
+ * available once a surface is already white) instead of lighter.
+ *
+ * Status/accent colors are darkened, more saturated versions chosen
+ * specifically for 4.5:1 on white — the dark-theme pastels (#F5B94D,
+ * #5EA7F5 etc.) are tuned for near-black backgrounds and fail badly on
+ * white (#F5B94D on white computes to ~3.2:1). Contrast (WCAG relative
+ * luminance), computed against both white (surface-raised/overlay, the
+ * worst case) and surface-page:
+ *   accent #443CA3              vs white 8.68:1  vs page 8.10:1
+ *   status-pendiente #B45309    vs white 5.02:1  vs page 4.69:1
+ *   status-en-gestion #1D4ED8   vs white 6.70:1  vs page 6.25:1
+ *   status-acuerdo #0F766E      vs white 5.47:1  vs page 5.11:1
+ *   status-pagado #15803D       vs white 5.02:1  vs page 4.68:1
+ *   status-escalado #B91C1C     vs white 6.47:1  vs page 6.04:1
+ *   text-primary #18181B        vs white 17.7:1  (trivial, reported for completeness)
+ * All clear 4.5:1 on both surfaces. status-pendiente and status-pagado
+ * are the tightest margins (~4.7:1 vs page) — still real margin, but the
+ * two to re-check first if either hex is ever nudged.
+ */
+[data-theme="light"] {
+    --color-surface-page: #F7F7F8;
+    --color-surface-raised: #FFFFFF;
+    --color-surface-overlay: #FFFFFF;
+    --color-surface-hover: #EDEDF0;
+
+    --color-border-subtle: rgba(0, 0, 0, 0.06);
+    --color-border-default: rgba(0, 0, 0, 0.12);
+
+    --color-text-primary: #18181B;
+    --color-text-secondary: #52525B;
+    --color-text-tertiary: #8A8A94;
+    --color-text-disabled: #B4B4BC;
+
+    --color-accent: #443CA3;
+    --color-accent-hover: #372F87;
+    --color-accent-bg: rgba(68, 60, 163, 0.08);
+
+    --color-status-pendiente: #B45309;
+    --color-status-pendiente-bg: rgba(180, 83, 9, 0.10);
+    --color-status-en-gestion: #1D4ED8;
+    --color-status-en-gestion-bg: rgba(29, 78, 216, 0.10);
+    --color-status-acuerdo-de-pago: #0F766E;
+    --color-status-acuerdo-de-pago-bg: rgba(15, 118, 110, 0.10);
+    --color-status-pagado: #15803D;
+    --color-status-pagado-bg: rgba(21, 128, 61, 0.10);
+    --color-status-escalado-judicial: #B91C1C;
+    --color-status-escalado-judicial-bg: rgba(185, 28, 28, 0.10);
+
+    --color-danger: #B91C1C;
+    --color-danger-bg: rgba(185, 28, 28, 0.10);
+    --color-info: #1D4ED8;
+    --color-info-bg: rgba(29, 78, 216, 0.10);
+    --color-success: #15803D;
+    --color-success-bg: rgba(21, 128, 61, 0.10);
+    --color-neutral-event: #B45309;
+    --color-neutral-event-bg: rgba(180, 83, 9, 0.10);
+}
+
+/*
+ * Density — see file header. Meaningfully smaller than Tailwind defaults at
+ * every step — the "150+ rows, scanning not admiring" scale. Radii are a
+ * deliberate reduction from the current app's rounded-xl/2xl (12-16px).
+ */
+[data-density="compact"] {
+    --text-xs: 0.6875rem;       /* 11px — dense table cells, meta */
+    --text-xs--line-height: 1rem;
+    --text-sm: 0.75rem;         /* 12px — default body/table text */
+    --text-sm--line-height: 1.125rem;
+    --text-base: 0.8125rem;     /* 13px — card titles, form labels */
+    --text-base--line-height: 1.25rem;
+    --text-lg: 0.9375rem;       /* 15px — section headers */
+    --text-lg--line-height: 1.375rem;
+    --text-xl: 1.125rem;        /* 18px — modal/panel titles */
+    --text-xl--line-height: 1.5rem;
+    --text-2xl: 1.375rem;       /* 22px — page-level title, used sparingly */
+    --text-2xl--line-height: 1.75rem;
+
+    --radius-sm: 0.25rem;   /* 4px — inputs, badges, buttons */
+    --radius-md: 0.375rem;  /* 6px — cards, table container */
+    --radius-lg: 0.5rem;    /* 8px — modals, overlays */
+
+    --spacing-row-sm: 2rem;      /* 32px — dense table row height */
+    --spacing-row-md: 2.25rem;   /* 36px — table row with secondary line */
+}

@@ -5,20 +5,22 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "verify": "cross-env NEXT_DIST_DIR=.next-verify next build",
     "start": "next start",
     "postinstall": "prisma generate",
     "start:cron": "node scripts/sendRemindersCron.js"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.36.8",
+    "@clerk/themes": "^2.4.63",
     "@prisma/client": "^6.12.0",
-    "@vonage/server-sdk": "^3.27.0",
     "bcryptjs": "^3.0.2",
     "formidable": "^3.5.4",
     "inngest": "^4.2.4",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^1.0.1",
+    "nanoid": "^3.3.11",
     "next": "^15.5.9",
     "node-cron": "^4.2.1",
     "node-fetch": "^3.3.2",
@@ -33,6 +35,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "cross-env": "^7.0.3",
     "@tailwindcss/postcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.4.1",
