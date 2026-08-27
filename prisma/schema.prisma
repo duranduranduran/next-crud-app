@@ -17,9 +17,12 @@ model User {
   role            String            @default("client")
   hashedPassword  String?
   // Max 12 chars, enforced at the application layer (Postgres has no
-  // portable "check length" shorthand in Prisma). Required before SMS can
-  // be enabled for a client — the template allocator budgets a fixed slot
-  // for it, so an unbounded client name would blow every character budget.
+  // portable "check length" shorthand in Prisma). NOT a hard requirement
+  // for SMS anymore — a missing shortName used to silently block every
+  // send for that client ("Enviar a 0 destinatarios" with no way to fix
+  // it from the composer). It now falls back to a name derived from the
+  // client's name at send time (see deriveShortName in lib/sms/
+  // templates.js), with a warning shown so the admin can set the real one.
   shortName       String?
   accounts        Account[]
   sessions        Session[]
@@ -29,6 +32,7 @@ model User {
   activityLogs    ActivityLog[]
   inboundMessages InboundMessage[]
   notificationLogs NotificationLog[] @relation("NotificationSender")
+  createdTemplates Template[]
 }
 
 enum DebtorStatus {
@@ -218,8 +222,13 @@ model NotificationLog {
   userId      String?
   user        User?               @relation("NotificationSender", fields: [userId], references: [id], onDelete: SetNull)
   channel     NotificationChannel
-  // "template_1".."template_5" for SMS, "custom" for free-compose email,
-  // "reminder_cron" for the automatic daily reminder's own message.
+  // Template.id for a DB-registered template, "custom" for a free-compose
+  // email sent without picking a saved template, "reminder_cron" for the
+  // automatic daily reminder's own message. Deliberately a plain string,
+  // not a relation to Template — a template can be edited or removed
+  // later without needing to touch (or cascade into) historical log rows,
+  // and "custom"/"reminder_cron" were never real template rows to begin
+  // with, so a required FK here would have no row to point at for those.
   template    String
   recipient   String
   status      NotificationStatus
@@ -232,5 +241,54 @@ model NotificationLog {
 
   @@index([debtorId])
   @@index([status])
+  @@index([channel])
+}
+
+enum TemplateChannel {
+  SMS
+  EMAIL
+}
+
+// Two genuinely different things sharing one table on purpose (channel
+// discriminates), not a merge of two workflows:
+//
+// SMS rows REGISTER a template Masiva has already approved outside this
+// app — Masiva silently drops unapproved SMS content rather than
+// rejecting it, which is the failure this whole feature exists to
+// prevent. Saving a row here does not request approval from anyone; the
+// label on the admin form says so explicitly. `body` uses {{name}}
+// {{amount}} {{shortName}} {{date}} {{url}} placeholders and is validated
+// at save time (see validateSmsTemplateBody in lib/sms/templates.js):
+// <=160 chars with every placeholder filled at its worst-case length,
+// must survive sanitizeSmsContent unchanged (no accents/ñ), must start
+// with the RECUPERA prefix. `subject` is unused for SMS (always null).
+//
+// EMAIL rows are free composition — subject + body, no length cap, same
+// {{...}} placeholder syntax but with {{client}} (the client's own name)
+// in place of SMS's {{shortName}} (there's no character budget forcing
+// an abbreviation in email). Saving one does not imply Masiva or anyone
+// else approved it — there is no approval process for email.
+model Template {
+  id          String          @id @default(cuid())
+  channel     TemplateChannel
+  label       String
+  // EMAIL only. Always null for SMS — SMS messages have no subject line.
+  subject     String?
+  body        String
+  // Mirrors the old hardcoded template_3's behavior (5-day legal notice):
+  // requires the composer's explicit confirmation dialog before sending
+  // and logs LEGAL_NOTICE_SENT instead of NOTIFICATION_SENT. Meaningful
+  // for either channel, not SMS-only, so it lives on the shared model
+  // rather than being bolted on as an SMS-specific field.
+  restricted  Boolean         @default(false)
+  // Soft-disable rather than delete — a deactivated template stays
+  // available in Historial context (old NotificationLog rows reference
+  // it by id) and can be reactivated without re-typing/re-validating it.
+  active      Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  createdById String?
+  createdBy   User?           @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
   @@index([channel])
 }

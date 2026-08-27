@@ -2,7 +2,9 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useUser, SignOutButton } from "@clerk/nextjs";
+import { AlertTriangle } from "lucide-react";
 
 function SendRemindersButton() {
     const [sending, setSending] = useState(false);
@@ -1029,7 +1031,19 @@ export default function AdminPage() {
                         <div key={client.id} className="bg-surface-raised rounded-2xl shadow-sm border border-border-subtle p-6">
                             <div className="flex items-center justify-between mb-5">
                                 <div>
-                                    <h3 className="font-semibold text-text-primary">{displayName}</h3>
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="font-semibold text-text-primary">{displayName}</h3>
+                                        {!client.shortName && (
+                                            <Link
+                                                href={`/admin/clientes#client-${client.id}`}
+                                                title="Sin shortName — este cliente no puede recibir SMS hasta que se configure uno"
+                                                className={`flex items-center gap-1 text-[11px] font-medium text-danger bg-danger-bg border border-danger/25 px-2 py-0.5 rounded-full hover:opacity-80 transition ${focusRing} ring-offset-surface-raised`}
+                                            >
+                                                <AlertTriangle size={11} />
+                                                Sin shortName
+                                            </Link>
+                                        )}
+                                    </div>
                                     <p className="text-sm text-text-tertiary">{client.email}</p>
                                 </div>
                                 <span className="text-xs text-text-tertiary bg-surface-hover border border-border-subtle px-3 py-1 rounded-full">

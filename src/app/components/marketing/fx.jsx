@@ -177,9 +177,17 @@ export function useBatchReveal(containerRef, selector, { y = 24, stagger = 0.08 
 // that wrapping on unmount, so it never leaves stray markup behind across
 // a navigation. Each char gets a small random rotation for texture, per
 // the brief ("slight y and rotation per char").
+//
+// `text` is a string for natural CSS wrapping, or an array of strings for
+// a HARD line break between them (rendered as real <br> tags) — needed
+// wherever a headline's line break is a deliberate content choice rather
+// than however the viewport happens to wrap it. SplitText still walks the
+// full element and splits every text run into chars regardless of the
+// <br> in between, so the stagger runs across both lines as one sequence.
 export function SplitCharHeadline({ text, as: Tag = "h1", className = "" }) {
     const ref = useRef(null);
     const reduced = usePrefersReducedMotion();
+    const lines = Array.isArray(text) ? text : [text];
 
     useEffect(() => {
         if (reduced) return;
@@ -209,7 +217,16 @@ export function SplitCharHeadline({ text, as: Tag = "h1", className = "" }) {
         };
     }, [reduced]);
 
-    return <Tag ref={ref} className={className}>{text}</Tag>;
+    return (
+        <Tag ref={ref} className={className}>
+            {lines.map((line, i) => (
+                <span key={i}>
+                    {line}
+                    {i < lines.length - 1 && <br />}
+                </span>
+            ))}
+        </Tag>
+    );
 }
 
 // Section number ("01", "02"...) counts up from 0 as it scrolls into view.

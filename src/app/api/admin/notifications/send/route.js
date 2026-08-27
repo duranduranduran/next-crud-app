@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getOrCreateUser } from "@/lib/getOrCreateUser";
 import { sendList, MasivaError } from "@/lib/sms/masiva";
 import { toE164Ec } from "@/lib/phone";
-import { getSmsTemplate, buildSmsFromTemplate, SmsTemplateFitError } from "@/lib/sms/templates";
+import { buildSmsFromTemplateRow, deriveShortName, fillTemplate, publicDebtorUrl, SmsTemplateFitError } from "@/lib/sms/templates";
 import nodemailer from "nodemailer";
 
 function todayEcDateString() {
@@ -34,17 +34,18 @@ async function requireAdmin() {
 }
 
 async function sendSmsNotification({ debtors, templateId, confirmed, dbUser }) {
-    const template = getSmsTemplate(templateId);
-    if (!template) {
-        return NextResponse.json({ message: "Unknown template" }, { status: 400 });
+    const template = await prisma.template.findUnique({ where: { id: templateId } });
+    if (!template || template.channel !== "SMS") {
+        return NextResponse.json({ message: "Plantilla SMS no encontrada" }, { status: 400 });
+    }
+    if (!template.active) {
+        return NextResponse.json({ message: "Esta plantilla está desactivada" }, { status: 400 });
     }
 
-    // Template 3 (5-day legal notice) requires deliberate, explicit
-    // authorization — never trust the client alone for this gate, the
-    // composer UI's own confirmation dialog is the first line, this is the
-    // second. See the matching comments in the status PATCH route and the
-    // reminder cron: this is the one place template 3 IS reachable from,
-    // and only with `confirmed: true` explicitly sent.
+    // Restricted templates (the 5-day legal-notice style) require
+    // deliberate, explicit authorization — never trust the client alone
+    // for this gate, the composer UI's own confirmation dialog is the
+    // first line, this is the second.
     if (template.restricted && confirmed !== true) {
         return NextResponse.json({ message: "Este template requiere confirmación explícita." }, { status: 400 });
     }
@@ -58,23 +59,28 @@ async function sendSmsNotification({ debtors, templateId, confirmed, dbUser }) {
     for (const d of debtors) {
         if (d.smsOptOut) {
             results.skipped.push({ debtorId: d.id, reason: "opt_out" });
-            logs.push({ debtorId: d.id, userId: dbUser.id, channel: "SMS", template: templateId, recipient: toE164Ec(d.telephone) || d.telephone || "", status: "OPT_OUT" });
+            logs.push({ debtorId: d.id, userId: dbUser.id, channel: "SMS", template: template.id, recipient: toE164Ec(d.telephone) || d.telephone || "", status: "OPT_OUT" });
             continue;
         }
         const to = toE164Ec(d.telephone);
         if (!to) {
             results.skipped.push({ debtorId: d.id, reason: "invalid_number" });
-            logs.push({ debtorId: d.id, userId: dbUser.id, channel: "SMS", template: templateId, recipient: d.telephone || "", status: "INVALID_NUMBER", detail: d.telephone || null });
+            logs.push({ debtorId: d.id, userId: dbUser.id, channel: "SMS", template: template.id, recipient: d.telephone || "", status: "INVALID_NUMBER", detail: d.telephone || null });
             continue;
         }
-        if (!d.user?.shortName) {
-            results.skipped.push({ debtorId: d.id, reason: "missing_short_name" });
-            continue; // not even a NotificationLog row — this never became a real send attempt
-        }
+
+        // A client with no shortName no longer blocks the send — it falls
+        // back to one derived from the client's name, same as the
+        // composer's preview does, so what actually gets sent matches
+        // what the admin saw before clicking send. Flagged in the log
+        // detail so it's visible in Historial rather than looking
+        // identical to a real shortName.
+        const hasRealShortName = Boolean(d.user?.shortName);
+        const shortName = hasRealShortName ? d.user.shortName : deriveShortName(d.user?.name);
 
         let message;
         try {
-            message = buildSmsFromTemplate(templateId, { debtor: d, client: { shortName: d.user.shortName }, date });
+            message = buildSmsFromTemplateRow(template, { debtor: d, client: { shortName }, date });
         } catch (err) {
             console.error("[NOTIF_SEND] template did not fit, skipping debtor:", err instanceof SmsTemplateFitError ? err.message : err);
             results.skipped.push({ debtorId: d.id, reason: "does_not_fit" });
@@ -82,7 +88,7 @@ async function sendSmsNotification({ debtors, templateId, confirmed, dbUser }) {
         }
 
         items.push({ to_number: to, content: message });
-        numberToDebtorId.set(to, d.id);
+        numberToDebtorId.set(to, { debtorId: d.id, usedFallbackShortName: !hasRealShortName });
     }
 
     if (items.length > 0) {
@@ -92,24 +98,27 @@ async function sendSmsNotification({ debtors, templateId, confirmed, dbUser }) {
         } catch (err) {
             const detail = err instanceof MasivaError ? err.message : String(err);
             for (const it of items) {
-                const debtorId = numberToDebtorId.get(it.to_number);
-                results.failed.push(debtorId);
-                logs.push({ debtorId, userId: dbUser.id, channel: "SMS", template: templateId, recipient: it.to_number, status: "FAILED", detail });
+                const entry = numberToDebtorId.get(it.to_number);
+                results.failed.push(entry.debtorId);
+                logs.push({ debtorId: entry.debtorId, userId: dbUser.id, channel: "SMS", template: template.id, recipient: it.to_number, status: "FAILED", detail });
             }
         }
 
         if (sendResult) {
             for (const num of sendResult.sent) {
-                const debtorId = numberToDebtorId.get(num);
-                if (!debtorId) continue;
-                results.sent.push(debtorId);
-                logs.push({ debtorId, userId: dbUser.id, channel: "SMS", template: templateId, recipient: num, status: "SENT" });
+                const entry = numberToDebtorId.get(num);
+                if (!entry) continue;
+                results.sent.push(entry.debtorId);
+                logs.push({
+                    debtorId: entry.debtorId, userId: dbUser.id, channel: "SMS", template: template.id, recipient: num, status: "SENT",
+                    detail: entry.usedFallbackShortName ? "shortName derivado del nombre del cliente (sin shortName configurado)" : null,
+                });
             }
             for (const num of sendResult.failed) {
-                const debtorId = numberToDebtorId.get(num);
-                if (!debtorId) continue;
-                results.failed.push(debtorId);
-                logs.push({ debtorId, userId: dbUser.id, channel: "SMS", template: templateId, recipient: num, status: "FAILED" });
+                const entry = numberToDebtorId.get(num);
+                if (!entry) continue;
+                results.failed.push(entry.debtorId);
+                logs.push({ debtorId: entry.debtorId, userId: dbUser.id, channel: "SMS", template: template.id, recipient: num, status: "FAILED" });
             }
         }
     }
@@ -119,7 +128,7 @@ async function sendSmsNotification({ debtors, templateId, confirmed, dbUser }) {
     }
 
     if (results.sent.length > 0) {
-        const event = templateId === "template_3" ? "LEGAL_NOTICE_SENT" : "NOTIFICATION_SENT";
+        const event = template.restricted ? "LEGAL_NOTICE_SENT" : "NOTIFICATION_SENT";
         const debtorById = new Map(debtors.map((d) => [d.id, d]));
         await prisma.activityLog.createMany({
             data: results.sent.map((debtorId) => ({
@@ -134,7 +143,7 @@ async function sendSmsNotification({ debtors, templateId, confirmed, dbUser }) {
     return NextResponse.json({ message: "Envío procesado", ...results });
 }
 
-async function sendEmailNotification({ debtors, subject, body, dbUser }) {
+async function sendEmailNotification({ debtors, subject, body, templateId, dbUser }) {
     if (!subject || !body) {
         return NextResponse.json({ message: "Subject and body are required" }, { status: 400 });
     }
@@ -146,6 +155,7 @@ async function sendEmailNotification({ debtors, subject, body, dbUser }) {
         auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
     });
 
+    const date = todayEcDateString();
     const results = { sent: [], failed: [], skipped: [] };
     const logs = [];
 
@@ -154,20 +164,36 @@ async function sendEmailNotification({ debtors, subject, body, dbUser }) {
             results.skipped.push({ debtorId: d.id, reason: "no_email" });
             continue;
         }
+
+        // Per-recipient variable substitution — subject/body may carry
+        // {{name}}/{{amount}}/{{client}}/{{date}}/{{url}} placeholders
+        // whether typed by hand or pre-filled from a saved Template; every
+        // recipient in a bulk send needs their OWN values, not whatever
+        // the composer's single-debtor preview happened to show.
+        const vars = {
+            name: d.name,
+            amount: Number(d.amountOwed).toFixed(2),
+            client: d.user?.name || d.user?.email || "Cliente",
+            date,
+            url: publicDebtorUrl(d.publicToken),
+        };
+        const finalSubject = fillTemplate(subject, vars);
+        const finalBody = fillTemplate(body, vars);
+
         try {
             await transporter.sendMail({
                 from: `"Cobranza Automatizada" <${process.env.EMAIL_USER}>`,
                 to: d.email,
                 replyTo: `reply-${d.id}@replies.recupera.it.com`,
-                subject,
-                text: body,
+                subject: finalSubject,
+                text: finalBody,
             });
             results.sent.push(d.id);
-            logs.push({ debtorId: d.id, userId: dbUser.id, channel: "EMAIL", template: "custom", recipient: d.email, status: "SENT" });
+            logs.push({ debtorId: d.id, userId: dbUser.id, channel: "EMAIL", template: templateId || "custom", recipient: d.email, status: "SENT" });
         } catch (err) {
             console.error("[NOTIF_SEND] email failed:", err);
             results.failed.push(d.id);
-            logs.push({ debtorId: d.id, userId: dbUser.id, channel: "EMAIL", template: "custom", recipient: d.email, status: "FAILED", detail: String(err) });
+            logs.push({ debtorId: d.id, userId: dbUser.id, channel: "EMAIL", template: templateId || "custom", recipient: d.email, status: "FAILED", detail: String(err) });
         }
     }
 
@@ -203,16 +229,19 @@ export async function POST(req) {
         if (channel !== "SMS" && channel !== "EMAIL") {
             return NextResponse.json({ message: "Invalid channel" }, { status: 400 });
         }
+        if (channel === "SMS" && !templateId) {
+            return NextResponse.json({ message: "Seleccione una plantilla" }, { status: 400 });
+        }
 
         const debtors = await prisma.debtor.findMany({
             where: { id: { in: debtorIds } },
-            include: { user: { select: { shortName: true } } },
+            include: { user: { select: { name: true, email: true, shortName: true } } },
         });
 
         if (channel === "SMS") {
             return await sendSmsNotification({ debtors, templateId, confirmed, dbUser });
         }
-        return await sendEmailNotification({ debtors, subject, body, dbUser });
+        return await sendEmailNotification({ debtors, subject, body, templateId, dbUser });
     } catch (error) {
         console.error("[NOTIFICATIONS_SEND]", error);
         return NextResponse.json({ message: "Server error" }, { status: 500 });

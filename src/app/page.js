@@ -186,14 +186,14 @@ export default function LandingPage() {
                         </div>
 
                         <SplitCharHeadline
-                            text="Cobra sin perseguir a nadie"
+                            text={["Recupera", "Tu Liquidez"]}
                             className="text-5xl md:text-6xl xl:text-7xl font-extrabold leading-[0.98] tracking-tight text-text-primary mb-6"
                         />
 
                         <p className="text-lg text-text-secondary max-w-md leading-relaxed mb-10">
-                            Recupera automatiza el seguimiento de tus deudores por email, SMS
-                            y llamada, con trazabilidad completa desde el primer recordatorio
-                            hasta el pago o el proceso legal.
+                            Automatiza recordatorios, optimiza negociaciones y ejecuta
+                            estrategias de cobranza inteligentes diseñadas para maximizar
+                            tu flujo de caja.
                         </p>
 
                         <div className="flex flex-wrap gap-4 mb-14">

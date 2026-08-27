@@ -11,6 +11,7 @@ import {
     LogOut,
     Inbox,
     Bell,
+    UserCog,
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
@@ -29,6 +30,7 @@ export default function AdminSidebar() {
         { name: "Reportes", href: "/admin/reportes", icon: BarChart3 },
         { name: "Notificaciones", href: "/admin/notificaciones", icon: Bell },
         { name: "Bandeja", href: "/admin/bandeja", icon: Inbox, badge: true },
+        { name: "Clientes", href: "/admin/clientes", icon: UserCog },
         // { name: "Configuración", href: "/admin/configuracion", icon: Settings },
     ];
 
