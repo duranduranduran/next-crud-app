@@ -138,6 +138,7 @@ export const runtime = "nodejs";
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { getOrCreateUser } from '@/lib/getOrCreateUser';
 
 // =========================
 // UPDATE debtor
@@ -150,12 +151,13 @@ export async function PATCH(req, context) {
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
         }
 
-        const user = await prisma.user.findUnique({
-            where: { clerkId: userId },
-        });
+        // getOrCreateUser upserts by email, so a real user whose stored
+        // clerkId has drifted out of sync with Clerk's current session
+        // gets it corrected here instead of a bare clerkId lookup 404ing.
+        const user = await getOrCreateUser();
 
         if (!user) {
-            return NextResponse.json({ message: 'User not found' }, { status: 404 });
+            return NextResponse.json({ message: 'User sync failed' }, { status: 500 });
         }
 
         if (user.role !== 'client' && user.role !== 'admin') {
@@ -251,12 +253,13 @@ export async function DELETE(req, context) {
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
         }
 
-        const user = await prisma.user.findUnique({
-            where: { clerkId: userId },
-        });
+        // getOrCreateUser upserts by email, so a real user whose stored
+        // clerkId has drifted out of sync with Clerk's current session
+        // gets it corrected here instead of a bare clerkId lookup 404ing.
+        const user = await getOrCreateUser();
 
         if (!user) {
-            return NextResponse.json({ message: 'User not found' }, { status: 404 });
+            return NextResponse.json({ message: 'User sync failed' }, { status: 500 });
         }
 
         if (user.role !== 'client' && user.role !== 'admin') {
@@ -270,18 +273,32 @@ export async function DELETE(req, context) {
             select: { name: true, amountOwed: true, userId: true },
         });
 
-        if (!debtor || debtor.userId !== user.id) {
+        if (!debtor) {
+            return NextResponse.json({ message: 'Debtor not found' }, { status: 404 });
+        }
+
+        // Ownership check applies to clients (deleting their own debtor
+        // only) — admins delete on behalf of any client, so they skip it.
+        // Both paths stay in this one route rather than a separate
+        // admin-delete endpoint, specifically so they can't drift apart.
+        if (user.role !== 'admin' && debtor.userId !== user.id) {
             return NextResponse.json(
                 { message: 'Debtor not found or unauthorized' },
                 { status: 404 }
             );
         }
 
-        // Log BEFORE deleting so we still have the info
+        // Log BEFORE deleting so we still have the info. userId here is
+        // always the ACTOR (whoever is authenticated and performed the
+        // delete), not the debtor's owner — for an admin deleting another
+        // account's data, that's the admin's own id, so the log reads as
+        // "admin X deleted debtor Y" rather than attributing it to the
+        // client who never touched it.
+        const actorNote = user.role === 'admin' && debtor.userId !== user.id ? ' (admin action)' : '';
         await prisma.activityLog.create({
             data: {
                 event: "DEBTOR_DELETED",
-                detail: `Debtor deleted: ${debtor.name} (USD ${debtor.amountOwed})`,
+                detail: `Debtor deleted: ${debtor.name} (USD ${debtor.amountOwed})${actorNote}`,
                 userId: user.id,
                 debtorId: null, // null because debtor is about to be deleted
             },

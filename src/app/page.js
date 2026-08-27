@@ -1,464 +1,241 @@
 'use client';
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import MarketingShell from "./components/marketing/MarketingShell";
+import SectionHeading from "./components/marketing/SectionHeading";
+import HeroVisual from "./components/marketing/HeroVisual";
+import HeroDots from "./components/marketing/HeroDots";
+import { Reveal, SplitHeadline, Parallax } from "./components/marketing/fx";
 import FeatureGuide from "./components/FeatureGuide";
-import Logo from "./components/Logo";
 
-const plans = [
+const STATS = [
+    { value: "+92%", label: "Tasa de contactabilidad" },
+    { value: "24/7", label: "Automatización activa" },
+    { value: "3", label: "Canales: email, SMS y llamada" },
+];
+
+const STEPS = [
     {
-        id: "starter",
-        name: "STARTER",
-        price: 99,
-        highlight: false,
-        debtors: "Hasta 200 deudores",
-        badge: null,
-        note: "Fee de éxito 8% opcional",
-        features: [
-            { label: "Email automatizado", included: true },
-            { label: "Dashboard básico", included: true },
-            { label: "Trazabilidad legal", included: true },
-            { label: "Reportes básicos", included: true },
-            { label: "WhatsApp", included: false },
-            { label: "SMS", included: false },
-            { label: "Llamadas IA", included: false },
-        ],
+        n: "01",
+        title: "Carga tus facturas",
+        body: "Ingresa deudores uno por uno o sube cientos en segundos con una plantilla de Excel. Validamos cédula, monto y datos de contacto fila por fila.",
     },
     {
-        id: "pro",
-        name: "PRO",
-        price: 249,
-        highlight: true,
-        debtors: "Hasta 1,000 deudores",
-        badge: "Más popular",
-        note: "Mismo precio que Moonflow — más valor incluido",
-        features: [
-            { label: "Email automatizado", included: true },
-            { label: "SMS", included: true },
-            { label: "Dashboard completo", included: true },
-            { label: "Trazabilidad completa", included: true },
-            { label: "Alertas inteligentes", included: true },
-            { label: "Reportes avanzados", included: true },
-            { label: "Llamadas IA", included: false },
-        ],
+        n: "02",
+        title: "Recordatorios automáticos",
+        body: "Email, SMS y llamada con voz en español natural, activados por ti y ejecutados solos. Cada intento de contacto queda registrado.",
     },
     {
-        id: "corporate",
-        name: "CORPORATE",
-        price: 599,
-        highlight: false,
-        debtors: "Hasta 3,000 deudores",
-        badge: null,
-        note: "Sin fee de éxito — lo que recuperas es tuyo",
-        features: [
-            { label: "Email automatizado", included: true },
-            { label: "SMS", included: true },
-            { label: "Llamadas IA", included: true },
-            { label: "Reportes avanzados", included: true },
-            { label: "Métricas y analytics", included: true },
-            { label: "Reporte para aseguradora", included: true },
-            { label: "Soporte prioritario", included: true },
-        ],
-    },
-    {
-        id: "enterprise",
-        name: "ENTERPRISE",
-        price: null,
-        highlight: false,
-        debtors: "Deudores ilimitados + API",
-        badge: null,
-        note: "Sin fee de éxito — lo que recuperas es tuyo",
-        features: [
-            { label: "Todo lo de Corporate", included: true },
-            { label: "API pública + webhooks", included: true },
-            { label: "Integración con aseguradoras", included: true },
-            { label: "Integración con ERP", included: true },
-            { label: "Reportes personalizados", included: true },
-            { label: "Gerente de cuenta asignado", included: true },
-            { label: "SLA garantizado", included: true },
-        ],
+        n: "03",
+        title: "Sigue la recuperación",
+        body: "Un panel muestra qué se pagó, qué está en gestión y qué necesita escalarse — con la trazabilidad que exige un proceso legal, si llega a eso.",
     },
 ];
 
-function CheckIcon() {
-    return (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <circle cx="8" cy="8" r="8" fill="var(--color-brand-mint)" fillOpacity="0.2"/>
-            <path d="M5 8l2 2 4-4" stroke="var(--color-brand-mint)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-    );
-}
-
-function CrossIcon() {
-    return (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <circle cx="8" cy="8" r="8" fill="var(--color-accent)" fillOpacity="0.08"/>
-            <path d="M5.5 10.5l5-5M10.5 10.5l-5-5" stroke="var(--color-accent)" strokeOpacity="0.3" strokeWidth="1.5" strokeLinecap="round"/>
-        </svg>
-    );
-}
-
-function ArrowIcon() {
-    return (
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M2.5 7h9M8 3.5L11.5 7 8 10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-    );
-}
-
 export default function LandingPage() {
-
-    const particles = useMemo(() =>
-        [...Array(30)].map(() => ({
-            top: Math.random() * 100,
-            left: Math.random() * 100,
-        })), []
-    );
-
-    const [mouse, setMouse] = useState({ x: 0, y: 0 });
-    const [annual, setAnnual] = useState(false);
-
-    const handleMouseMove = (e) => {
-        const { innerWidth, innerHeight } = window;
-        const x = (e.clientX / innerWidth - 0.5) * 10;
-        const y = (e.clientY / innerHeight - 0.5) * 10;
-        setMouse({ x, y });
-    };
-
     return (
-        <div className="min-h-screen bg-surface-page text-accent">
-
-            {/* NAVBAR */}
-            <nav className="sticky top-0 z-50 flex items-center justify-between px-8 max-w-7xl mx-auto bg-surface-raised/90 backdrop-blur-md py-4 border-b border-accent/10">
-                <Link href="/">
-                    <Logo className="h-[22px] w-auto" />
-                </Link>
-                <ul className="flex space-x-6 items-center text-sm">
-                    <li><Link href="/about" className="text-accent/70 hover:text-accent transition">Quiénes Somos</Link></li>
-                    <li><Link href="/planes" className="text-accent/70 hover:text-accent transition">Servicios</Link></li>
-                    <li><Link href="/planes" className="text-accent/70 hover:text-accent transition">Planes</Link></li>
-                    <li><Link href="/about" className="text-accent/70 hover:text-accent transition">Contáctanos</Link></li>
-                    <li>
-                        <Link href="/sign-in" className="border border-accent/30 px-5 py-2 rounded-xl hover:bg-accent hover:text-surface-page hover:border-accent transition font-medium">
-                            Iniciar Sesión
-                        </Link>
-                    </li>
-                </ul>
-            </nav>
-
+        <MarketingShell>
             {/* HERO */}
-            <section className="relative px-8 pt-20 pb-10" onMouseMove={handleMouseMove}>
+            <section className="relative px-6 md:px-8 pt-16 md:pt-24 pb-20 md:pb-28 overflow-hidden">
+                <HeroDots />
+                <Parallax
+                    className="absolute -top-24 right-[-10%] w-[36rem] h-[36rem] rounded-full pointer-events-none"
+                    speed={0.35}
+                >
+                    <div
+                        className="w-full h-full rounded-full opacity-[0.07]"
+                        style={{ background: "radial-gradient(circle, var(--color-text-primary) 0%, transparent 70%)" }}
+                        aria-hidden="true"
+                    />
+                </Parallax>
 
-                <div className="absolute inset-0 opacity-[0.06]">
-                    {particles.map((p, i) => (
-                        <div key={i} className="absolute w-1 h-1 bg-accent rounded-full"
-                             style={{ top: `${p.top}%`, left: `${p.left}%` }} />
-                    ))}
-                </div>
-
-                <div className="relative max-w-7xl mx-auto">
-
-                    <div className="grid md:grid-cols-2 gap-16 items-center mb-16">
-
-                        {/* TEXT */}
-                        <div className="space-y-8">
-                            <div className="inline-flex items-center gap-2 bg-accent/5 border border-accent/10 px-4 py-1.5 rounded-full text-xs font-medium text-accent/60">
-                                <span className="w-1.5 h-1.5 bg-brand-mint rounded-full"></span>
-                                Beta privada activa · Lanzamiento 2026
-                            </div>
-
-                            <h1 className="text-6xl md:text-7xl xl:text-8xl font-extrabold leading-[0.95] tracking-tight">
-                                Recupera<br />Tu Liquidez
-                            </h1>
-
-                            <p className="text-lg text-accent/60 max-w-md leading-relaxed">
-                                Automatiza recordatorios, optimiza negociaciones y ejecuta
-                                estrategias de cobranza inteligentes diseñadas para maximizar
-                                tu flujo de caja.
-                            </p>
-
-                            <div className="flex gap-8 text-sm text-accent/60">
-                                <div>
-                                    <p className="text-2xl font-bold text-accent">+92%</p>
-                                    <p>Contactabilidad</p>
-                                </div>
-                                <div className="w-px bg-accent/10" />
-                                <div>
-                                    <p className="text-2xl font-bold text-accent">24/7</p>
-                                    <p>Automatización</p>
-                                </div>
-                                <div className="w-px bg-accent/10" />
-                                <div>
-                                    <p className="text-2xl font-bold text-accent">LATAM</p>
-                                    <p>Diseñado para</p>
-                                </div>
-                            </div>
-
-                            <div className="flex gap-4">
-                                <Link href="/sign-up" className="bg-accent text-surface-page px-8 py-3.5 rounded-xl font-bold hover:opacity-90 transition text-sm">
-                                    Crear Cuenta
-                                </Link>
-                                <Link href="/planes" className="border border-accent/20 px-8 py-3.5 rounded-xl hover:bg-accent hover:text-surface-page hover:border-accent transition text-sm font-medium">
-                                    Ver Planes
-                                </Link>
-                            </div>
+                <div className="relative max-w-6xl mx-auto grid lg:grid-cols-[1.1fr_0.9fr] gap-16 items-center">
+                    <div className="min-w-0">
+                        <div className="inline-flex items-center gap-2 border border-border-default px-4 py-1.5 rounded-full text-xs font-medium text-text-secondary mb-8">
+                            <span className="w-1.5 h-1.5 bg-brand-mint rounded-full" />
+                            Beta privada activa · Lanzamiento 2026
                         </div>
 
-                        {/* UI CARD */}
-                        <div className="relative flex justify-center items-center">
+                        <SplitHeadline
+                            text="Cobra sin perseguir a nadie"
+                            className="text-5xl md:text-6xl xl:text-7xl font-extrabold leading-[0.98] tracking-tight text-text-primary mb-6"
+                        />
 
-                            <div className="group absolute -top-8 -left-8 border border-accent/15 p-4 rounded-2xl w-52 bg-surface-raised shadow-sm animate-floatSlow hover:bg-brand-mint transition-all duration-300 z-10">
-                                <p className="text-[9px] font-semibold text-accent/40 mb-0.5 group-hover:text-accent">Recuperado · Ejemplo</p>
-                                <p className="text-2xl font-bold text-accent group-hover:text-accent">$12,840</p>
-                            </div>
-
-                            <div className="group absolute -bottom-8 -right-8 border border-accent/15 p-4 rounded-2xl w-52 bg-surface-raised shadow-sm animate-floatSlowReverse hover:bg-brand-yellow transition-all duration-300 z-10">
-                                <p className="text-[9px] font-semibold text-accent/40 mb-0.5 group-hover:text-accent">Automatizaciones · Ejemplo</p>
-                                <p className="text-2xl font-bold text-accent group-hover:text-accent">1,284</p>
-                            </div>
-
-                            <div
-                                className="group bg-surface-raised border border-accent/15 rounded-2xl p-6 w-[360px] shadow-sm transition-all duration-300 ease-out hover:bg-accent"
-                                style={{ transform: `translate(${mouse.x}px, ${mouse.y}px) scale(1.01)` }}
-                            >
-                                <div className="flex items-center justify-between mb-1">
-                                    <h3 className="font-bold text-sm group-hover:text-surface-page">Centro de Control</h3>
-                                    <span className="text-[9px] text-accent/30 border border-accent/15 px-1.5 py-0.5 rounded-full group-hover:text-surface-page/30 group-hover:border-surface-page/20">
-                                        Ejemplo
-                                    </span>
-                                </div>
-                                <p className="text-xs text-accent/40 mb-4 group-hover:text-surface-page/50">Vista previa de la plataforma</p>
-                                <div className="space-y-2.5 text-sm">
-                                    {[
-                                        { name: "Empresa Orion", status: "Pagado", color: "text-status-pagado bg-status-pagado-bg" },
-                                        { name: "Grupo Atlas", status: "Pendiente", color: "text-status-pendiente bg-status-pendiente-bg" },
-                                        { name: "Innova Tech", status: "En Gestión", color: "text-status-en-gestion bg-status-en-gestion-bg" },
-                                    ].map((item, i) => (
-                                        <div key={i} className="flex justify-between items-center group-hover:text-surface-page">
-                                            <span className="group-hover:text-surface-page/80">{item.name}</span>
-                                            <span className={`text-xs px-2.5 py-1 rounded-full font-medium group-hover:bg-surface-page/20 group-hover:text-surface-page ${item.color}`}>
-                                                {item.status}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* FEATURE GUIDE */}
-                    <div className="border-t border-accent/8 pt-12">
-                        <FeatureGuide />
-                    </div>
-
-                </div>
-
-                <style jsx>{`
-                    @keyframes floatSlow {
-                        0% { transform: translateY(0px) rotate(0deg); }
-                        50% { transform: translateY(-14px) rotate(1deg); }
-                        100% { transform: translateY(0px) rotate(0deg); }
-                    }
-                    @keyframes floatSlowReverse {
-                        0% { transform: translateY(0px) rotate(0deg); }
-                        50% { transform: translateY(14px) rotate(-1deg); }
-                        100% { transform: translateY(0px) rotate(0deg); }
-                    }
-                    .animate-floatSlow { animation: floatSlow 6s ease-in-out infinite; }
-                    .animate-floatSlowReverse { animation: floatSlowReverse 7s ease-in-out infinite; }
-                `}</style>
-            </section>
-
-            {/* TRUST STRIP */}
-            <section className="border-y border-accent/8 py-5 text-center text-xs text-accent/40 tracking-wide">
-                3 canales de comunicación · Automatización 24/7 · 100% cumplimiento legal · Diseñado para LATAM
-            </section>
-
-            {/* HOW */}
-            <section id="how" className="px-8 py-20 max-w-7xl mx-auto">
-                <h2 className="text-3xl font-bold text-center mb-14">Cómo Funciona</h2>
-                <div className="grid md:grid-cols-4 gap-8 text-center">
-                    {[
-                        "Carga tus deudores",
-                        "Activamos recordatorios",
-                        "Seguimiento automatizado",
-                        "Recuperas liquidez",
-                    ].map((step, i) => (
-                        <div key={i} className="space-y-3">
-                            <div className="text-4xl font-black text-accent/10">0{i + 1}</div>
-                            <p className="font-medium">{step}</p>
-                        </div>
-                    ))}
-                </div>
-            </section>
-
-            {/* PLANES */}
-            <section className="px-8 py-20 bg-surface-hover">
-                <div className="max-w-7xl mx-auto">
-
-                    <div className="text-center mb-12">
-                        <p className="text-xs font-semibold tracking-[0.2em] text-accent/30 uppercase mb-4">Precios</p>
-                        <h2 className="text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
-                            Elige el plan que impulsa<br />tu recuperación
-                        </h2>
-                        <p className="text-lg text-accent/50 mb-8">
-                            Sin contratos largos. Sin sorpresas. Cancela cuando quieras.
+                        <p className="text-lg text-text-secondary max-w-md leading-relaxed mb-10">
+                            Recupera automatiza el seguimiento de tus deudores por email, SMS
+                            y llamada, con trazabilidad completa desde el primer recordatorio
+                            hasta el pago o el proceso legal.
                         </p>
 
-                        {/* Toggle */}
-                        <div className="inline-flex items-center gap-4 border border-accent/20 rounded-xl px-5 py-3 bg-surface-raised">
-                            <span className={`text-sm font-medium ${!annual ? "text-accent" : "text-accent/40"}`}>Mensual</span>
-                            <div
-                                onClick={() => setAnnual(!annual)}
-                                className="relative w-12 h-6 rounded-full cursor-pointer transition-colors duration-300"
-                                style={{ background: annual ? "var(--color-accent)" : "var(--color-accent-bg)" }}
+                        <div className="flex flex-wrap gap-4 mb-14">
+                            <Link
+                                href="/sign-up"
+                                className="bg-accent text-accent-fg px-8 py-3.5 rounded-xl font-bold hover:opacity-90 transition text-sm"
                             >
-                                <div
-                                    className="absolute top-1 w-4 h-4 bg-surface-page rounded-full transition-all duration-300"
-                                    style={{ left: annual ? "28px" : "4px" }}
-                                />
-                            </div>
-                            <span className={`text-sm font-medium ${annual ? "text-accent" : "text-accent/40"}`}>
-                                Anual
-                                <span className="ml-2 text-xs bg-brand-mint text-accent px-2 py-0.5 rounded-full font-bold">-20%</span>
-                            </span>
+                                Crear Cuenta
+                            </Link>
+                            <Link
+                                href="/planes"
+                                className="border border-border-default px-8 py-3.5 rounded-xl hover:bg-surface-hover transition text-sm font-medium"
+                            >
+                                Ver Planes
+                            </Link>
+                        </div>
+
+                        <div className="flex flex-wrap gap-x-8 gap-y-4">
+                            {STATS.map((s, i) => (
+                                <div key={i}>
+                                    <p className="text-2xl font-bold text-text-primary">{s.value}</p>
+                                    <p className="text-xs text-text-secondary mt-0.5">{s.label}</p>
+                                </div>
+                            ))}
                         </div>
                     </div>
 
-                    {/* Plans grid */}
-                    <div className="grid md:grid-cols-4 gap-6">
-                        {plans.map((plan) => (
-                            <div
-                                key={plan.id}
-                                className={`relative rounded-2xl p-7 flex flex-col transition-all duration-300 ${
-                                    plan.highlight
-                                        ? "border-2 border-accent bg-surface-raised shadow-xl shadow-accent/10"
-                                        : "border border-accent/20 bg-surface-raised hover:border-accent/50 hover:shadow-lg hover:shadow-accent/5"
-                                }`}
-                            >
-                                {plan.badge && (
-                                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                                        <span className="bg-accent text-surface-page text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
-                                            {plan.badge}
-                                        </span>
-                                    </div>
-                                )}
-
-                                <p className="text-xs font-bold tracking-widest text-accent/50 mb-3">{plan.name}</p>
-
-                                <div className="mb-2">
-                                    {plan.price ? (
-                                        <div className="flex items-end gap-1">
-                                            <span className="text-5xl font-extrabold">
-                                                ${annual ? Math.round(plan.price * 0.8) : plan.price}
-                                            </span>
-                                            <span className="text-accent/50 mb-2">/mes</span>
-                                        </div>
-                                    ) : (
-                                        <p className="text-4xl font-extrabold">A consultar</p>
-                                    )}
-                                </div>
-
-                                <p className="text-sm font-semibold text-accent/70 mb-6 pb-6 border-b border-accent/10">
-                                    {plan.debtors}
-                                </p>
-
-                                <ul className="space-y-3 flex-1 mb-6">
-                                    {plan.features.map((feature, i) => (
-                                        <li key={i} className="flex items-center gap-3 text-sm">
-                                            {feature.included ? <CheckIcon /> : <CrossIcon />}
-                                            <span className={feature.included ? "text-accent" : "text-accent/30"}>
-                                                {feature.label}
-                                            </span>
-                                        </li>
-                                    ))}
-                                </ul>
-
-                                {plan.note && (
-                                    <p className="text-xs text-accent/40 mb-4 text-center">{plan.note}</p>
-                                )}
-
-                                <Link
-                                    href={plan.id === "enterprise" ? "/about" : "/sign-up"}
-                                    className={`w-full text-center py-3 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 ${
-                                        plan.highlight
-                                            ? "bg-accent text-surface-page hover:opacity-90"
-                                            : "border border-accent/30 text-accent hover:bg-accent hover:text-surface-page"
-                                    }`}
-                                >
-                                    {plan.id === "enterprise" ? "Contactar" : "Empezar ahora"}
-                                    <ArrowIcon />
-                                </Link>
-                            </div>
-                        ))}
-                    </div>
-
-                    <p className="text-center text-sm text-accent/40 mt-10">
-                        Todos los planes incluyen soporte por email · Datos seguros y encriptados · Cancela en cualquier momento
-                    </p>
+                    <HeroVisual />
                 </div>
             </section>
 
-            {/* FEATURES */}
-            <section className="px-8 py-20 max-w-7xl mx-auto">
-                <h2 className="text-3xl font-bold text-center mb-12">Tecnología Diseñada para Resultados</h2>
-                <div className="grid md:grid-cols-3 gap-5">
-                    {[
-                        {
-                            title: "Portal Cliente",
-                            desc: "Cada cliente accede a su propia cartera de deudores, sube documentos, monitorea estados y descarga reportes sin depender del equipo administrativo.",
-                        },
-                        {
-                            title: "Automatización IA",
-                            desc: "Envía emails y llamadas de voz automatizadas en español natural. El sistema contacta a tus deudores por ti, 24/7, sin intervención manual.",
-                        },
-                        {
-                            title: "Gestión Legal",
-                            desc: "Escala casos críticos a proceso judicial con un clic. Registra acuerdos de pago, genera evidencia de contacto y mantén trazabilidad completa.",
-                        },
-                        {
-                            title: "Reportes Inteligentes",
-                            desc: "Visualiza tu tasa de recuperación, distribución por estado y actividad de notificaciones. Exporta a Excel o PDF para auditorías e informes.",
-                        },
-                        {
-                            title: "Panel Administrativo",
-                            desc: "Control total sobre todos tus clientes y carteras desde un solo lugar. Búsqueda global, filtros avanzados y acciones masivas en segundos.",
-                        },
-                        {
-                            title: "Seguridad Empresarial",
-                            desc: "Autenticación segura con Clerk, datos cifrados en tránsito y en reposo, y registro de auditoría completo para cumplimiento normativo.",
-                        },
-                    ].map((f, i) => (
-                        <div key={i} className="border border-accent/10 p-6 rounded-2xl hover:border-accent/30 hover:shadow-sm transition-all">
-                            <h3 className="font-bold mb-2">{f.title}</h3>
-                            <p className="text-sm text-accent/50 leading-relaxed">{f.desc}</p>
+            {/* 01 — SOCIAL PROOF */}
+            <section className="border-y border-border-subtle px-6 md:px-8 py-10">
+                <Reveal stagger={0.08} className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+                    <div>
+                        <p className="text-3xl font-extrabold text-text-primary">+92%</p>
+                        <p className="text-xs text-text-secondary mt-1 uppercase tracking-wide">Contactabilidad</p>
+                    </div>
+                    <div>
+                        <p className="text-3xl font-extrabold text-text-primary">24/7</p>
+                        <p className="text-xs text-text-secondary mt-1 uppercase tracking-wide">Automatización</p>
+                    </div>
+                    <div>
+                        <p className="text-3xl font-extrabold text-text-primary">100%</p>
+                        <p className="text-xs text-text-secondary mt-1 uppercase tracking-wide">Cumplimiento legal</p>
+                    </div>
+                    <div>
+                        <p className="text-3xl font-extrabold text-text-primary">LATAM</p>
+                        <p className="text-xs text-text-secondary mt-1 uppercase tracking-wide">Diseñado para</p>
+                    </div>
+                </Reveal>
+            </section>
+
+            {/* 02 — CÓMO FUNCIONA */}
+            <section id="como-funciona" className="px-6 md:px-8 py-24 md:py-32 max-w-6xl mx-auto">
+                <Reveal>
+                    <SectionHeading
+                        index="02"
+                        kicker="Cómo funciona"
+                        title="De la factura vencida al pago, en tres pasos"
+                        center
+                    />
+                </Reveal>
+
+                <Reveal stagger={0.1} className="grid md:grid-cols-3 gap-10 mt-16">
+                    {STEPS.map((s) => (
+                        <div key={s.n} className="border-t border-border-default pt-6">
+                            <p className="text-sm font-mono text-text-tertiary mb-3">{s.n}</p>
+                            <h3 className="text-xl font-bold text-text-primary mb-3">{s.title}</h3>
+                            <p className="text-sm text-text-secondary leading-relaxed">{s.body}</p>
                         </div>
                     ))}
-                </div>
+                </Reveal>
             </section>
 
-            {/* CTA */}
-            <section className="px-8 pb-24 text-center">
-                <div className="bg-accent rounded-3xl px-12 py-16 max-w-3xl mx-auto">
-                    <h2 className="text-3xl font-bold text-surface-page mb-4">Activa tu sistema de recuperación hoy</h2>
-                    <p className="text-surface-page/60 mb-8 text-sm">Sin compromisos. Configura tu cuenta en minutos.</p>
-                    <Link href="/sign-up" className="bg-brand-mint text-accent px-10 py-4 rounded-xl font-bold hover:opacity-90 transition inline-block">
-                        Crear Cuenta Gratis
-                    </Link>
-                </div>
-            </section>
-
-            {/* FOOTER */}
-            <footer className="border-t border-accent/10 py-8 px-8 text-sm">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-                    <p className="text-accent/50">© {new Date().getFullYear()} <span className="font-bold text-accent">Recupera</span></p>
-                    <div className="flex gap-6 text-accent/50">
-                        <Link href="#" className="hover:text-accent transition">Privacidad</Link>
-                        <Link href="#" className="hover:text-accent transition">Términos</Link>
-                        <Link href="#" className="hover:text-accent transition">Contacto</Link>
+            {/* 03 — PRODUCTO */}
+            <section className="px-6 md:px-8 py-24 md:py-32 bg-surface-hover">
+                <div className="max-w-6xl mx-auto">
+                    <Reveal>
+                        <SectionHeading index="03" kicker="Producto" title="Todo lo que necesitas, en un solo lugar" center />
+                    </Reveal>
+                    <div className="mt-16">
+                        <FeatureGuide />
                     </div>
                 </div>
-            </footer>
-        </div>
+            </section>
+
+            {/* 04 — PRECIOS (teaser, no duplica la grilla de /planes) */}
+            <Reveal as="section" className="px-6 md:px-8 py-24 md:py-32 max-w-6xl mx-auto">
+                <div className="grid md:grid-cols-2 gap-12 items-end">
+                    <SectionHeading
+                        index="04"
+                        kicker="Precios"
+                        title="Un plan para cada tamaño de cartera"
+                        description="Desde 200 hasta deudores ilimitados. Sin contratos largos, sin sorpresas — cancela cuando quieras."
+                    />
+                    <div className="flex md:justify-end">
+                        <Link
+                            href="/planes"
+                            className="inline-flex items-center gap-2 border border-border-default px-8 py-3.5 rounded-xl text-sm font-medium hover:bg-accent hover:text-accent-fg hover:border-accent transition"
+                        >
+                            Ver todos los planes
+                            <span aria-hidden="true">→</span>
+                        </Link>
+                    </div>
+                </div>
+            </Reveal>
+
+            {/* 05 — FILOSOFÍA (prosa larga) */}
+            <Reveal as="section" className="px-6 md:px-8 py-24 md:py-32 border-t border-border-subtle">
+                <div className="max-w-3xl mx-auto">
+                    <SectionHeading index="05" kicker="Nuestra filosofía" title="Cobranza sin hostigamiento" />
+                    <div className="mt-8 space-y-5 text-base md:text-lg text-text-secondary leading-relaxed">
+                        <p>
+                            La cobranza tradicional en Ecuador todavía depende de llamadas
+                            insistentes y hojas de cálculo dispersas entre distintos
+                            responsables. Ese modelo no solo es lento: desgasta la relación
+                            entre la empresa y su cliente justo cuando más se necesita
+                            mantenerla.
+                        </p>
+                        <p>
+                            Construimos Recupera con una premisa distinta: automatizar el
+                            seguimiento no significa perder el control ni la cortesía.
+                            Cada recordatorio, cada llamada y cada cambio de estado queda
+                            registrado con fecha y detalle, de modo que si un caso necesita
+                            escalarse a proceso judicial, la evidencia de gestión ya existe
+                            — completa y ordenada, sin reconstruir nada a último momento.
+                        </p>
+                        <p>
+                            El resultado es una plataforma que recupera liquidez de forma
+                            consistente sin convertir a tu equipo en un centro de llamadas,
+                            y sin convertir a tus clientes en el objetivo de una campaña de
+                            hostigamiento.
+                        </p>
+                    </div>
+                    <Link
+                        href="/about"
+                        className="inline-flex items-center gap-2 text-sm font-medium text-text-primary mt-8 hover:underline underline-offset-4"
+                    >
+                        Conoce más sobre Recupera
+                        <span aria-hidden="true">→</span>
+                    </Link>
+                </div>
+            </Reveal>
+
+            {/* CONTACTO / CTA FINAL */}
+            <section className="px-6 md:px-8 pb-24 md:pb-32">
+                <Reveal className="max-w-4xl mx-auto rounded-3xl bg-accent px-8 md:px-16 py-16 text-center">
+                    <h2 className="text-3xl md:text-4xl font-bold text-accent-fg mb-4">
+                        Activa tu sistema de recuperación hoy
+                    </h2>
+                    <p className="text-accent-fg/70 mb-8 text-sm max-w-md mx-auto">
+                        Sin compromisos. Configura tu cuenta en minutos y empieza a
+                        automatizar tus recordatorios.
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-4">
+                        <Link
+                            href="/sign-up"
+                            className="bg-brand-mint text-accent px-10 py-4 rounded-xl font-bold hover:opacity-90 transition"
+                        >
+                            Crear Cuenta Gratis
+                        </Link>
+                        <a
+                            href="mailto:hola@recupera.app"
+                            className="border border-accent-fg/25 text-accent-fg px-10 py-4 rounded-xl font-bold hover:bg-accent-fg/10 transition"
+                        >
+                            Hablar con nosotros
+                        </a>
+                    </div>
+                </Reveal>
+            </section>
+        </MarketingShell>
     );
 }

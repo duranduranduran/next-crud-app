@@ -71,8 +71,8 @@ export default function AjustesPage() {
                                 aria-pressed={mode === id}
                                 className={`flex-1 flex flex-col items-center gap-2 py-4 rounded-xl border transition ${focusRing} ${
                                     mode === id
-                                        ? "border-accent bg-accent-bg text-accent"
-                                        : "border-border-default text-text-secondary hover:border-accent/30 hover:text-text-primary"
+                                        ? "border-text-primary bg-surface-hover text-text-primary"
+                                        : "border-border-default text-text-secondary hover:border-text-tertiary hover:text-text-primary"
                                 }`}
                             >
                                 <Icon size={20} />

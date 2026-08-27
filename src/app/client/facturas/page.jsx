@@ -72,17 +72,17 @@ export default function FacturasPage() {
                     <div className="bg-surface-raised border border-border-subtle rounded-2xl p-8">
                         <label className="block cursor-pointer">
                             <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${
-                                loading ? "border-accent/30 bg-accent/5" : "border-accent/20 hover:border-accent/50 hover:bg-accent/5"
+                                loading ? "border-border-default bg-surface-hover" : "border-border-default hover:border-text-tertiary hover:bg-surface-hover"
                             }`}>
                                 {loading ? (
                                     <div className="flex flex-col items-center gap-3">
-                                        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                                        <div className="w-8 h-8 border-2 border-text-tertiary border-t-transparent rounded-full animate-spin" />
                                         <p className="text-sm text-text-secondary">Analizando factura con IA...</p>
                                         <p className="text-xs text-text-tertiary">Esto puede tomar unos segundos</p>
                                     </div>
                                 ) : (
                                     <div className="flex flex-col items-center gap-3">
-                                        <div className="w-12 h-12 bg-accent/10 rounded-2xl flex items-center justify-center text-2xl">📄</div>
+                                        <div className="w-12 h-12 bg-surface-hover rounded-2xl flex items-center justify-center text-2xl">📄</div>
                                         <p className="text-sm font-medium text-text-primary">
                                             {fileName ? fileName : "Haz clic para subir una factura PDF"}
                                         </p>
@@ -121,7 +121,7 @@ export default function FacturasPage() {
                                 <div className="flex gap-3 pt-2">
                                     <button
                                         onClick={useExtractedData}
-                                        className="flex-1 bg-accent text-surface-page py-3 rounded-xl text-sm font-bold hover:opacity-90 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-surface-raised"
+                                        className="flex-1 bg-accent text-accent-fg py-3 rounded-xl text-sm font-bold hover:opacity-90 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-surface-raised"
                                     >
                                         Usar estos datos →
                                     </button>

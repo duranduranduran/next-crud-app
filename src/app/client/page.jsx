@@ -5,34 +5,49 @@ import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
 import { LayoutGrid, List as ListIcon } from "lucide-react";
 import { useClientData } from "./_lib/ClientDataContext";
-import { StatusBadge, STATUS_COLORS, exportDebtorsExcel } from "./_lib/shared";
+import { StatusBadge, StatusLabel, STATUS_COLORS, exportDebtorsExcel } from "./_lib/shared";
 
 const ITEMS_PER_PAGE = 9;
 const VIEW_MODE_KEY = "clientDebtorViewMode";
 const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
 
+// Overlapping stack, Moxfield-style — same .debtor-stack-* mechanism as
+// admin/page.jsx (see the full writeup in tokens.css). Client debtors have
+// no bulk-select or notify toggle (those are admin-only concepts), so the
+// peek row here is just name + status + amount; the "critical" checkbox/
+// notify placement rule from the brief doesn't apply since there's nothing
+// to misplace.
 function DebtorCard({ debtor, onClick }) {
     return (
-        <div onClick={onClick}
-             className="bg-surface-raised border border-border-subtle rounded-xl p-3.5 hover:shadow-md hover:border-accent/30 transition-all cursor-pointer">
-            <div className="flex items-start justify-between mb-2 gap-2">
-                <div className="min-w-0">
-                    <p className="font-semibold text-text-primary text-sm truncate">{debtor.name}</p>
-                    <p className="text-xs text-text-tertiary font-mono mt-0.5">
-                        {debtor.ruc ? `RUC ${debtor.ruc}` : debtor.cedulaIdentidad ? `CI ${debtor.cedulaIdentidad}` : "—"}
-                    </p>
-                </div>
-                <StatusBadge status={debtor.status} />
-            </div>
-            <div className="flex items-center justify-between mt-3">
-                <p className="text-lg font-bold font-mono text-accent">
-                    ${Number(debtor.amountOwed).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+        <div
+            className={`debtor-stack-card break-inside-avoid bg-surface-raised border rounded-xl overflow-hidden cursor-pointer ${focusRing} ring-offset-surface-page`}
+            onClick={onClick}
+            tabIndex={0}
+            role="button"
+            aria-label={`Ver detalles de ${debtor.name}`}
+            onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } }}
+        >
+            <div className="h-9 px-3 flex items-center gap-2">
+                <p className="flex-1 min-w-0 font-semibold text-text-primary text-sm truncate">{debtor.name}</p>
+                <StatusLabel status={debtor.status} />
+                <p className="text-sm font-bold font-mono text-text-primary text-right flex-shrink-0" style={{ width: "5.5rem" }}>
+                    {Number(debtor.amountOwed).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
-                <span className="text-xs font-medium text-accent">Ver detalles →</span>
+            </div>
+            <div className="debtor-stack-detail px-3 pb-3 pt-1 border-t border-border-subtle mt-1">
+                <div className="mt-1 mb-1.5"><StatusBadge status={debtor.status} /></div>
+                <p className="text-xs text-text-tertiary font-mono truncate">
+                    {debtor.ruc ? `RUC ${debtor.ruc}` : debtor.cedulaIdentidad ? `CI ${debtor.cedulaIdentidad}` : "—"}
+                </p>
+                <p className="text-xs text-text-tertiary truncate mt-0.5">{debtor.email || "Sin correo"}</p>
+                <span className="text-xs font-medium text-text-secondary mt-2 inline-block">Ver detalles →</span>
             </div>
         </div>
     );
 }
+
+const ROW_STAGGER_STEP_MS = 50;
+const ROW_STAGGER_CAP_MS = 500;
 
 function DebtorTable({ debtors, onRowClick }) {
     if (debtors.length === 0) {
@@ -43,40 +58,29 @@ function DebtorTable({ debtors, onRowClick }) {
         );
     }
     return (
-        <div className="bg-surface-raised rounded-2xl shadow-sm border border-border-subtle overflow-hidden">
-            <div className="overflow-x-auto">
-                <table className="w-full text-sm border-collapse">
-                    <thead className="bg-surface-raised">
-                        <tr className="border-b border-border-default text-left text-xs text-text-tertiary uppercase tracking-wide">
-                            <th className="px-4 py-2.5 font-medium">Deudor</th>
-                            <th className="px-2 py-2.5 font-medium">Estado</th>
-                            <th className="px-2 py-2.5 font-medium text-right">Monto</th>
-                            <th className="w-20 px-2 py-2.5 font-medium text-right">Acción</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border-subtle">
-                        {debtors.map(debtor => (
-                            <tr key={debtor.id} onClick={() => onRowClick(debtor)}
-                                className="h-10 hover:bg-surface-hover transition-colors cursor-pointer">
-                                <td className="px-4 min-w-0">
-                                    <p className="text-text-primary font-medium truncate">{debtor.name}</p>
-                                    <p className="text-text-tertiary text-xs font-mono">{debtor.cedulaIdentidad || debtor.ruc || "—"}</p>
-                                </td>
-                                <td className="px-2"><StatusBadge status={debtor.status} /></td>
-                                <td className="px-2 text-right font-mono text-text-primary font-semibold">
-                                    {Number(debtor.amountOwed).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </td>
-                                <td className="px-2 text-right" onClick={e => e.stopPropagation()}>
-                                    <button onClick={() => onRowClick(debtor)}
-                                            className={`text-accent hover:underline text-xs font-medium ${focusRing} ring-offset-surface-raised`}>
-                                        Ver
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+        <div className="space-y-1.5">
+            {debtors.map((debtor, i) => (
+                <div
+                    key={debtor.id}
+                    onClick={() => onRowClick(debtor)}
+                    className={`debtor-row-stagger h-10 flex items-center gap-3 px-3 rounded-lg bg-surface-raised border border-border-subtle hover:bg-surface-hover transition-colors cursor-pointer ${focusRing} ring-offset-surface-page`}
+                    style={{ "--stack-delay": `${Math.min(i * ROW_STAGGER_STEP_MS, ROW_STAGGER_CAP_MS)}ms` }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Ver detalles de ${debtor.name}`}
+                    onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onRowClick(debtor); } }}
+                >
+                    <div className="min-w-0 flex-1">
+                        <p className="text-text-primary font-medium text-sm truncate">{debtor.name}</p>
+                        <p className="text-text-tertiary text-[11px] font-mono truncate">{debtor.cedulaIdentidad || debtor.ruc || "—"}</p>
+                    </div>
+                    <div className="flex-shrink-0"><StatusBadge status={debtor.status} /></div>
+                    <p className="text-right font-mono text-text-primary font-semibold text-sm flex-shrink-0" style={{ width: "5.5rem" }}>
+                        {Number(debtor.amountOwed).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                    <span className="text-text-tertiary flex-shrink-0" aria-hidden="true">›</span>
+                </div>
+            ))}
         </div>
     );
 }
@@ -190,8 +194,8 @@ export default function DeudoresPage() {
     };
 
     const metrics = [
-        { label: "Total Deudores", value: stats.total, color: "var(--color-accent)" },
-        { label: "Monto Total", value: `$${stats.totalOwed.toLocaleString()}`, color: "var(--color-accent)" },
+        { label: "Total Deudores", value: stats.total, color: "var(--color-text-primary)" },
+        { label: "Monto Total", value: `$${stats.totalOwed.toLocaleString()}`, color: "var(--color-text-primary)" },
         { label: "Recuperado", value: `$${stats.paid.toLocaleString()}`, color: "var(--color-success)", sub: "Deudores pagados" },
         { label: "Pendientes", value: stats.pending, color: "var(--color-neutral-event)", sub: "Sin gestionar" },
     ];
@@ -244,13 +248,13 @@ export default function DeudoresPage() {
                             </div>
                             {selectedDebtor.documentUrl && (
                                 <a href={selectedDebtor.documentUrl} target="_blank" rel="noopener noreferrer"
-                                   className={`flex items-center gap-2 text-sm text-accent border border-accent/20 rounded-xl px-4 py-3 hover:bg-accent hover:text-surface-page transition ${focusRing} ring-offset-surface-overlay`}>
+                                   className={`flex items-center gap-2 text-sm text-text-secondary border border-border-default rounded-xl px-4 py-3 hover:bg-surface-hover hover:text-text-primary transition ${focusRing} ring-offset-surface-overlay`}>
                                     📄 Ver Documento
                                 </a>
                             )}
                             <div className="flex gap-3 pt-2 border-t border-border-subtle">
                                 <button onClick={() => handleEdit(selectedDebtor)}
-                                        className={`flex-1 border border-accent/20 text-accent py-2 rounded-xl text-sm hover:bg-accent hover:text-surface-page transition ${focusRing} ring-offset-surface-overlay`}>
+                                        className={`flex-1 border border-border-default text-text-secondary py-2 rounded-xl text-sm hover:bg-surface-hover hover:text-text-primary transition ${focusRing} ring-offset-surface-overlay`}>
                                     Editar
                                 </button>
                                 <button onClick={() => handleDelete(selectedDebtor.id)}
@@ -280,7 +284,7 @@ export default function DeudoresPage() {
                                 className={`text-sm bg-success text-surface-page px-3 py-2 rounded-xl font-bold hover:opacity-90 transition ${focusRing} ring-offset-surface-page`}>
                             ⬇ Exportar
                         </button>
-                        <label className={`text-sm bg-accent text-surface-page px-3 py-2 rounded-xl font-bold cursor-pointer hover:opacity-90 transition ${focusRing} ring-offset-surface-page`}>
+                        <label className={`text-sm bg-accent text-accent-fg px-3 py-2 rounded-xl font-bold cursor-pointer hover:opacity-90 transition ${focusRing} ring-offset-surface-page`}>
                             📤 Importar
                             <input type="file" accept=".xlsx,.xls,.csv" onChange={handleFileUpload} className="hidden" />
                         </label>
@@ -320,11 +324,11 @@ export default function DeudoresPage() {
                     </div>
                     <div className="flex items-center gap-1 bg-surface-raised border border-border-default rounded-xl p-1">
                         <button onClick={() => changeViewMode("card")} aria-label="Vista de tarjetas"
-                                className={`p-2 rounded-lg transition ${focusRing} ring-offset-surface-raised ${viewMode === "card" ? "bg-accent text-surface-page" : "text-text-tertiary hover:text-text-primary"}`}>
+                                className={`p-2 rounded-lg transition ${focusRing} ring-offset-surface-raised ${viewMode === "card" ? "bg-surface-hover text-text-primary" : "text-text-tertiary hover:text-text-primary"}`}>
                             <LayoutGrid size={16} />
                         </button>
                         <button onClick={() => changeViewMode("list")} aria-label="Vista de lista"
-                                className={`p-2 rounded-lg transition ${focusRing} ring-offset-surface-raised ${viewMode === "list" ? "bg-accent text-surface-page" : "text-text-tertiary hover:text-text-primary"}`}>
+                                className={`p-2 rounded-lg transition ${focusRing} ring-offset-surface-raised ${viewMode === "list" ? "bg-surface-hover text-text-primary" : "text-text-tertiary hover:text-text-primary"}`}>
                             <ListIcon size={16} />
                         </button>
                     </div>
@@ -337,7 +341,7 @@ export default function DeudoresPage() {
                         <p>No hay deudores registrados</p>
                     </div>
                 ) : viewMode === "card" ? (
-                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    <div className="debtor-stack-column columns-2 lg:columns-3 xl:columns-4 gap-3">
                         {paginatedDebtors.map(debtor => (
                             <DebtorCard key={debtor.id} debtor={debtor} onClick={() => setSelectedDebtor(debtor)} />
                         ))}
@@ -349,10 +353,10 @@ export default function DeudoresPage() {
                 {totalPages > 1 && (
                     <div className="flex justify-center gap-4 mt-8">
                         <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
-                                className={`px-4 py-2 border border-border-default rounded-xl text-sm text-text-secondary hover:bg-accent hover:text-surface-page hover:border-accent transition disabled:opacity-30 ${focusRing} ring-offset-surface-page`}>← Prev</button>
+                                className={`px-4 py-2 border border-border-default rounded-xl text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary transition disabled:opacity-30 ${focusRing} ring-offset-surface-page`}>← Prev</button>
                         <span className="text-sm text-text-tertiary self-center">Página {currentPage} de {totalPages}</span>
                         <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
-                                className={`px-4 py-2 border border-border-default rounded-xl text-sm text-text-secondary hover:bg-accent hover:text-surface-page hover:border-accent transition disabled:opacity-30 ${focusRing} ring-offset-surface-page`}>Next →</button>
+                                className={`px-4 py-2 border border-border-default rounded-xl text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary transition disabled:opacity-30 ${focusRing} ring-offset-surface-page`}>Next →</button>
                     </div>
                 )}
             </div>

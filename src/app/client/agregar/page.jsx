@@ -138,7 +138,7 @@ export default function AgregarPage() {
                                     </FormField>
                                     <FormField icon="📱">
                                         <PhoneInput country={"ec"} value={telephone} onChange={phone => setTelephone(phone)}
-                                                    enableSearch={true} inputClass="!w-full !p-3 !rounded-xl !border !border-accent/20 !bg-surface-page !text-text-primary !text-sm" />
+                                                    enableSearch={true} inputClass="!w-full !p-3 !rounded-xl !border !border-border-default !bg-surface-page !text-text-primary !text-sm" />
                                     </FormField>
                                     <FormField icon="📍">
                                         <input type="text" placeholder="Dirección (opcional)" value={address}
@@ -183,7 +183,7 @@ export default function AgregarPage() {
                                     </FormField>
                                     <FormField icon="📎">
                                         <input type="file" accept="image/*,application/pdf" onChange={e => setDocumentFile(e.target.files[0])}
-                                               className={`block w-full text-sm file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border file:border-accent/20 file:bg-surface-page file:text-accent hover:file:bg-accent hover:file:text-surface-page file:text-xs ${focusRing}`} />
+                                               className={`block w-full text-sm file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border file:border-border-default file:bg-surface-page file:text-text-secondary hover:file:bg-surface-hover hover:file:text-text-primary file:text-xs ${focusRing}`} />
                                     </FormField>
                                 </div>
                             </div>
@@ -197,7 +197,7 @@ export default function AgregarPage() {
                                     </button>
                                 )}
                                 <button type="submit" disabled={loading}
-                                        className={`flex-1 bg-accent text-surface-page font-bold py-3 rounded-xl hover:opacity-90 transition disabled:opacity-50 text-sm ${focusRing}`}>
+                                        className={`flex-1 bg-accent text-accent-fg font-bold py-3 rounded-xl hover:opacity-90 transition disabled:opacity-50 text-sm ${focusRing}`}>
                                     {loading ? "Procesando..." : editingId ? "Actualizar Deudor" : "Agregar Deudor"}
                                 </button>
                             </div>

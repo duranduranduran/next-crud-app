@@ -19,6 +19,35 @@ export function StatusBadge({ status }) {
     );
 }
 
+// Kept genuinely short (not STATUS_COLORS' label truncated) so the
+// fixed-width column below stays narrow — "Judicial" reads fine alone
+// without "Escalado" in front of it in a peek row this tight.
+const SHORT_STATUS_LABELS = {
+    PENDIENTE: "Pendiente",
+    EN_GESTION: "En gestion",
+    ACUERDO_DE_PAGO: "Acuerdo",
+    PAGADO: "Pagado",
+    ESCALADO_JUDICIAL: "Judicial",
+};
+
+// Scannable status signal for the card stack's peek row — colored TEXT,
+// not a pill, since the badge's padding costs space the strip doesn't
+// have. Fixed width (matches admin/page.jsx's StatusLabel column) so
+// labels of different lengths don't jitter the amount column as you scan
+// down a stack. The full StatusBadge stays in the hover-revealed detail.
+export function StatusLabel({ status }) {
+    const meta = STATUS_COLORS[status];
+    const label = SHORT_STATUS_LABELS[status] || meta?.label || status;
+    return (
+        <span
+            className="text-[11px] font-medium truncate flex-shrink-0"
+            style={{ color: meta?.color || "var(--color-accent)", width: "4rem" }}
+        >
+            {label}
+        </span>
+    );
+}
+
 export function FormField({ icon, children }) {
     return (
         <div className="flex items-start gap-3">

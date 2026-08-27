@@ -95,7 +95,7 @@ export default function AdminSidebar() {
                 element per row, not an avatar + button sharing a row. */}
             <div className="p-3 border-t border-border-subtle flex flex-col gap-1">
                 <div className="flex items-center gap-4 p-1">
-                    <div className="w-8 h-8 rounded-full bg-accent-bg text-accent flex items-center justify-center text-[11px] font-bold flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-surface-hover text-text-primary flex items-center justify-center text-[11px] font-bold flex-shrink-0">
                         {getInitials(user?.fullName)}
                     </div>
                     <p className="text-xs font-medium text-text-primary truncate whitespace-nowrap opacity-0 group-hover:opacity-100 transition">

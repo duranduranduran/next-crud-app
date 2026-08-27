@@ -1,250 +1,148 @@
 'use client';
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import Logo from "../components/Logo";
+import MarketingShell from "../components/marketing/MarketingShell";
+import SectionHeading from "../components/marketing/SectionHeading";
+import { Reveal, SplitHeadline } from "../components/marketing/fx";
+
+const VALUES = [
+    {
+        title: "Eficiencia",
+        body: "Automatizamos el seguimiento repetitivo para que tu equipo se enfoque en los casos que de verdad requieren una decisión humana.",
+    },
+    {
+        title: "Seguridad",
+        body: "Cifrado de nivel bancario en tránsito y en reposo, y autenticación segura en cada cuenta que administra una cartera de deudores.",
+    },
+    {
+        title: "Ética",
+        body: "Sin hostigamiento. La cobranza automatizada protege la relación entre tu empresa y tu cliente, no la deteriora.",
+    },
+    {
+        title: "Respaldo legal",
+        body: "Cada acción queda registrada con fecha y detalle — la trazabilidad que necesitas si un caso llega a proceso judicial.",
+    },
+];
 
 export default function QuienesSomosPage() {
-
-    const [particles, setParticles] = useState([]);
-    const [mouse, setMouse] = useState({ x: 0, y: 0 });
-
-    useEffect(() => {
-        setParticles(
-            [...Array(30)].map(() => ({
-                top: Math.random() * 100,
-                left: Math.random() * 100,
-            }))
-        );
-    }, []);
-
-    const handleMouseMove = (e) => {
-        const { innerWidth, innerHeight } = window;
-        const x = (e.clientX / innerWidth - 0.5) * 8;
-        const y = (e.clientY / innerHeight - 0.5) * 8;
-        setMouse({ x, y });
-    };
-
-    const timeline = [
-        {
-            tag: "Quiénes somos",
-            title: "Una plataforma inteligente y ética",
-            body: "Impulsamos la recuperación de liquidez de empresas y emprendedores a través de tecnología y respaldo legal, transformando la cobranza en un proceso eficiente, seguro y sin hostigamientos.",
-            accent: "var(--color-accent)",
-            light: "var(--color-accent-bg)",
-            side: "left",
-            float: { label: "Clientes activos", value: "+500" },
-        },
-        {
-            tag: "Nuestra Misión",
-            title: "Recuperar lo que es tuyo",
-            body: "Impulsar la recuperación de liquidez de empresas y emprendedores a través de una plataforma digital inteligente y ética, que combina tecnología y respaldo legal para transformar la cobranza en un proceso eficiente, seguro y sin hostigamientos.",
-            accent: "var(--color-brand-mint)",
-            light: "var(--color-brand-mint-bg)",
-            side: "right",
-            float: { label: "Tasa de contactabilidad", value: "+92%" },
-        },
-        {
-            tag: "Nuestra Visión",
-            title: "Líderes en Latinoamérica",
-            body: "Ser la plataforma líder en Latinoamérica en la recuperación de liquidez empresarial mediante gestión de cobranza inteligente, reconocida por su innovación, eficiencia y ética en la protección de la relación entre acreedores y clientes.",
-            accent: "var(--color-accent)",
-            light: "var(--color-accent-bg)",
-            side: "left",
-            float: { label: "Automatización", value: "24/7" },
-        },
-    ];
-
-    const values = [
-        { icon: "⚡", title: "Eficiencia", desc: "Automatizamos procesos para que tu equipo se enfoque en lo que importa." },
-        { icon: "🔒", title: "Seguridad", desc: "Encriptación de nivel bancario en cada operación." },
-        { icon: "⚖️", title: "Ética", desc: "Sin hostigamientos. Cobranza que protege la relación acreedor-cliente." },
-        { icon: "🤝", title: "Respaldo Legal", desc: "Tecnología combinada con soporte legal para maximizar resultados." },
-    ];
-
     return (
-        <div className="min-h-screen bg-surface-page text-accent overflow-x-hidden">
-
-            {/* NAVBAR */}
-            <nav className="sticky top-0 z-50 flex items-center justify-between px-8 max-w-7xl mx-auto bg-surface-raised py-4 border-b border-accent/10">
-                <Link href="/">
-                    <Logo className="h-[25px] w-auto" />
-                </Link>
-                <ul className="flex space-x-6 items-center">
-                    <li><Link href="/about" className="font-bold underline underline-offset-4">Quienes Somos</Link></li>
-                    <li><Link href="/services" className="hover:underline">Servicios</Link></li>
-                    <li><Link href="/planes" className="hover:underline">Planes</Link></li>
-                    <li><Link href="/contact" className="hover:underline">Contactanos</Link></li>
-                    <li>
-                        <Link href="/sign-in" className="border border-accent px-5 py-2 rounded-lg hover:bg-accent hover:text-surface-page transition">
-                            Iniciar Sesión
-                        </Link>
-                    </li>
-                </ul>
-            </nav>
-
+        <MarketingShell>
             {/* HERO */}
-            <section className="relative pt-24 pb-16 px-8 text-center overflow-hidden" onMouseMove={handleMouseMove}>
-                <div className="absolute inset-0 opacity-5 pointer-events-none">
-                    {particles.map((p, i) => (
-                        <div key={i} className="absolute w-1 h-1 bg-accent rounded-full"
-                             style={{ top: `${p.top}%`, left: `${p.left}%` }} />
-                    ))}
-                </div>
-
-                {/* Floating cards */}
-                <div className="group absolute top-28 left-12 border border-accent/20 p-4 rounded-xl w-48 bg-surface-raised animate-floatSlow hover:bg-brand-mint transition-all duration-300 hidden lg:block text-left">
-                    <p className="text-xs text-accent/50 mb-1 group-hover:text-accent">Casos activos</p>
-                    <p className="text-xl font-bold group-hover:text-accent">+10,000</p>
-                </div>
-                <div className="group absolute top-40 right-12 border border-accent/20 p-4 rounded-xl w-48 bg-surface-raised animate-floatSlowReverse hover:bg-brand-yellow transition-all duration-300 hidden lg:block text-left">
-                    <p className="text-xs text-accent/50 mb-1 group-hover:text-accent">Alcance</p>
-                    <p className="text-xl font-bold group-hover:text-accent">LATAM 🌎</p>
-                </div>
-
-                <div className="relative max-w-2xl mx-auto">
-                    <p className="text-xs font-bold tracking-widest text-accent/30 uppercase mb-5">Quienes Somos</p>
-                    <h1 className="text-6xl md:text-7xl font-extrabold leading-[0.95] mb-6">
-                        Recupera<br />
-                        <span className="relative inline-block">
-                            tu liquidez
-                            <span className="absolute -bottom-1 left-0 w-full h-1 bg-brand-mint rounded-full"></span>
-                        </span>
-                    </h1>
-                    <p className="text-lg text-accent/60 leading-relaxed">
-                        Somos la plataforma que combina tecnología, ética y respaldo legal para transformar la cobranza empresarial en Latinoamérica.
+            <section className="px-6 md:px-8 pt-16 md:pt-24 pb-16 md:pb-20">
+                <div className="max-w-3xl mx-auto text-center">
+                    <p className="text-xs font-semibold tracking-[0.2em] text-text-tertiary uppercase mb-5">
+                        Quiénes somos
+                    </p>
+                    <SplitHeadline
+                        text="Recuperar lo que es tuyo, sin perder la relación"
+                        className="text-4xl md:text-6xl font-extrabold leading-[1.02] tracking-tight text-text-primary mb-6"
+                    />
+                    <p className="text-lg text-text-secondary leading-relaxed max-w-xl mx-auto">
+                        Somos la plataforma que combina tecnología, ética y respaldo legal
+                        para transformar la cobranza empresarial en Ecuador y Latinoamérica.
                     </p>
                 </div>
 
-                {/* Stats strip */}
-                <div className="max-w-3xl mx-auto mt-16 grid grid-cols-4 gap-0 border border-accent/10 rounded-2xl overflow-hidden">
+                <Reveal
+                    as="div"
+                    stagger={0.08}
+                    className="max-w-3xl mx-auto mt-16 grid grid-cols-2 md:grid-cols-4 gap-0 border border-border-default rounded-2xl overflow-hidden"
+                >
                     {[
                         { value: "+92%", label: "Contactabilidad" },
                         { value: "24/7", label: "Automatización" },
-                        { value: "+10K", label: "Casos activos" },
+                        { value: "+500", label: "Clientes activos" },
                         { value: "LATAM", label: "Alcance" },
                     ].map((s, i) => (
-                        <div key={i} className={`group py-6 px-4 cursor-default hover:bg-surface-hover transition-colors duration-300 ${i < 3 ? 'border-r border-accent/10' : ''}`}>
-                            <p className="text-2xl font-extrabold group-hover:text-accent transition-colors">{s.value}</p>
-                            <p className="text-xs text-accent/40 mt-1 uppercase tracking-wide">{s.label}</p>
+                        <div
+                            key={i}
+                            className={`py-6 px-4 text-center border-border-default ${i % 2 === 0 ? "border-r" : ""} ${i < 2 ? "border-b md:border-b-0" : ""} ${i < 3 ? "md:border-r" : ""}`}
+                        >
+                            <p className="text-2xl font-extrabold text-text-primary">{s.value}</p>
+                            <p className="text-xs text-text-secondary mt-1 uppercase tracking-wide">{s.label}</p>
                         </div>
                     ))}
-                </div>
+                </Reveal>
             </section>
 
-            {/* TIMELINE */}
-            <section className="px-8 py-24 max-w-5xl mx-auto relative">
-
-                {/* Center line */}
-                <div className="absolute left-1/2 top-24 bottom-24 w-px bg-accent/10 -translate-x-1/2 hidden md:block"></div>
-
-                <div className="space-y-24">
-                    {timeline.map((item, i) => (
-                        <div key={i} className={`relative grid md:grid-cols-2 gap-12 items-center`}>
-
-                            {/* Center dot */}
-                            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block z-10">
-                                <div className="w-4 h-4 rounded-full border-2 bg-surface-raised"
-                                     style={{ borderColor: item.accent }}>
-                                </div>
-                            </div>
-
-                            {/* Content — alternates sides */}
-                            <div className={`${item.side === 'right' ? 'md:col-start-2' : ''} group`}>
-                                <div
-                                    className="border border-accent/10 rounded-2xl p-8 hover:shadow-xl transition-all duration-500 hover:-translate-y-1 relative overflow-hidden"
-                                    style={{ '--accent': item.accent }}
-                                >
-                                    {/* Accent corner */}
-                                    <div className="absolute top-0 left-0 w-1 h-full rounded-l-2xl transition-all duration-300"
-                                         style={{ background: item.accent }}></div>
-
-                                    <span className="inline-block text-xs font-bold px-3 py-1 rounded-full mb-4 ml-4"
-                                          style={{ background: item.light, color: item.accent }}>
-                                        {item.tag}
-                                    </span>
-                                    <h2 className="text-2xl font-bold mb-4 ml-4">{item.title}</h2>
-                                    <p className="text-accent/60 leading-relaxed ml-4">{item.body}</p>
-                                </div>
-                            </div>
-
-                            {/* Floating stat — opposite side */}
-                            <div className={`${item.side === 'right' ? 'md:col-start-1 md:row-start-1' : ''} flex ${item.side === 'right' ? 'md:justify-end' : 'md:justify-start'} items-center`}>
-                                <div
-                                    className="group border border-accent/10 rounded-2xl p-8 w-48 hover:scale-105 transition-all duration-300 cursor-default animate-floatSlow text-center"
-                                    style={{ animationDelay: `${i * 0.5}s` }}
-                                >
-                                    <p className="text-4xl font-extrabold mb-2" style={{ color: item.accent }}>{item.float.value}</p>
-                                    <p className="text-xs text-accent/40 uppercase tracking-wide">{item.float.label}</p>
-                                </div>
-                            </div>
-
-                        </div>
-                    ))}
+            {/* 01 — MISIÓN (prosa larga) */}
+            <Reveal as="section" className="px-6 md:px-8 py-20 md:py-28 border-t border-border-subtle">
+                <div className="max-w-3xl mx-auto">
+                    <SectionHeading index="01" kicker="Nuestra misión" title="Recuperar liquidez sin desgastar la relación comercial" />
+                    <div className="mt-8 space-y-5 text-base md:text-lg text-text-secondary leading-relaxed">
+                        <p>
+                            Impulsamos la recuperación de liquidez de empresas y
+                            emprendedores ecuatorianos a través de una plataforma digital
+                            inteligente y ética, que combina automatización con respaldo
+                            legal para transformar la cobranza en un proceso eficiente,
+                            seguro y sin hostigamientos.
+                        </p>
+                        <p>
+                            Sabemos que cobrar una factura vencida es, muchas veces, una
+                            conversación incómoda que ningún equipo quiere tener a diario.
+                            Por eso construimos un sistema que hace ese seguimiento por ti
+                            — de forma consistente, documentada y respetuosa — dejando el
+                            contacto humano para los casos que de verdad lo necesitan.
+                        </p>
+                    </div>
                 </div>
-            </section>
+            </Reveal>
 
-            {/* VALUES */}
-            <section className="bg-surface-hover px-8 py-24">
+            {/* 02 — VISIÓN (prosa larga) */}
+            <Reveal as="section" className="px-6 md:px-8 py-20 md:py-28 bg-surface-hover">
+                <div className="max-w-3xl mx-auto">
+                    <SectionHeading index="02" kicker="Nuestra visión" title="Líderes en cobranza inteligente en Latinoamérica" />
+                    <div className="mt-8 space-y-5 text-base md:text-lg text-text-secondary leading-relaxed">
+                        <p>
+                            Queremos ser la plataforma líder en Latinoamérica en la
+                            recuperación de liquidez empresarial mediante gestión de
+                            cobranza inteligente, reconocida por su innovación, su
+                            eficiencia y, sobre todo, por la ética con la que protege la
+                            relación entre acreedores y clientes.
+                        </p>
+                        <p>
+                            Empezamos en Ecuador, con el mercado y la normativa que mejor
+                            conocemos, y construimos Recupera pensando desde el inicio en
+                            crecer hacia el resto de la región sin sacrificar esa premisa.
+                        </p>
+                    </div>
+                </div>
+            </Reveal>
+
+            {/* 03 — VALORES */}
+            <section className="px-6 md:px-8 py-20 md:py-28">
                 <div className="max-w-5xl mx-auto">
-                    <p className="text-xs font-bold tracking-widest text-accent/30 uppercase text-center mb-3">Nuestros valores</p>
-                    <h2 className="text-4xl font-bold text-center mb-14">Lo que nos define</h2>
-                    <div className="grid md:grid-cols-4 gap-6">
-                        {values.map((v, i) => (
-                            <div key={i}
-                                 className="group bg-surface-raised border border-accent/10 rounded-2xl p-7 hover:border-accent/40 hover:-translate-y-2 hover:shadow-lg hover:shadow-accent/5 transition-all duration-300 cursor-default text-center">
-                                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300 inline-block">{v.icon}</div>
-                                <h3 className="font-bold text-lg mb-2">{v.title}</h3>
-                                <p className="text-sm text-accent/50 leading-relaxed">{v.desc}</p>
+                    <Reveal>
+                        <SectionHeading index="03" kicker="Nuestros valores" title="Lo que nos define" center />
+                    </Reveal>
+                    <Reveal stagger={0.08} className="grid md:grid-cols-2 gap-6 mt-14">
+                        {VALUES.map((v, i) => (
+                            <div key={i} className="border border-border-default rounded-2xl p-7">
+                                <h3 className="font-bold text-lg text-text-primary mb-2">{v.title}</h3>
+                                <p className="text-sm text-text-secondary leading-relaxed">{v.body}</p>
                             </div>
                         ))}
-                    </div>
+                    </Reveal>
                 </div>
             </section>
 
             {/* CTA */}
-            <section className="px-8 py-24 text-center">
+            <Reveal as="section" className="px-6 md:px-8 py-20 md:py-28 text-center border-t border-border-subtle">
                 <div className="max-w-xl mx-auto">
-                    <h2 className="text-4xl font-bold mb-4">¿Listo para comenzar?</h2>
-                    <p className="text-accent/60 mb-10">Únete a miles de empresas que ya recuperan su liquidez con Recupera.</p>
-                    <div className="flex gap-4 justify-center">
-                        <Link href="/sign-up" className="bg-accent text-surface-page px-8 py-4 rounded-xl font-bold hover:opacity-90 transition">
+                    <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">¿Listo para comenzar?</h2>
+                    <p className="text-text-secondary mb-10">
+                        Únete a las empresas ecuatorianas que ya recuperan su liquidez con Recupera.
+                    </p>
+                    <div className="flex flex-wrap gap-4 justify-center">
+                        <Link href="/sign-up" className="bg-accent text-accent-fg px-8 py-4 rounded-xl font-bold hover:opacity-90 transition">
                             Crear Cuenta
                         </Link>
-                        <Link href="/planes" className="border border-accent px-8 py-4 rounded-xl font-bold hover:bg-accent hover:text-surface-page transition">
+                        <Link href="/planes" className="border border-border-default px-8 py-4 rounded-xl font-bold hover:bg-surface-hover transition">
                             Ver Planes
                         </Link>
                     </div>
                 </div>
-            </section>
-
-            {/* FOOTER */}
-            <footer className="border-t border-accent/10 py-8 px-8 text-sm">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-                    <p className="text-accent/70">© {new Date().getFullYear()} <span className="font-bold">Recupera</span></p>
-                    <div className="flex gap-6 text-accent/70">
-                        <Link href="#">Privacidad</Link>
-                        <Link href="#">Términos</Link>
-                        <Link href="#">Contacto</Link>
-                    </div>
-                </div>
-            </footer>
-
-            <style jsx>{`
-                @keyframes floatSlow {
-                    0% { transform: translateY(0px); }
-                    50% { transform: translateY(-12px); }
-                    100% { transform: translateY(0px); }
-                }
-                @keyframes floatSlowReverse {
-                    0% { transform: translateY(0px); }
-                    50% { transform: translateY(12px); }
-                    100% { transform: translateY(0px); }
-                }
-                .animate-floatSlow { animation: floatSlow 6s ease-in-out infinite; }
-                .animate-floatSlowReverse { animation: floatSlowReverse 7s ease-in-out infinite; }
-            `}</style>
-
-        </div>
+            </Reveal>
+        </MarketingShell>
     );
 }

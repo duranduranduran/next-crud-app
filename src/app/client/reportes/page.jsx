@@ -144,7 +144,7 @@ export default function ReportesPage() {
 
                 <div className="flex justify-end">
                     <button onClick={() => exportDebtorsExcel(debtors, XLSX)}
-                            className={`bg-accent text-surface-page px-6 py-3 rounded-xl font-bold hover:opacity-90 transition text-sm ${focusRing}`}>
+                            className={`bg-accent text-accent-fg px-6 py-3 rounded-xl font-bold hover:opacity-90 transition text-sm ${focusRing}`}>
                         ⬇ Exportar Reporte Excel
                     </button>
                 </div>

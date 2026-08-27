@@ -159,9 +159,12 @@ export default function LogsPage() {
         const { default: jsPDF } = await import("jspdf");
         const { default: autoTable } = await import("jspdf-autotable");
 
+        // Monochrome, matching the app UI — purple is brand-only now (logo +
+        // email templates), and a generated report is closer to "UI export"
+        // than either of those two carve-outs.
         const doc = new jsPDF({ orientation: "landscape" });
         doc.setFontSize(16);
-        doc.setTextColor(68, 60, 163);
+        doc.setTextColor(24, 24, 27);
         doc.text("Recupera — Registro de Actividad", 14, 16);
         doc.setFontSize(10);
         doc.setTextColor(120, 120, 120);
@@ -180,9 +183,9 @@ export default function LogsPage() {
                 log.user?.name || log.user?.email || "Sistema",
                 log.debtor?.name || "—",
             ]),
-            headStyles: { fillColor: [68, 60, 163], textColor: 255, fontSize: 9 },
+            headStyles: { fillColor: [24, 24, 27], textColor: 255, fontSize: 9 },
             bodyStyles: { fontSize: 8 },
-            alternateRowStyles: { fillColor: [247, 248, 255] },
+            alternateRowStyles: { fillColor: [245, 245, 246] },
             columnStyles: { 2: { cellWidth: 80 } },
         });
 
@@ -192,8 +195,8 @@ export default function LogsPage() {
     if (loading) return (
         <div data-density="compact" className="min-h-screen bg-surface-page flex items-center justify-center">
             <div className="text-center">
-                <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                <p className="text-sm text-accent/50">Cargando...</p>
+                <div className="w-8 h-8 border-2 border-text-tertiary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-sm text-text-tertiary">Cargando...</p>
             </div>
         </div>
     );
@@ -216,11 +219,11 @@ export default function LogsPage() {
                 <div className="flex items-center gap-3">
 
                     <button onClick={handleExportLogsExcel}
-                            className="border border-border-default text-text-secondary px-3 py-2 rounded-xl text-xs font-medium hover:bg-accent hover:text-surface-page hover:border-accent transition">
+                            className="border border-border-default text-text-secondary px-3 py-2 rounded-xl text-xs font-medium hover:bg-surface-hover hover:text-text-primary transition">
                         ⬇ Excel
                     </button>
                     <button onClick={handleExportLogsPDF}
-                            className="border border-border-default text-text-secondary px-3 py-2 rounded-xl text-xs font-medium hover:bg-accent hover:text-surface-page hover:border-accent transition">
+                            className="border border-border-default text-text-secondary px-3 py-2 rounded-xl text-xs font-medium hover:bg-surface-hover hover:text-text-primary transition">
                         ⬇ PDF
                     </button>
                 </div>
@@ -301,8 +304,8 @@ export default function LogsPage() {
                             onClick={() => { setEventFilter(f); setCurrentPage(1); }}
                             className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
                                 eventFilter === f
-                                    ? "bg-accent text-surface-page shadow-sm"
-                                    : "bg-surface-hover text-text-secondary border border-border-default hover:border-accent/30 hover:text-accent"
+                                    ? "bg-border-default text-text-primary shadow-sm"
+                                    : "bg-surface-hover text-text-secondary border border-border-default hover:text-text-primary"
                             }`}
                         >
                             {f === "All" ? "Todos los eventos" : EVENT_LABELS[f]?.label || f}
@@ -325,7 +328,7 @@ export default function LogsPage() {
                         <p className="text-4xl mb-3">📋</p>
                         <p className="text-sm">No se encontraron registros</p>
                         {hasActiveFilters && (
-                            <button onClick={clearFilters} className="mt-3 text-xs text-accent underline">
+                            <button onClick={clearFilters} className="mt-3 text-xs text-text-secondary underline">
                                 Limpiar filtros
                             </button>
                         )}
@@ -368,7 +371,7 @@ export default function LogsPage() {
                     <button
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
-                        className="px-4 py-2 border border-border-default rounded-xl text-sm text-text-secondary hover:bg-accent hover:text-surface-page hover:border-accent transition disabled:opacity-30"
+                        className="px-4 py-2 border border-border-default rounded-xl text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary transition disabled:opacity-30"
                     >
                         ← Anterior
                     </button>
@@ -376,7 +379,7 @@ export default function LogsPage() {
                     <button
                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages}
-                        className="px-4 py-2 border border-border-default rounded-xl text-sm text-text-secondary hover:bg-accent hover:text-surface-page hover:border-accent transition disabled:opacity-30"
+                        className="px-4 py-2 border border-border-default rounded-xl text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary transition disabled:opacity-30"
                     >
                         Siguiente →
                     </button>

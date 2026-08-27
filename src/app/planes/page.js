@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import Logo from "../components/Logo";
+import MarketingShell from "../components/marketing/MarketingShell";
+import SectionHeading from "../components/marketing/SectionHeading";
+import { Reveal, SplitHeadline } from "../components/marketing/fx";
 
 const plans = [
     {
@@ -79,244 +81,186 @@ const plans = [
     },
 ];
 
+const FAQS = [
+    {
+        q: "¿Puedo cambiar de plan en cualquier momento?",
+        a: "Sí, puedes actualizar o bajar de plan cuando quieras. Los cambios se aplican en el siguiente ciclo de facturación.",
+    },
+    {
+        q: "¿Qué pasa si supero el límite de deudores?",
+        a: "Te notificaremos antes de llegar al límite. Puedes subir de plan o esperar al siguiente mes.",
+    },
+    {
+        q: "¿Cómo funciona el fee de éxito?",
+        a: "Solo aplica al plan Starter y es opcional. Es un 8% sobre lo que recuperes gracias a la plataforma.",
+    },
+    {
+        q: "¿Mis datos están seguros?",
+        a: "Sí. Usamos encriptación de nivel bancario y cumplimos con todas las normativas de protección de datos.",
+    },
+];
+
+function CheckIcon() {
+    return (
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="8" fill="var(--color-brand-mint)" fillOpacity="0.2" />
+            <path d="M5 8l2 2 4-4" stroke="var(--color-brand-mint)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+}
+
+function CrossIcon() {
+    return (
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="8" fill="var(--color-text-tertiary)" fillOpacity="0.12" />
+            <path d="M5.5 10.5l5-5M10.5 10.5l-5-5" stroke="var(--color-text-tertiary)" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+    );
+}
+
 export default function PlanesPage() {
     const [annual, setAnnual] = useState(false);
 
     return (
-        <div className="min-h-screen bg-surface-page text-accent">
-
-            {/* NAVBAR */}
-            <nav
-                className="sticky top-0 z-50 flex items-center justify-between px-8 max-w-7xl mx-auto bg-surface-raised py-4 border-b border-accent/10">
-                <Link href="/">
-                    <Logo className="h-[25px] w-auto" />
-                </Link>
-                <ul className="flex space-x-6 items-center">
-                    <li><Link href="/about" className="hover:underline">Quienes Somos</Link></li>
-                    <li><Link href="/services" className="hover:underline">Servicios</Link></li>
-                    <li><Link href="/planes" className="font-bold underline underline-offset-4">Planes</Link></li>
-                    <li><Link href="/contact" className="hover:underline">Contactanos</Link></li>
-                    <li>
-                        <Link
-                            href="/sign-in"
-                            className="border border-accent px-5 py-2 rounded-lg hover:bg-accent hover:text-surface-page transition"
-                        >
-                            Iniciar Sesión
-                        </Link>
-                    </li>
-                </ul>
-            </nav>
-
+        <MarketingShell>
             {/* HEADER */}
-            <section className="pt-20 pb-12 px-8 text-center max-w-3xl mx-auto">
-                <p className="text-sm font-medium tracking-widest text-accent/50 uppercase mb-4">Precios</p>
-                <h1 className="text-5xl md:text-6xl font-extrabold leading-tight mb-6">
-                    Elige el plan que impulsa tu recuperación
-                </h1>
-                <p className="text-lg text-accent/60 mb-10">
+            <section className="px-6 md:px-8 pt-16 md:pt-24 pb-14 text-center max-w-3xl mx-auto">
+                <p className="text-xs font-semibold tracking-[0.2em] text-text-tertiary uppercase mb-5">Precios</p>
+                <SplitHeadline
+                    text="Un plan para cada tamaño de cartera"
+                    as="h1"
+                    className="text-4xl md:text-5xl font-extrabold leading-tight tracking-tight text-text-primary mb-6"
+                />
+                <p className="text-lg text-text-secondary mb-10">
                     Sin contratos largos. Sin sorpresas. Cancela cuando quieras.
                 </p>
 
-                {/* Toggle */}
-                <div className="inline-flex items-center gap-4 border border-accent/20 rounded-xl px-5 py-3">
-                    <span
-                        className={`text-sm font-medium ${!annual ? 'text-accent' : 'text-accent/40'}`}>Mensual</span>
-                    <div
+                <div className="inline-flex items-center gap-4 border border-border-default rounded-xl px-5 py-3">
+                    <span className={`text-sm font-medium ${!annual ? "text-text-primary" : "text-text-tertiary"}`}>Mensual</span>
+                    <button
+                        type="button"
+                        role="switch"
+                        aria-checked={annual}
+                        aria-label="Alternar facturación anual"
                         onClick={() => setAnnual(!annual)}
                         className="relative w-12 h-6 rounded-full cursor-pointer transition-colors duration-300"
-                        style={{background: annual ? 'var(--color-accent)' : 'var(--color-accent-bg)'}}
+                        style={{ background: annual ? "var(--color-accent)" : "var(--color-accent-bg)" }}
                     >
-                        <div
-                            className="absolute top-1 w-4 h-4 bg-surface-page rounded-full transition-all duration-300"
-                            style={{left: annual ? '28px' : '4px'}}
-                        />
-                    </div>
-                    <span className={`text-sm font-medium ${annual ? 'text-accent' : 'text-accent/40'}`}>
-                        Anual
                         <span
-                            className="ml-2 text-xs bg-brand-mint text-accent px-2 py-0.5 rounded-full font-bold">-20%</span>
+                            className="absolute top-1 w-4 h-4 bg-surface-raised rounded-full transition-all duration-300"
+                            style={{ left: annual ? "28px" : "4px" }}
+                        />
+                    </button>
+                    <span className={`text-sm font-medium ${annual ? "text-text-primary" : "text-text-tertiary"}`}>
+                        Anual
+                        <span className="ml-2 text-xs bg-brand-mint text-accent px-2 py-0.5 rounded-full font-bold">-20%</span>
                     </span>
                 </div>
             </section>
 
             {/* PLANS GRID */}
-            <section className="px-8 pb-24 max-w-7xl mx-auto">
-                <div className="grid md:grid-cols-4 gap-6">
+            <section className="px-6 md:px-8 pb-20 max-w-6xl mx-auto">
+                <Reveal stagger={0.08} className="grid md:grid-cols-2 xl:grid-cols-4 gap-6">
                     {plans.map((plan) => (
                         <div
                             key={plan.id}
-                            className={`relative rounded-2xl p-7 flex flex-col transition-all duration-300 ${
+                            className={`relative rounded-2xl p-7 flex flex-col ${
                                 plan.highlight
-                                    ? 'border-2 border-accent bg-surface-raised shadow-xl shadow-accent/10'
-                                    : 'border border-accent/20 bg-surface-raised hover:border-accent/50 hover:shadow-lg hover:shadow-accent/5'
+                                    ? "border-2 border-accent bg-surface-raised shadow-xl"
+                                    : "border border-border-default bg-surface-raised"
                             }`}
                         >
-                            {/* Badge */}
                             {plan.badge && (
                                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                                    <span
-                                        className="bg-accent text-surface-page text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
+                                    <span className="bg-accent text-accent-fg text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
                                         {plan.badge}
                                     </span>
                                 </div>
                             )}
 
-                            {/* Plan name */}
-                            <p className="text-xs font-bold tracking-widest text-accent/50 mb-3">{plan.name}</p>
+                            <p className="text-xs font-bold tracking-widest text-text-tertiary mb-3">{plan.name}</p>
 
-                            {/* Price */}
                             <div className="mb-2">
                                 {plan.price ? (
                                     <div className="flex items-end gap-1">
-                                        <span className="text-5xl font-extrabold">
+                                        <span className="text-5xl font-extrabold text-text-primary">
                                             ${annual ? Math.round(plan.price * 0.8) : plan.price}
                                         </span>
-                                        <span className="text-accent/50 mb-2">/mes</span>
+                                        <span className="text-text-tertiary mb-2">/mes</span>
                                     </div>
                                 ) : (
-                                    <p className="text-4xl font-extrabold">A consultar</p>
+                                    <p className="text-4xl font-extrabold text-text-primary">A consultar</p>
                                 )}
                             </div>
 
-                            {/* Debtors */}
-                            <p className="text-sm font-semibold text-accent/70 mb-6 pb-6 border-b border-accent/10">
+                            <p className="text-sm font-semibold text-text-secondary mb-6 pb-6 border-b border-border-subtle">
                                 {plan.debtors}
                             </p>
 
-                            {/* Features */}
                             <ul className="space-y-3 flex-1 mb-6">
                                 {plan.features.map((feature, i) => (
                                     <li key={i} className="flex items-center gap-3 text-sm">
-                                        {feature.included ? (
-                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                                <circle cx="8" cy="8" r="8" fill="var(--color-brand-mint)" fillOpacity="0.2"/>
-                                                <path d="M5 8l2 2 4-4" stroke="var(--color-brand-mint)" strokeWidth="1.5"
-                                                      strokeLinecap="round" strokeLinejoin="round"/>
-                                            </svg>
-                                        ) : (
-                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                                <circle cx="8" cy="8" r="8" fill="var(--color-accent)" fillOpacity="0.08"/>
-                                                <path d="M5.5 10.5l5-5M10.5 10.5l-5-5" stroke="var(--color-accent)"
-                                                      strokeOpacity="0.3" strokeWidth="1.5" strokeLinecap="round"/>
-                                            </svg>
-                                        )}
-                                        <span className={feature.included ? 'text-accent' : 'text-accent/30'}>
+                                        {feature.included ? <CheckIcon /> : <CrossIcon />}
+                                        <span className={feature.included ? "text-text-primary" : "text-text-tertiary"}>
                                             {feature.label}
                                         </span>
                                     </li>
                                 ))}
                             </ul>
 
-                            {/* Note */}
                             {plan.note && (
-                                <p className="text-xs text-accent/40 mb-4 text-center">{plan.note}</p>
+                                <p className="text-xs text-text-secondary mb-4 text-center">{plan.note}</p>
                             )}
 
-                            {/* CTA */}
                             <Link
-                                href={plan.id === 'enterprise' ? '/contact' : '/sign-up'}
+                                href={plan.id === "enterprise" ? "/about" : "/sign-up"}
                                 className={`w-full text-center py-3 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 ${
                                     plan.highlight
-                                        ? 'bg-accent text-surface-page hover:opacity-90'
-                                        : 'border border-accent/30 text-accent hover:bg-accent hover:text-surface-page'
+                                        ? "bg-accent text-accent-fg hover:opacity-90"
+                                        : "border border-border-default text-text-primary hover:bg-surface-hover"
                                 }`}
                             >
-                                {plan.id === 'enterprise' ? 'Contactar' : 'Ver detalles'}
-                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                                    <path d="M2.5 7h9M8 3.5L11.5 7 8 10.5" stroke="currentColor" strokeWidth="1.5"
-                                          strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
+                                {plan.id === "enterprise" ? "Contactar" : "Empezar ahora"}
+                                <span aria-hidden="true">→</span>
                             </Link>
                         </div>
                     ))}
-                </div>
+                </Reveal>
 
-                {/* Bottom note */}
-                <p className="text-center text-sm text-accent/40 mt-10">
-                    Todos los planes incluyen soporte por email · Datos seguros y encriptados · Cancela en cualquier
-                    momento
+                <p className="text-center text-sm text-text-secondary mt-10">
+                    Todos los planes incluyen soporte por email · Datos seguros y encriptados · Cancela en cualquier momento
                 </p>
             </section>
 
             {/* FAQ */}
-            <section className="border-t border-accent/10 px-8 py-20 max-w-3xl mx-auto">
-                <h2 className="text-3xl font-bold text-center mb-12">Preguntas frecuentes</h2>
-                <div className="space-y-4">
-                    {[
-                        {
-                            q: "¿Puedo cambiar de plan en cualquier momento?",
-                            a: "Sí, puedes actualizar o bajar de plan cuando quieras. Los cambios se aplican en el siguiente ciclo de facturación."
-                        },
-                        {
-                            q: "¿Qué pasa si supero el límite de deudores?",
-                            a: "Te notificaremos antes de llegar al límite. Puedes subir de plan o esperar al siguiente mes."
-                        },
-                        {
-                            q: "¿Cómo funciona el fee de éxito?",
-                            a: "Solo aplica al plan Starter y es opcional. Es un 8% sobre lo que recuperes gracias a la plataforma."
-                        },
-                        {
-                            q: "¿Mis datos están seguros?",
-                            a: "Sí. Usamos encriptación de nivel bancario y cumplimos con todas las normativas de protección de datos."
-                        },
-                    ].map((faq, i) => (
-                        <div
-                            key={i}
-                            className="group border border-accent/10 rounded-xl overflow-hidden cursor-pointer hover:border-accent/40 hover:shadow-md hover:shadow-accent/5 transition-all duration-300"
-                        >
-                            <div className="p-6">
-                                <div className="flex items-center justify-between">
-                                    <p className="font-bold group-hover:text-accent">{faq.q}</p>
-                                    <div
-                                        className="w-6 h-6 rounded-full border border-accent/20 flex items-center justify-center flex-shrink-0 ml-4 group-hover:bg-accent group-hover:border-accent transition-all duration-300">
-                                        <svg
-                                            width="12"
-                                            height="12"
-                                            viewBox="0 0 12 12"
-                                            fill="none"
-                                            className="transition-transform duration-300 group-hover:rotate-180"
-                                        >
-                                            <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5"
-                                                  strokeLinecap="round" strokeLinejoin="round"
-                                                  className="group-hover:stroke-surface-page"/>
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div
-                                    className="grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-all duration-300 ease-in-out">
-                                    <div className="overflow-hidden">
-                                        <p className="text-sm text-accent/60 mt-4 pt-4 border-t border-accent/10">
-                                            {faq.a}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+            <section className="border-t border-border-subtle px-6 md:px-8 py-20 md:py-28 max-w-3xl mx-auto">
+                <Reveal>
+                    <SectionHeading index="01" kicker="Preguntas frecuentes" title="Lo que suelen preguntarnos" center />
+                </Reveal>
+                <Reveal stagger={0.06} className="space-y-4 mt-14">
+                    {FAQS.map((faq, i) => (
+                        <details key={i} className="group border border-border-default rounded-xl overflow-hidden">
+                            <summary className="p-6 flex items-center justify-between cursor-pointer list-none">
+                                <span className="font-bold text-text-primary pr-4">{faq.q}</span>
+                                <span className="w-6 h-6 rounded-full border border-border-default flex items-center justify-center flex-shrink-0 text-text-tertiary transition-transform duration-300 group-open:rotate-180">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                        <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                </span>
+                            </summary>
+                            <p className="px-6 pb-6 text-sm text-text-secondary leading-relaxed">{faq.a}</p>
+                        </details>
                     ))}
-                </div>
+                </Reveal>
             </section>
 
             {/* CTA */}
-            <section className="px-8 pb-24 text-center">
-                <h2 className="text-3xl font-bold mb-6">¿Listo para recuperar tu liquidez?</h2>
-                <Link href="/sign-up"
-                      className="bg-accent text-surface-page px-10 py-4 rounded-lg font-bold hover:opacity-90 inline-block">
+            <Reveal as="section" className="px-6 md:px-8 pb-24 text-center">
+                <h2 className="text-3xl font-bold text-text-primary mb-6">¿Listo para recuperar tu liquidez?</h2>
+                <Link href="/sign-up" className="bg-accent text-accent-fg px-10 py-4 rounded-xl font-bold hover:opacity-90 transition inline-block">
                     Crear Cuenta Gratis
                 </Link>
-            </section>
-
-            {/* FOOTER */}
-            <footer className="border-t border-accent/10 py-8 px-8 text-sm">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-                    <p className="text-accent/70">© {new Date().getFullYear()} <span
-                        className="font-bold">Recupera</span></p>
-                    <div className="flex gap-6 text-accent/70">
-                        <Link href="#">Privacidad</Link>
-                        <Link href="#">Términos</Link>
-                        <Link href="#">Contacto</Link>
-                    </div>
-                </div>
-            </footer>
-        </div>
+            </Reveal>
+        </MarketingShell>
     );
 }

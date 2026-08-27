@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { usePrefersReducedMotion } from "./marketing/fx";
 
 const STEPS = [
     {
@@ -178,6 +179,7 @@ function MockStep5() {
 const MOCK_SCREENS = [<MockStep1 />, <MockStep2 />, <MockStep3 />, <MockStep4 />, <MockStep5 />];
 
 export default function FeatureGuide() {
+    const reduced = usePrefersReducedMotion();
     const [current, setCurrent] = useState(0);
     const [paused, setPaused] = useState(false);
     const [animating, setAnimating] = useState(false);
@@ -197,7 +199,7 @@ export default function FeatureGuide() {
     };
 
     useEffect(() => {
-        if (paused) return;
+        if (paused || reduced) return;
         timerRef.current = setInterval(() => {
             setCurrent(c => {
                 const next = c + 1 >= STEPS.length ? 0 : c + 1;
@@ -205,21 +207,12 @@ export default function FeatureGuide() {
             });
         }, 4500);
         return () => clearInterval(timerRef.current);
-    }, [paused]);
+    }, [paused, reduced]);
 
     const step = STEPS[current];
 
     return (
-        <section className="px-8 pt-0 pb-16 max-w-7xl mx-auto">
-            <div className="text-center mb-10">
-                <p className="text-xs font-semibold tracking-[0.2em] text-accent/30 uppercase mb-5">Cómo funciona</p>
-                <h2 className="text-4xl md:text-5xl font-extrabold text-accent mb-5 leading-[1.05]">
-                    Todo lo que necesitas,<br/>en un solo lugar
-                </h2>
-                <p className="text-lg text-accent/40 max-w-md mx-auto">Gestiona, notifica y recupera. Así de
-                    simple.</p>
-            </div>
-
+        <div>
             {/* Step indicators */}
             <div className="flex justify-center gap-2 mb-12">
                 {STEPS.map((s, i) => (
@@ -245,7 +238,7 @@ export default function FeatureGuide() {
                 {/* Left — text */}
                 <div
                     key={`text-${current}`}
-                    style={{animation: "fadeUp 0.5s cubic-bezier(0.4,0,0.2,1) forwards"}}
+                    style={reduced ? undefined : {animation: "fadeUp 0.5s cubic-bezier(0.4,0,0.2,1) forwards"}}
                 >
                     <div className="inline-flex items-center gap-2 mb-6">
                         <span className="text-4xl font-black text-accent/8">{step.label}</span>
@@ -257,7 +250,7 @@ export default function FeatureGuide() {
                             <div
                                 key={i}
                                 className="flex items-center gap-3"
-                                style={{
+                                style={reduced ? undefined : {
                                     animation: `fadeUp 0.5s cubic-bezier(0.4,0,0.2,1) ${i * 80}ms forwards`,
                                     opacity: 0
                                 }}
@@ -303,7 +296,7 @@ export default function FeatureGuide() {
                 {/* Right — mock screen */}
                 <div
                     key={`mock-${current}`}
-                    style={{animation: "fadeUpMock 0.55s cubic-bezier(0.4,0,0.2,1) forwards"}}
+                    style={reduced ? undefined : {animation: "fadeUpMock 0.55s cubic-bezier(0.4,0,0.2,1) forwards"}}
                 >
                     {MOCK_SCREENS[current]}
                 </div>
@@ -335,6 +328,6 @@ export default function FeatureGuide() {
                     to { opacity: 1; transform: translateY(0) scale(1); }
                 }
             `}</style>
-        </section>
+        </div>
     );
 }

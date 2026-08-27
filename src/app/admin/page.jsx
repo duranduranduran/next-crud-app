@@ -48,7 +48,7 @@ function SendRemindersButton() {
             <button
                 onClick={handleSendReminders}
                 disabled={sending}
-                className={`bg-accent text-surface-page px-6 py-2.5 rounded-xl text-sm font-medium hover:bg-accent-hover transition-all shadow-sm ${focusRing} ring-offset-surface-page ${
+                className={`bg-accent text-accent-fg px-6 py-2.5 rounded-xl text-sm font-medium hover:bg-accent-hover transition-all shadow-sm ${focusRing} ring-offset-surface-page ${
                     sending ? "opacity-50 cursor-not-allowed" : ""
                 }`}
             >
@@ -58,6 +58,14 @@ function SendRemindersButton() {
     );
 }
 
+const STATUS_LABELS = {
+    PAGADO: "Pagado",
+    EN_GESTION: "En Gestión",
+    ACUERDO_DE_PAGO: "Acuerdo de Pago",
+    ESCALADO_JUDICIAL: "Escalado Judicial",
+    PENDIENTE: "Pendiente",
+};
+
 function StatusBadge({ status }) {
     const colors =
         status === "PAGADO" ? "bg-status-pagado-bg text-status-pagado border border-status-pagado/25" :
@@ -66,28 +74,71 @@ function StatusBadge({ status }) {
                     status === "ESCALADO_JUDICIAL" ? "bg-status-escalado-judicial-bg text-status-escalado-judicial border border-status-escalado-judicial/25" :
                         "bg-status-pendiente-bg text-status-pendiente border border-status-pendiente/25";
 
-    const labels = {
-        PAGADO: "Pagado",
-        EN_GESTION: "En Gestión",
-        ACUERDO_DE_PAGO: "Acuerdo de Pago",
-        ESCALADO_JUDICIAL: "Escalado Judicial",
-        PENDIENTE: "Pendiente",
-    };
-
     return (
         <span className={`inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full ${colors}`}>
-            {labels[status] || status?.replace(/_/g, " ") || "Pendiente"}
+            {STATUS_LABELS[status] || status?.replace(/_/g, " ") || "Pendiente"}
         </span>
     );
 }
 
-// Flat dense table for list view. Reuses the exact same handlers the card
-// grid uses (onRowClick -> setSelectedDebtor, onToggleAvailability,
-// onOpenDocument) — same behaviors, different presentation only. Does NOT
+// A dot conveyed nothing actionable once most debtors landed in the same
+// status — color alone doesn't scan when it's not distinguishing anything.
+// Short text does. Kept genuinely short (not just StatusBadge's label
+// truncated) so the fixed-width column below can stay narrow: "Judicial"
+// reads fine on its own without needing "Escalado" in front of it in a
+// context this tight.
+const SHORT_STATUS_LABELS = {
+    PAGADO: "Pagado",
+    EN_GESTION: "En gestion",
+    ACUERDO_DE_PAGO: "Acuerdo",
+    ESCALADO_JUDICIAL: "Judicial",
+    PENDIENTE: "Pendiente",
+};
+const STATUS_LABEL_COLUMN_WIDTH = "4rem"; // fits "En gestion", the longest short label, at 11px
+
+function statusTextClass(status) {
+    return status === "PAGADO" ? "text-status-pagado" :
+        status === "EN_GESTION" ? "text-status-en-gestion" :
+            status === "ACUERDO_DE_PAGO" ? "text-status-acuerdo-de-pago" :
+                status === "ESCALADO_JUDICIAL" ? "text-status-escalado-judicial" :
+                    "text-status-pendiente";
+}
+
+// Scannable status signal for the card stack's ~36px peek row (checkbox,
+// name, and amount already compete for that line). Colored TEXT, not a
+// pill — a badge's padding costs space the strip doesn't have. Fixed
+// width so labels of different lengths ("Pagado" vs "En gestion") don't
+// jitter the amount column's position as you scan down a stack. Plain
+// text needs no aria-label gymnastics the dot version needed — it's
+// already the accessible label, not a color standing in for one. The
+// full StatusBadge (complete label, pill styling) is still the
+// confirmation, one hover/focus away in the detail section.
+function StatusLabel({ status }) {
+    const label = SHORT_STATUS_LABELS[status] || status?.replace(/_/g, " ") || "Pendiente";
+    return (
+        <span
+            className={`text-[11px] font-medium truncate flex-shrink-0 ${statusTextClass(status)}`}
+            style={{ width: STATUS_LABEL_COLUMN_WIDTH }}
+        >
+            {label}
+        </span>
+    );
+}
+
+// Stacked rows, not a bordered table — reuses the exact same handlers the
+// card stack uses (onRowClick -> setSelectedDebtor, onToggleAvailability,
+// onOpenDocument), same behaviors, different presentation only. Does NOT
 // duplicate the "select all" checkbox — the existing Bulk Actions bar above
 // already provides that (selecting across ALL clients, not just filtered/
 // visible rows), and a second checkbox with different scope semantics would
 // be confusing rather than helpful.
+//
+// Rows stagger in on mount (~50ms apart, capped at 500ms total so a
+// 200-row list doesn't take 10s to finish) via the .debtor-row-stagger
+// class in tokens.css, which is itself gated on prefers-reduced-motion.
+const ROW_STAGGER_STEP_MS = 50;
+const ROW_STAGGER_CAP_MS = 500;
+
 function DebtorTable({ debtors, selectedDebtors, setSelectedDebtors, clients, setSelectAll, onRowClick, onToggleAvailability, onOpenDocument, focusRing }) {
     const toggleOne = debtorId => {
         setSelectedDebtors(prev => {
@@ -107,72 +158,79 @@ function DebtorTable({ debtors, selectedDebtors, setSelectedDebtors, clients, se
         );
     }
 
+    // Static, not sortable — no sort state exists for this list today, and
+    // adding one is a bigger change than "label the columns." Ask if you
+    // want sorting; this is just the header row for now.
+    const headerCellClass = "text-[11px] font-medium text-text-tertiary uppercase tracking-wide flex-shrink-0";
+
     return (
-        <div className="bg-surface-raised rounded-2xl shadow-sm border border-border-subtle overflow-hidden">
-            <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
-                <table className="w-full text-sm border-collapse">
-                    <thead className="sticky top-0 bg-surface-raised z-10">
-                        <tr className="border-b border-border-default text-left text-xs text-text-tertiary uppercase tracking-wide">
-                            <th className="w-10 px-4 py-2.5"></th>
-                            <th className="px-2 py-2.5 font-medium">Deudor</th>
-                            <th className="px-2 py-2.5 font-medium">Cliente</th>
-                            <th className="px-2 py-2.5 font-medium text-right">Monto</th>
-                            <th className="px-2 py-2.5 font-medium">Estado</th>
-                            <th className="w-16 px-2 py-2.5 font-medium">Doc</th>
-                            <th className="w-24 px-2 py-2.5 font-medium">Notificar</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border-subtle">
-                        {debtors.map(debtor => (
-                            <tr
-                                key={debtor.id}
-                                onClick={() => onRowClick(debtor)}
-                                className="h-10 hover:bg-surface-hover transition-colors cursor-pointer"
-                            >
-                                <td className="px-4" onClick={e => e.stopPropagation()}>
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedDebtors.includes(debtor.id)}
-                                        onChange={() => toggleOne(debtor.id)}
-                                        className={`rounded accent-accent ${focusRing} ring-offset-surface-raised`}
-                                    />
-                                </td>
-                                <td className="px-2 min-w-0">
-                                    <p className="text-text-primary font-medium truncate">{debtor.name}</p>
-                                    <p className="text-text-tertiary text-xs font-mono">{debtor.cedulaIdentidad || "—"}</p>
-                                </td>
-                                <td className="px-2 text-text-secondary truncate max-w-[160px]">{debtor.clientName}</td>
-                                <td className="px-2 text-right font-mono text-text-primary font-semibold">
-                                    {Number(debtor.amountOwed).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </td>
-                                <td className="px-2"><StatusBadge status={debtor.status} /></td>
-                                <td className="px-2" onClick={e => e.stopPropagation()}>
-                                    {debtor.documentUrl && (
-                                        <button
-                                            onClick={() => onOpenDocument(debtor.documentUrl)}
-                                            className={`text-accent hover:underline ${focusRing} ring-offset-surface-raised`}
-                                        >
-                                            📄
-                                        </button>
-                                    )}
-                                </td>
-                                <td className="px-2" onClick={e => e.stopPropagation()}>
-                                    <div
-                                        onClick={() => onToggleAvailability(debtor.id)}
-                                        className={`relative w-8 h-4 rounded-full cursor-pointer transition-colors duration-300 ${focusRing} ring-offset-surface-raised`}
-                                        style={{ background: debtor.availableForNotify ? 'var(--color-success)' : 'var(--color-surface-hover)' }}
-                                    >
-                                        <div
-                                            className="absolute top-0.5 w-3 h-3 bg-text-primary rounded-full shadow-sm transition-all duration-300"
-                                            style={{ left: debtor.availableForNotify ? '17px' : '2px' }}
-                                        />
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+        <div className="space-y-1.5">
+            <div className="flex items-center gap-3 px-3 pb-2 border-b border-border-default">
+                <span className="flex-shrink-0" style={{ width: "1rem" }} />
+                <span className={`${headerCellClass} flex-1`}>Nombre / Cédula</span>
+                <span className={`${headerCellClass} hidden md:block`} style={{ width: "9rem" }}>Cliente</span>
+                <span className="flex-shrink-0" style={{ width: "1.5rem" }} />
+                <span className={headerCellClass} style={{ width: "7rem" }}>Estado</span>
+                <span className={`${headerCellClass} text-right`} style={{ width: "5.5rem" }}>Monto</span>
+                <span className={headerCellClass} style={{ width: "2rem" }}>Notificar</span>
+                <span className="flex-shrink-0" style={{ width: "0.75rem" }} />
             </div>
+            {debtors.map((debtor, i) => (
+                <div
+                    key={debtor.id}
+                    onClick={() => onRowClick(debtor)}
+                    className={`debtor-row-stagger h-10 flex items-center gap-3 px-3 rounded-lg bg-surface-raised border border-border-default hover:bg-surface-hover transition-colors cursor-pointer ${focusRing} ring-offset-surface-page`}
+                    style={{ "--stack-delay": `${Math.min(i * ROW_STAGGER_STEP_MS, ROW_STAGGER_CAP_MS)}ms` }}
+                >
+                    <div onClick={e => e.stopPropagation()} className="flex-shrink-0" style={{ width: "1rem" }}>
+                        <input
+                            type="checkbox"
+                            checked={selectedDebtors.includes(debtor.id)}
+                            onChange={() => toggleOne(debtor.id)}
+                            className={`rounded accent-text-primary ${focusRing} ring-offset-surface-raised`}
+                        />
+                    </div>
+                    {/* Real <button>, not the row, carries keyboard focus/activation —
+                        same reasoning as the card stack: the row also contains a
+                        checkbox, a doc button, and a notify toggle, so making the
+                        WHOLE row a role="button" would nest interactive controls
+                        inside another interactive control. Its click bubbles to the
+                        row's onClick, so mouse behavior is unaffected. */}
+                    <button type="button" className={`min-w-0 flex-1 text-left ${focusRing} ring-offset-surface-raised rounded-sm`}>
+                        <p className="text-text-primary font-medium text-sm truncate">{debtor.name}</p>
+                        <p className="text-text-tertiary text-[11px] font-mono truncate">{debtor.cedulaIdentidad || "—"}</p>
+                    </button>
+                    <span className="text-text-tertiary text-xs truncate hidden md:block flex-shrink-0" style={{ width: "9rem" }}>{debtor.clientName}</span>
+                    <div className="flex-shrink-0 flex items-center justify-center" style={{ width: "1.5rem" }}>
+                        {debtor.documentUrl && (
+                            <button
+                                onClick={e => { e.stopPropagation(); onOpenDocument(debtor.documentUrl); }}
+                                className={`text-text-secondary hover:text-text-primary ${focusRing} ring-offset-surface-raised`}
+                                aria-label="Ver documento"
+                            >
+                                📄
+                            </button>
+                        )}
+                    </div>
+                    <div className="flex-shrink-0" style={{ width: "7rem" }}><StatusBadge status={debtor.status} /></div>
+                    <p className="text-right font-mono text-text-primary font-semibold text-sm flex-shrink-0" style={{ width: "5.5rem" }}>
+                        {Number(debtor.amountOwed).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                    <div onClick={e => e.stopPropagation()} className="flex-shrink-0" style={{ width: "2rem" }}>
+                        <div
+                            onClick={() => onToggleAvailability(debtor.id)}
+                            className={`relative w-8 h-4 rounded-full cursor-pointer transition-colors duration-300 ${focusRing} ring-offset-surface-raised`}
+                            style={{ background: debtor.availableForNotify ? 'var(--color-success)' : 'var(--color-surface-hover)' }}
+                        >
+                            <div
+                                className="absolute top-0.5 w-3 h-3 bg-text-primary rounded-full shadow-sm transition-all duration-300"
+                                style={{ left: debtor.availableForNotify ? '17px' : '2px' }}
+                            />
+                        </div>
+                    </div>
+                    <span className="text-text-tertiary flex-shrink-0" style={{ width: "0.75rem" }} aria-hidden="true">›</span>
+                </div>
+            ))}
         </div>
     );
 }
@@ -239,7 +297,7 @@ function DocumentOverlay({ url, onClose }) {
                         <iframe src={url} title="Documento" className="flex-1 w-full border-0" />
                         <div className="px-4 py-3 border-t border-border-subtle flex justify-end flex-shrink-0">
                             <a href={url} target="_blank" rel="noopener noreferrer"
-                               className={`text-sm text-accent hover:underline ${focusRing} ring-offset-surface-overlay rounded-sm`}>
+                               className={`text-sm text-text-secondary hover:text-text-primary hover:underline ${focusRing} ring-offset-surface-overlay rounded-sm`}>
                                 Abrir en pestaña nueva ↗
                             </a>
                         </div>
@@ -266,7 +324,7 @@ function DebtorModal({
 
                 <div className="flex items-center justify-between px-6 py-5 border-b border-border-subtle">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center text-surface-page font-bold text-sm">
+                        <div className="w-10 h-10 rounded-full bg-surface-hover flex items-center justify-center text-text-primary font-bold text-sm">
                             {debtor.name?.slice(0, 2).toUpperCase()}
                         </div>
                         <div>
@@ -281,14 +339,14 @@ function DebtorModal({
 
                     <div className="grid grid-cols-2 gap-3">
                         {[
-                            { label: "Monto Adeudado", value: `USD ${Number(debtor.amountOwed).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, accent: true },
+                            { label: "Monto Adeudado", value: `USD ${Number(debtor.amountOwed).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, mono: true },
                             { label: "Cédula", value: debtor.cedulaIdentidad || "—" },
                             { label: "Correo", value: debtor.email || "—" },
                             { label: "Teléfono", value: debtor.telephone || "—" },
                         ].map((item, i) => (
                             <div key={i} className="bg-surface-hover rounded-xl p-3.5">
                                 <p className="text-xs text-text-tertiary mb-1">{item.label}</p>
-                                <p className={`font-semibold text-sm ${item.accent ? "text-accent" : "text-text-primary"}`}>{item.value}</p>
+                                <p className={`font-semibold text-sm text-text-primary ${item.mono ? "font-mono" : ""}`}>{item.value}</p>
                             </div>
                         ))}
                         <div className="bg-surface-hover rounded-xl p-3.5 col-span-2">
@@ -300,7 +358,7 @@ function DebtorModal({
                     {debtor.documentUrl && (
                         <button
                             onClick={() => onOpenDocument(debtor.documentUrl)}
-                            className={`w-full flex items-center gap-3 bg-surface-hover rounded-xl p-3.5 hover:bg-accent/10 transition text-left ${focusRing} ring-offset-surface-overlay`}
+                            className={`w-full flex items-center gap-3 bg-surface-hover rounded-xl p-3.5 hover:bg-border-default transition text-left ${focusRing} ring-offset-surface-overlay`}
                         >
                             <span className="text-2xl">📄</span>
                             <div>
@@ -351,7 +409,7 @@ function DebtorModal({
                                         return newSelected;
                                     });
                                 }}
-                                className={`rounded accent-accent ${focusRing} ring-offset-surface-overlay`}
+                                className={`rounded accent-text-primary ${focusRing} ring-offset-surface-overlay`}
                             />
                             Seleccionar para acción masiva
                         </label>
@@ -368,7 +426,7 @@ function DebtorModal({
                         />
                         <button
                             onClick={() => onSaveNote(debtor.id)}
-                            className={`mt-2 bg-accent text-surface-page px-4 py-1.5 rounded-lg text-sm hover:bg-accent-hover transition ${focusRing} ring-offset-surface-overlay`}
+                            className={`mt-2 bg-accent text-accent-fg px-4 py-1.5 rounded-lg text-sm hover:bg-accent-hover transition ${focusRing} ring-offset-surface-overlay`}
                         >
                             Guardar Nota
                         </button>
@@ -392,7 +450,7 @@ function DebtorModal({
                         <p className="text-sm font-medium text-text-primary mb-3">Historial de Actividad</p>
                         {logsLoading ? (
                             <div className="flex justify-center py-4">
-                                <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                                <div className="w-5 h-5 border-2 border-text-tertiary border-t-transparent rounded-full animate-spin" />
                             </div>
                         ) : debtorLogs.length === 0 ? (
                             <p className="text-xs text-text-tertiary">Sin actividad registrada</p>
@@ -566,7 +624,11 @@ export default function AdminPage() {
             const res = await fetch(`/api/admin/debtors/${debtorId}/status`, {
                 method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: newStatus }),
             });
-            if (!res.ok) throw new Error("Error al actualizar estado");
+            if (!res.ok) {
+                const text = await res.text();
+                console.error(`[updateDebtorStatus] ${res.status} ${res.statusText} — debtorId=${debtorId} newStatus=${newStatus} — body:`, text);
+                throw new Error(`Error al actualizar estado (${res.status}): ${text}`);
+            }
             await fetchClients();
         } catch (err) { console.error(err); alert("Error al actualizar estado"); }
     };
@@ -665,7 +727,7 @@ export default function AdminPage() {
     if (loading) return (
         <div data-density="compact" className="min-h-screen bg-surface-page flex items-center justify-center">
             <div className="text-center">
-                <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <div className="w-8 h-8 border-2 border-text-tertiary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                 <p className="text-sm text-text-secondary">Cargando...</p>
             </div>
         </div>
@@ -689,9 +751,11 @@ export default function AdminPage() {
                     <div className="bg-surface-overlay rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden"
                          onClick={e => e.stopPropagation()}>
 
-                        {/* Search input — accent header */}
-                        <div className="flex items-center gap-3 px-5 py-4 border-b border-border-default bg-accent">
-                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="text-surface-page">
+                        {/* Search input — neutral header, not accent (accent is
+                            reserved for primary buttons and the active nav
+                            indicator only) */}
+                        <div className="flex items-center gap-3 px-5 py-4 border-b border-border-default bg-surface-hover">
+                            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="text-text-tertiary">
                                 <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeOpacity="0.6" strokeWidth="1.5"/>
                                 <path d="M12.5 12.5L15.5 15.5" stroke="currentColor" strokeOpacity="0.6" strokeWidth="1.5" strokeLinecap="round"/>
                             </svg>
@@ -701,9 +765,9 @@ export default function AdminPage() {
                                 placeholder="Buscar por nombre, cédula, correo o teléfono..."
                                 value={globalSearch}
                                 onChange={e => setGlobalSearch(e.target.value)}
-                                className={`flex-1 text-sm text-surface-page focus:outline-none bg-transparent placeholder-surface-page/40 ${focusRing} ring-offset-accent rounded-sm`}
+                                className={`flex-1 text-sm text-text-primary focus:outline-none bg-transparent placeholder-text-tertiary ${focusRing} ring-offset-surface-hover rounded-sm`}
                             />
-                            <kbd className="text-[10px] text-surface-page/50 border border-surface-page/25 rounded px-1.5 py-0.5">ESC</kbd>
+                            <kbd className="text-[10px] text-text-tertiary border border-border-default rounded px-1.5 py-0.5">ESC</kbd>
                         </div>
 
                         {/* Results */}
@@ -729,10 +793,10 @@ export default function AdminPage() {
                                                 setShowGlobalSearch(false);
                                                 setGlobalSearch("");
                                             }}
-                                            className={`w-full flex items-center justify-between px-5 py-3.5 hover:bg-accent/10 transition text-left border-b border-border-subtle last:border-0 ${focusRing} ring-offset-surface-page`}
+                                            className={`w-full flex items-center justify-between px-5 py-3.5 hover:bg-surface-hover transition text-left border-b border-border-subtle last:border-0 ${focusRing} ring-offset-surface-page`}
                                         >
                                             <div className="flex items-center gap-3">
-                                                <div className="w-9 h-9 rounded-full bg-accent flex items-center justify-center text-surface-page font-bold text-xs flex-shrink-0">
+                                                <div className="w-9 h-9 rounded-full bg-surface-hover flex items-center justify-center text-text-primary font-bold text-xs flex-shrink-0">
                                                     {debtor.name?.slice(0, 2).toUpperCase()}
                                                 </div>
                                                 <div>
@@ -745,10 +809,10 @@ export default function AdminPage() {
                                                 </div>
                                             </div>
                                             <div className="text-right flex-shrink-0 ml-4">
-                                                <p className="text-sm font-bold text-accent">
+                                                <p className="text-sm font-bold font-mono text-text-primary">
                                                     USD {Number(debtor.amountOwed).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                                 </p>
-                                                <p className="text-[10px] text-accent/60 mt-0.5 font-medium">{debtor.clientName}</p>
+                                                <p className="text-[10px] text-text-tertiary mt-0.5 font-medium">{debtor.clientName}</p>
                                             </div>
                                         </button>
                                     ))}
@@ -792,21 +856,8 @@ export default function AdminPage() {
             <div className="flex justify-between items-center bg-surface-raised px-6 py-4 rounded-2xl shadow-sm border border-border-subtle mb-8">
                 <img src="/logo-recupera-white.png" alt="recupera" className="h-14" />
 
-                {/* Global Search Trigger */}
-                <button
-                    onClick={() => setShowGlobalSearch(true)}
-                    className={`flex items-center gap-3 border border-border-default rounded-xl px-4 py-2.5 text-sm text-text-tertiary hover:border-accent/40 hover:text-accent transition w-72 ${focusRing} ring-offset-surface-raised`}
-                >
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                        <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.5"/>
-                        <path d="M10 10L12.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                    </svg>
-                    <span className="flex-1 text-left">Buscar deudor...</span>
-                    <kbd className="text-[10px] border border-border-default rounded px-1.5 py-0.5 text-text-tertiary">⌘K</kbd>
-                </button>
-
                 <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-accent/15 flex items-center justify-center text-accent font-bold text-sm">
+                    <div className="w-9 h-9 rounded-full bg-surface-hover flex items-center justify-center text-text-primary font-bold text-sm">
                         {user?.firstName?.slice(0, 1) || "A"}
                     </div>
                     <div>
@@ -824,7 +875,7 @@ export default function AdminPage() {
                             onClick={() => setViewModePersisted("card")}
                             aria-pressed={viewMode === "card"}
                             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${focusRing} ring-offset-surface-raised ${
-                                viewMode === "card" ? "bg-accent text-surface-page" : "text-text-secondary hover:text-text-primary"
+                                viewMode === "card" ? "bg-surface-hover text-text-primary shadow-sm" : "text-text-secondary hover:text-text-primary"
                             }`}
                         >
                             Tarjetas
@@ -833,7 +884,7 @@ export default function AdminPage() {
                             onClick={() => setViewModePersisted("list")}
                             aria-pressed={viewMode === "list"}
                             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${focusRing} ring-offset-surface-raised ${
-                                viewMode === "list" ? "bg-accent text-surface-page" : "text-text-secondary hover:text-text-primary"
+                                viewMode === "list" ? "bg-surface-hover text-text-primary shadow-sm" : "text-text-secondary hover:text-text-primary"
                             }`}
                         >
                             Lista
@@ -841,7 +892,7 @@ export default function AdminPage() {
                     </div>
                     <button
                         onClick={handleExportDebtors}
-                        className={`border border-accent/30 text-accent px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-accent hover:text-surface-page transition flex items-center gap-2 ${focusRing} ring-offset-surface-page`}
+                        className={`border border-border-default text-text-secondary px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-surface-hover hover:text-text-primary transition flex items-center gap-2 ${focusRing} ring-offset-surface-page`}
                     >
                         ⬇ Exportar Excel
                     </button>
@@ -849,9 +900,23 @@ export default function AdminPage() {
                 </div>
             </div>
 
-            {/* Filter Bar — status and amount only, no text search */}
+            {/* Filter Bar — search, status, and amount together; search and
+                filters are the same mental operation ("narrow what I'm
+                looking at"), so they live in one row instead of search
+                floating disconnected in the top bar. */}
             <section className="bg-surface-raised p-4 rounded-2xl shadow-sm border border-border-subtle mb-6">
                 <div className="flex flex-wrap gap-3">
+                    <button
+                        onClick={() => setShowGlobalSearch(true)}
+                        className={`flex items-center gap-3 border border-border-default rounded-xl px-4 py-2 text-sm bg-surface-page text-text-tertiary hover:bg-surface-hover hover:text-text-primary transition flex-1 min-w-[220px] ${focusRing} ring-offset-surface-raised`}
+                    >
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                            <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.5"/>
+                            <path d="M10 10L12.5 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                        </svg>
+                        <span className="flex-1 text-left">Buscar deudor...</span>
+                        <kbd className="text-[10px] border border-border-default rounded px-1.5 py-0.5 text-text-tertiary">⌘K</kbd>
+                    </button>
                     <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
                             className={`border border-border-default rounded-xl px-4 py-2 text-sm bg-surface-page focus:outline-none focus:border-accent text-text-secondary ${focusRing} ring-offset-surface-raised`}>
                         <option value="ALL">Todos los estados</option>
@@ -879,7 +944,7 @@ export default function AdminPage() {
                             const currently = !selectAll;
                             setSelectAll(currently);
                             setSelectedDebtors(currently ? clients.flatMap(c => c.debtorRecords.map(d => d.id)) : []);
-                        }} className={`rounded accent-accent ${focusRing} ring-offset-surface-raised`} />
+                        }} className={`rounded accent-text-primary ${focusRing} ring-offset-surface-raised`} />
                         Seleccionar todos
                     </label>
                     <span className="text-sm text-text-tertiary">Seleccionados: {selectedDebtors.length}</span>
@@ -916,7 +981,7 @@ export default function AdminPage() {
                             } finally { setBulkLoading(false); }
                         }}
                         disabled={bulkLoading}
-                        className={`bg-accent text-surface-page px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50 hover:bg-accent-hover transition ${focusRing} ring-offset-surface-raised`}
+                        className={`bg-accent text-accent-fg px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50 hover:bg-accent-hover transition ${focusRing} ring-offset-surface-raised`}
                     >
                         {bulkLoading ? "Actualizando..." : "Aplicar a seleccionados"}
                     </button>
@@ -973,57 +1038,95 @@ export default function AdminPage() {
                             </div>
 
                             <>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                                    {/* Overlapping stack, Moxfield-style — see the .debtor-stack-*
+                                        rules in tokens.css for the full mechanism writeup (v3: CSS
+                                        multi-column, which is what actually flows cards down one
+                                        column before wrapping to the next — CSS grid places items
+                                        row-major and broke this). Card border uses --color-border-strong
+                                        (set in the CSS rule) so the overlap reads as distinct cards. */}
+                                    <div className="debtor-stack-column columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-3">
                                         {paginatedDebtors.map(debtor => (
                                             <div
                                                 key={debtor.id}
+                                                className={`debtor-stack-card break-inside-avoid bg-surface-raised border rounded-xl overflow-hidden cursor-pointer ${focusRing} ring-offset-surface-page`}
                                                 onClick={() => setSelectedDebtor(debtor)}
-                                                className="border border-border-subtle rounded-xl p-3 hover:shadow-md hover:border-accent/30 transition-all cursor-pointer"
                                             >
-                                                <div className="flex items-start justify-between mb-2">
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="font-semibold text-text-primary text-sm truncate">{debtor.name}</p>
-                                                        <p className="text-[11px] text-text-tertiary mt-0.5 truncate">{debtor.email || "Sin correo"}</p>
-                                                        <p className="text-[11px] text-text-tertiary font-mono truncate">
-                                                            {debtor.cedulaIdentidad || "—"} · {debtor.telephone || "—"}
-                                                        </p>
+                                                {/* Peek — always visible, ~36px. Checkbox lives HERE
+                                                    specifically, not in the hover-revealed detail
+                                                    below: reaching it on a lower card would otherwise
+                                                    mean mousing over cards that pop up in the way.
+                                                    The notify toggle moved to the detail section below —
+                                                    checkbox + name + status label + amount already fill
+                                                    this row; adding the toggle back on top of the status
+                                                    label's fixed column would squeeze the name tighter
+                                                    than it was even before the dot, so it lost the seat.
+                                                    The card name is a real <button>, not the outer div,
+                                                    so keyboard users get a genuine focusable control
+                                                    without nesting one interactive element inside
+                                                    another (role="button" wrapping the checkbox/toggle
+                                                    below was the a11y issue the dev overlay was flagging
+                                                    in v1) — its click bubbles to the outer onClick above,
+                                                    so mouse behavior is unaffected. */}
+                                                <div className="h-9 px-3 flex items-center gap-2">
+                                                    <div onClick={e => e.stopPropagation()} className="flex-shrink-0">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedDebtors.includes(debtor.id)}
+                                                            onChange={() => {
+                                                                setSelectedDebtors(prev => {
+                                                                    const exists = prev.includes(debtor.id);
+                                                                    const next = exists ? prev.filter(id => id !== debtor.id) : [...prev, debtor.id];
+                                                                    const totalDebtors = clients.flatMap(c => c.debtorRecords.map(d => d.id));
+                                                                    setSelectAll(next.length === totalDebtors.length);
+                                                                    return next;
+                                                                });
+                                                            }}
+                                                            className={`rounded accent-text-primary ${focusRing} ring-offset-surface-raised`}
+                                                        />
                                                     </div>
-                                                    <div className="text-right ml-2 flex-shrink-0">
-                                                        <p className="text-sm font-bold text-accent font-mono">
-                                                            {Number(debtor.amountOwed).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                        </p>
-                                                        <div className="mt-1">
-                                                            <StatusBadge status={debtor.status} />
-                                                        </div>
-                                                    </div>
+                                                    <button type="button" className={`flex-1 min-w-0 text-left font-semibold text-text-primary text-sm truncate ${focusRing} ring-offset-surface-raised rounded-sm`}>
+                                                        {debtor.name}
+                                                    </button>
+                                                    <StatusLabel status={debtor.status} />
+                                                    <p className="text-sm font-bold font-mono text-text-primary text-right flex-shrink-0" style={{ width: "4.25rem" }}>
+                                                        {Number(debtor.amountOwed).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    </p>
                                                 </div>
 
-                                                <div className="flex items-center justify-between mt-2 pt-2 border-t border-border-subtle">
-                                                    <div className="flex items-center gap-3">
+                                                {/* Detail — reveals on hover/focus-within only. */}
+                                                <div className="debtor-stack-detail px-3 pb-3 pt-1 border-t border-border-subtle mt-1">
+                                                    <div className="flex items-center justify-between mt-1 mb-1.5">
+                                                        <StatusBadge status={debtor.status} />
+                                                        <div onClick={e => e.stopPropagation()} className="flex items-center gap-1.5 flex-shrink-0">
+                                                            <span className="text-[11px] text-text-tertiary">Notificar</span>
+                                                            <div
+                                                                onClick={() => toggleDebtorAvailability(debtor.id)}
+                                                                className={`relative w-8 h-4 rounded-full cursor-pointer transition-colors duration-300 ${focusRing} ring-offset-surface-raised`}
+                                                                style={{ background: debtor.availableForNotify ? 'var(--color-success)' : 'var(--color-surface-hover)' }}
+                                                            >
+                                                                <div
+                                                                    className="absolute top-0.5 w-3 h-3 bg-text-primary rounded-full shadow-sm transition-all duration-300"
+                                                                    style={{ left: debtor.availableForNotify ? '17px' : '2px' }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-[11px] text-text-tertiary truncate">{debtor.email || "Sin correo"}</p>
+                                                    <p className="text-[11px] text-text-tertiary font-mono truncate mt-0.5">
+                                                        {debtor.cedulaIdentidad || "—"} · {debtor.telephone || "—"}
+                                                    </p>
+                                                    <div className="flex items-center justify-between mt-2">
                                                         <span className="text-[11px] text-text-tertiary">
                                                             {debtor.notes?.length || 0} nota{debtor.notes?.length !== 1 ? "s" : ""}
                                                         </span>
                                                         {debtor.documentUrl && (
                                                             <button
                                                                 onClick={e => { e.stopPropagation(); setDocumentOverlayUrl(debtor.documentUrl); }}
-                                                                className={`text-[11px] text-accent hover:underline flex items-center gap-1 ${focusRing} ring-offset-surface-raised`}
+                                                                className={`text-[11px] text-text-secondary hover:text-text-primary hover:underline flex items-center gap-1 ${focusRing} ring-offset-surface-raised`}
                                                             >
                                                                 📄 Documento
                                                             </button>
                                                         )}
-                                                    </div>
-                                                    <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                                                        <span className="text-[11px] text-text-tertiary">Notificar</span>
-                                                        <div
-                                                            onClick={() => toggleDebtorAvailability(debtor.id)}
-                                                            className={`relative w-8 h-4 rounded-full cursor-pointer transition-colors duration-300 ${focusRing} ring-offset-surface-raised`}
-                                                            style={{ background: debtor.availableForNotify ? 'var(--color-success)' : 'var(--color-surface-hover)' }}
-                                                        >
-                                                            <div
-                                                                className="absolute top-0.5 w-3 h-3 bg-text-primary rounded-full shadow-sm transition-all duration-300"
-                                                                style={{ left: debtor.availableForNotify ? '17px' : '2px' }}
-                                                            />
-                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>

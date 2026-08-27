@@ -40,14 +40,29 @@
  *   rules they win over the layered @theme fallback regardless of
  *   selector specificity — confirmed by inspecting compiled output during
  *   the original dark-only pass.
- * - --color-accent (not --color-accent-dark) is the token name components
- *   use. It used to be named --color-accent-dark from the dark-only phase
- *   of this project; renamed now that it's a real theme-swapped value
- *   (#443CA3 light / #8C7FFF dark) rather than a fixed dark-context color.
- *   --color-accent-light remains as a SEPARATE, theme-INDEPENDENT constant
- *   (#443CA3 always) — not part of the switching system, kept only for
- *   contexts outside this token system entirely (email HTML, which uses
- *   literal hex and can't read CSS custom properties).
+ * - --color-accent is the token name components use, theme-scoped. As of
+ *   the monochrome pass it is NOT a brand color — dark theme is near-white
+ *   (#EDEDEF), light theme is near-black (#18181B). Deliberately reduced in
+ *   surface area too: accent means primary buttons and the active nav
+ *   indicator, full stop. Amounts, avatars, icons, secondary buttons and
+ *   table links all moved to neutral text tokens — see the git history for
+ *   the sweep that did this if you're wondering why so few things are
+ *   accent-colored now.
+ * - --color-accent-fg is the text/icon color to use ON TOP of an
+ *   accent-colored surface (a primary button's label, for instance).
+ *   Theme-scoped, deliberately its own token rather than reusing
+ *   --color-surface-page — the two are close in value by coincidence in
+ *   this palette, but coupling them would silently break the moment either
+ *   one is retuned independently (the exact failure mode the status-token
+ *   rule above already guards against for a different pair of tokens).
+ * - --color-brand-purple is the old brand accent (#443CA3, fixed, not
+ *   theme-scoped). It used to be named --color-accent-light, which was
+ *   misleading — it was never "the light-theme accent," it's a constant
+ *   that doesn't change with theme at all. Purple is no longer a UI color
+ *   anywhere in this app; this token exists only for contexts outside the
+ *   token system entirely (email HTML, which hardcodes literal hex and
+ *   can't read CSS custom properties — the logo doesn't use this token
+ *   either, it swaps actual image assets per theme, see Logo.jsx).
  * - --color-ring aliases --color-accent via var() (the one deliberate
  *   exception to "independent values" — ring color SHOULD always track
  *   the accent, that's the actual design intent, not a coincidence).
@@ -71,6 +86,7 @@
 
     --color-border-subtle: rgba(255, 255, 255, 0.06);
     --color-border-default: rgba(255, 255, 255, 0.12);
+    --color-border-strong: rgba(255, 255, 255, 0.20);
 
     --color-text-primary: #EDEDEF;
     --color-text-secondary: #A1A1AA;
@@ -78,8 +94,9 @@
     --color-text-disabled: #45454C;
 
     /* Fixed, theme-independent brand purple — for contexts outside this
-       token system (email HTML). Not part of the light/dark switch. */
-    --color-accent-light: #443CA3;
+       token system (email HTML). Not part of the light/dark switch, and no
+       longer a UI color anywhere in the app (see header comment). */
+    --color-brand-purple: #443CA3;
 
     /* Marketing-only decorative brand colors (landing page hero badges, hover
        highlights, CTA button). Fixed in both themes — these are flourish
@@ -102,9 +119,10 @@
        see Logo.jsx, which swaps the full wordmark properly by theme. */
     --color-logo-chip: #16161A;
 
-    --color-accent: #8C7FFF;
-    --color-accent-hover: #A399FF;
-    --color-accent-bg: rgba(140, 127, 255, 0.12);
+    --color-accent: #EDEDEF;
+    --color-accent-fg: #0A0A0B;
+    --color-accent-hover: #D4D4D8;
+    --color-accent-bg: rgba(237, 237, 239, 0.12);
 
     --color-ring: var(--color-accent);
 
@@ -133,9 +151,11 @@
 }
 
 /*
- * DARK — unchanged values from the original dark-only pass. Contrast
- * (WCAG relative luminance), confirmed in earlier phases:
- *   accent #8C7FFF        vs page 6.2:1  vs raised 6.0:1  vs overlay 5.7:1  vs hover 5.3:1
+ * DARK — surfaces/status unchanged from the original dark-only pass.
+ * Accent is monochrome as of the "no purple in the UI" pass: accent-fg on
+ * accent is ~16.9:1 (near-black #0A0A0B text on near-white #EDEDEF), same
+ * pairing inverted (accent vs page) is the same ratio. Both trivially
+ * clear 4.5:1 — this is about as much contrast as two colors can have.
  *   status-pendiente #F5B94D   vs page 11.25:1  vs raised 10.79:1
  *   status-en-gestion #5EA7F5  vs page  7.85:1  vs raised  7.53:1
  *   status-acuerdo #4DD4C7     vs page 10.90:1  vs raised 10.46:1
@@ -150,15 +170,17 @@
 
     --color-border-subtle: rgba(255, 255, 255, 0.06);
     --color-border-default: rgba(255, 255, 255, 0.12);
+    --color-border-strong: rgba(255, 255, 255, 0.20);
 
     --color-text-primary: #EDEDEF;
     --color-text-secondary: #A1A1AA;
     --color-text-tertiary: #6B6B74;
     --color-text-disabled: #45454C;
 
-    --color-accent: #8C7FFF;
-    --color-accent-hover: #A399FF;
-    --color-accent-bg: rgba(140, 127, 255, 0.12);
+    --color-accent: #EDEDEF;
+    --color-accent-fg: #0A0A0B;
+    --color-accent-hover: #D4D4D8;
+    --color-accent-bg: rgba(237, 237, 239, 0.12);
 
     --color-status-pendiente: #F5B94D;
     --color-status-pendiente-bg: rgba(245, 185, 77, 0.12);
@@ -188,13 +210,14 @@
  * unlike dark), hover/active states go DARKER (the only direction
  * available once a surface is already white) instead of lighter.
  *
- * Status/accent colors are darkened, more saturated versions chosen
- * specifically for 4.5:1 on white — the dark-theme pastels (#F5B94D,
- * #5EA7F5 etc.) are tuned for near-black backgrounds and fail badly on
- * white (#F5B94D on white computes to ~3.2:1). Contrast (WCAG relative
- * luminance), computed against both white (surface-raised/overlay, the
- * worst case) and surface-page:
- *   accent #443CA3              vs white 8.68:1  vs page 8.10:1
+ * Status colors are darkened, more saturated versions chosen specifically
+ * for 4.5:1 on white — the dark-theme pastels (#F5B94D, #5EA7F5 etc.) are
+ * tuned for near-black backgrounds and fail badly on white (#F5B94D on
+ * white computes to ~3.2:1). Contrast (WCAG relative luminance), computed
+ * against both white (surface-raised/overlay, the worst case) and
+ * surface-page:
+ *   accent-fg #FAFAFA on accent #18181B   ~17:1 (both directions — a
+ *     monochrome near-black/near-white pair, far past 4.5:1)
  *   status-pendiente #B45309    vs white 5.02:1  vs page 4.69:1
  *   status-en-gestion #1D4ED8   vs white 6.70:1  vs page 6.25:1
  *   status-acuerdo #0F766E      vs white 5.47:1  vs page 5.11:1
@@ -211,17 +234,25 @@
     --color-surface-overlay: #FFFFFF;
     --color-surface-hover: #EDEDF0;
 
-    --color-border-subtle: rgba(0, 0, 0, 0.06);
-    --color-border-default: rgba(0, 0, 0, 0.12);
+    /* Strengthened from the original rgba(0,0,0,0.06)/0.12 — a straight
+       mirror of the dark theme's white-alpha values read as barely-there
+       on a white/near-white surface. Low-alpha black-on-white needs
+       noticeably more alpha than white-on-black to read as equally
+       present; these aren't proportional to the dark theme's values on
+       purpose. */
+    --color-border-subtle: rgba(0, 0, 0, 0.10);
+    --color-border-default: rgba(0, 0, 0, 0.18);
+    --color-border-strong: rgba(0, 0, 0, 0.28);
 
     --color-text-primary: #18181B;
     --color-text-secondary: #52525B;
     --color-text-tertiary: #8A8A94;
     --color-text-disabled: #B4B4BC;
 
-    --color-accent: #443CA3;
-    --color-accent-hover: #372F87;
-    --color-accent-bg: rgba(68, 60, 163, 0.08);
+    --color-accent: #18181B;
+    --color-accent-fg: #FAFAFA;
+    --color-accent-hover: #27272A;
+    --color-accent-bg: rgba(24, 24, 27, 0.08);
 
     --color-status-pendiente: #B45309;
     --color-status-pendiente-bg: rgba(180, 83, 9, 0.10);
@@ -269,4 +300,131 @@
 
     --spacing-row-sm: 2rem;      /* 32px — dense table row height */
     --spacing-row-md: 2.25rem;   /* 36px — table row with secondary line */
+}
+
+/*
+ * DEBTOR CARD STACK — Moxfield-style overlapping columns. Shared by both
+ * admin and client debtor card views (see the .debtor-stack-* usage in
+ * admin/page.jsx and client/page.jsx).
+ *
+ * V3 — V2 switched from CSS multi-column to CSS GRID to fix V1's abspos-
+ * escaping-the-column bug. That traded one bug for another: CSS grid with
+ * grid-template-columns places items ROW-MAJOR (card 1 -> col 1, card 2 ->
+ * col 2, card 3 -> col 3, ... card 5 -> col 1 row 2), not "flow down one
+ * column, then wrap." The `+` adjacent-sibling negative-margin selector
+ * below only knows "the previous card in DOM order," which in a row-major
+ * grid is usually a card in a DIFFERENT column, not the card above it in
+ * the SAME column — so every card except the first got pulled up 116px
+ * regardless of column, and columns 2+ rendered above/outside the grid.
+ *
+ * V3 goes back to CSS multi-column (`columns-N`, real column-flow layout)
+ * for the outer container, which is what "stack down a column" actually
+ * needs — and it's safe to do now, unlike V1, because nothing at the TOP
+ * LEVEL of a card is position:absolute anymore (only a small, locally-
+ * contained notify-toggle thumb several levels deep, which never needs to
+ * reason about column boundaries and doesn't trigger the multicol/abspos
+ * containing-block bug). Each card needs break-inside-avoid so it can't
+ * split across a column boundary.
+ *
+ * Mechanism: .debtor-stack-card is a FIXED-height block, always, in normal
+ * flow — its height never changes between resting and hovered states, so
+ * nothing ever reflows. Height and the 36px peek are a SINGLE derived
+ * pair, not two hand-tuned numbers: --stack-card-height is the one value
+ * to change if content needs more room, and margin-top/padding-bottom are
+ * both calc()'d from it plus --stack-peek, so they can never drift apart.
+ * Every card after the first gets that derived negative margin, pulling
+ * it up so only its top --stack-peek shows below the previous card in the
+ * SAME column — the previous card's remaining height is simply painted
+ * over by the next card, later in DOM order, which wins by default
+ * stacking order. Detail content (email, cédula, phone, notes, doc link,
+ * full status badge) is opacity-revealed on :hover/:focus-within rather
+ * than height-animated, which is what keeps the card's own height
+ * constant — if the detail were height-animated instead, hovering a card
+ * would push its later siblings down the page.
+ *
+ * z-index moves on .debtor-stack-card itself on hover, high enough to
+ * paint above sibling cards (which default to z-index:auto) but scoped by
+ * isolation:isolate on .debtor-stack-column — that creates a fresh local
+ * stacking context at the column boundary, so this z-index can never
+ * compete with anything outside the stack (modals, the sidebar, etc. all
+ * use much higher z-index values elsewhere in this app, but isolation
+ * makes that irrelevant rather than something to keep tuning around).
+ */
+.debtor-stack-column {
+    --stack-peek: 2.25rem;       /* 36px — the ONLY place this is set */
+    --stack-card-height: 9.5rem; /* 152px — the ONLY place this is set */
+    padding-bottom: calc(var(--stack-card-height) - var(--stack-peek));
+    isolation: isolate;
+}
+.debtor-stack-card {
+    position: relative;
+    height: var(--stack-card-height);
+    border-color: var(--color-border-strong); /* stronger than surrounding containers so the overlap reads as distinct cards */
+}
+.debtor-stack-card + .debtor-stack-card {
+    margin-top: calc(-1 * (var(--stack-card-height) - var(--stack-peek)));
+}
+.debtor-stack-card:hover,
+.debtor-stack-card:focus-within {
+    z-index: 20;
+    box-shadow: var(--shadow-overlay);
+}
+.debtor-stack-detail {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+.debtor-stack-card:hover .debtor-stack-detail,
+.debtor-stack-card:focus-within .debtor-stack-detail {
+    opacity: 1;
+    pointer-events: auto;
+}
+/* prefers-reduced-motion: no transform animation — the lift itself (via
+   z-index) and the shadow/opacity reveal still happen, just without the
+   translateY motion or its transition. */
+@media (prefers-reduced-motion: no-preference) {
+    .debtor-stack-card {
+        transition: box-shadow 0.2s ease, transform 0.2s ease;
+    }
+    .debtor-stack-card:hover,
+    .debtor-stack-card:focus-within {
+        transform: translateY(-4px);
+    }
+}
+/* Touch devices have no hover at all — chosen fallback is flat,
+   non-overlapping cards (not tap-to-expand) gated on the actual hover
+   CAPABILITY via the (hover: none) media feature, not a viewport-width
+   breakpoint, since "does this pointer support hover" and "is the screen
+   narrow" are different questions (a touch laptop at desktop width still
+   has no hover; a resized desktop browser window still does). */
+@media (hover: none) {
+    .debtor-stack-column {
+        padding-bottom: 0;
+    }
+    .debtor-stack-card {
+        height: auto;
+    }
+    .debtor-stack-card + .debtor-stack-card {
+        margin-top: 0.75rem;
+    }
+    .debtor-stack-detail {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
+/*
+ * LIST VIEW row stagger — short fade + translateY on mount, ~50ms apart,
+ * capped (see the inline style setting --stack-delay in each row) so a
+ * long list doesn't take forever to finish animating in.
+ */
+@keyframes debtor-row-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+    .debtor-row-stagger {
+        animation: debtor-row-in 0.25s ease-out both;
+        animation-delay: var(--stack-delay, 0ms);
+    }
 }

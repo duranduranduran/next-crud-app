@@ -53,20 +53,13 @@ function getInitials(name) {
 }
 
 function Avatar({ name, size = "md" }) {
-    // Decorative, not status — a distinct-but-token-based hue per name hash.
-    const colors = [
-        ["var(--color-accent)", "var(--color-accent-bg)"],
-        ["var(--color-success)", "var(--color-success-bg)"],
-        ["var(--color-neutral-event)", "var(--color-neutral-event-bg)"],
-        ["var(--color-info)", "var(--color-info-bg)"],
-        ["var(--color-danger)", "var(--color-danger-bg)"],
-    ];
-    const idx = (name || "").charCodeAt(0) % colors.length;
-    const [text, bg] = colors[idx];
+    // Neutral — avatars are not accented (per-name hash-hued avatars used to
+    // include the now-retired accent color in the rotation; a single
+    // neutral treatment everywhere is more consistent with "accent means
+    // primary buttons and the active nav indicator, that's it").
     const sz = size === "lg" ? "w-12 h-12 text-sm" : size === "xl" ? "w-16 h-16 text-base" : "w-9 h-9 text-xs";
     return (
-        <div className={`${sz} rounded-full flex items-center justify-center font-bold flex-shrink-0`}
-             style={{ background: bg, color: text }}>
+        <div className={`${sz} rounded-full flex items-center justify-center font-bold flex-shrink-0 bg-surface-hover text-text-primary`}>
             {getInitials(name)}
         </div>
     );
@@ -173,10 +166,11 @@ function DebtorSlidePanel({ debtor, onClose }) {
                         </div>
                     </div>
 
-                    {/* Amount */}
-                    <div className="bg-accent rounded-2xl px-5 py-4 text-center">
-                        <p className="text-xs text-surface-page/50 uppercase tracking-wide mb-1">Monto Adeudado</p>
-                        <p className="text-3xl font-bold text-success">
+                    {/* Amount — data, not a status or a CTA, so plain neutral
+                        text rather than the accent block this used to be. */}
+                    <div className="bg-surface-hover rounded-2xl px-5 py-4 text-center">
+                        <p className="text-xs text-text-tertiary uppercase tracking-wide mb-1">Monto Adeudado</p>
+                        <p className="text-3xl font-bold font-mono text-text-primary">
                             USD {Number(debtor?.amountOwed || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </p>
                     </div>
@@ -211,7 +205,7 @@ function DebtorSlidePanel({ debtor, onClose }) {
                         <p className="text-xs font-semibold text-text-secondary mb-3">Historial de Actividad</p>
                         {logsLoading ? (
                             <div className="flex justify-center py-4">
-                                <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+                                <div className="w-5 h-5 border-2 border-text-tertiary border-t-transparent rounded-full animate-spin"></div>
                             </div>
                         ) : logs.length === 0 ? (
                             <p className="text-xs text-text-tertiary text-center py-4">Sin actividad registrada</p>
@@ -242,7 +236,7 @@ function DebtorSlidePanel({ debtor, onClose }) {
                 {/* Footer */}
                 <div className="px-6 py-4 border-t border-border-subtle">
                     <a href="/admin"
-                       className="block w-full text-center text-xs font-semibold text-accent border border-accent/20 py-2.5 rounded-xl hover:bg-accent hover:text-surface-page transition">
+                       className="block w-full text-center text-xs font-semibold text-text-secondary border border-border-default py-2.5 rounded-xl hover:bg-surface-hover hover:text-text-primary transition">
                         Ver en Panel Administrativo →
                     </a>
                 </div>
@@ -370,8 +364,8 @@ export default function BandejaPage() {
     if (loading) return (
         <div data-density="compact" className="min-h-screen bg-surface-page flex items-center justify-center">
             <div className="text-center">
-                <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                <p className="text-sm text-accent/50">Cargando bandeja...</p>
+                <div className="w-8 h-8 border-2 border-text-tertiary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-sm text-text-tertiary">Cargando bandeja...</p>
             </div>
         </div>
     );
@@ -440,7 +434,7 @@ export default function BandejaPage() {
                         <div className="flex items-center justify-between mb-3">
                             <p className="text-sm font-semibold text-text-primary">Mensajes</p>
                             {unreadCount > 0 && (
-                                <span className="bg-accent text-surface-page text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                <span className="bg-surface-hover text-text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">
                                     {unreadCount} nuevos
                                 </span>
                             )}
@@ -455,7 +449,7 @@ export default function BandejaPage() {
                                 <button key={f.id} onClick={() => setFilter(f.id)}
                                         className={`flex-1 text-[10px] py-1.5 rounded-lg font-medium transition-all ${
                                             filter === f.id
-                                                ? "bg-surface-raised text-accent shadow-sm"
+                                                ? "bg-surface-raised text-text-primary shadow-sm"
                                                 : "text-text-tertiary hover:text-text-secondary"
                                         }`}>
                                     {f.label}
@@ -464,7 +458,7 @@ export default function BandejaPage() {
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
+                    <div className="flex-1 overflow-y-auto divide-y divide-border-subtle">
                         {filteredMessages.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-16 text-text-tertiary gap-3">
                                 <span className="text-4xl">📭</span>
@@ -497,7 +491,7 @@ export default function BandejaPage() {
                                                 }`}>
                                                     {msg.channel === "EMAIL" ? "✉ email" : "💬 sms"}
                                                 </span>
-                                                {!isRead && <div className="w-1.5 h-1.5 rounded-full bg-accent ml-auto flex-shrink-0"></div>}
+                                                {!isRead && <div className="w-1.5 h-1.5 rounded-full bg-text-primary ml-auto flex-shrink-0"></div>}
                                             </div>
                                         </div>
                                     </div>
@@ -528,7 +522,7 @@ export default function BandejaPage() {
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-3 mb-1">
                                             <button onClick={() => setSlideDebtor(selected.debtor)}
-                                                    className="text-base font-bold text-text-primary hover:text-accent transition truncate">
+                                                    className="text-base font-bold text-text-primary hover:underline transition truncate">
                                                 {selected.debtor?.name || "Desconocido"}
                                             </button>
                                             {selected.debtor?.status && (
@@ -547,7 +541,7 @@ export default function BandejaPage() {
                                                 <span className="text-[11px] text-text-tertiary">🧾 {selected.debtor.invoiceNumber}</span>
                                             )}
                                             {selected.debtor?.amountOwed && (
-                                                <span className="text-[11px] font-semibold text-accent">
+                                                <span className="text-[11px] font-semibold font-mono text-text-primary">
                                                     USD {Number(selected.debtor.amountOwed).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                                 </span>
                                             )}
@@ -555,7 +549,7 @@ export default function BandejaPage() {
                                     </div>
                                     <div className="flex items-center gap-2 flex-shrink-0">
                                         <button onClick={() => setSlideDebtor(selected.debtor)}
-                                                className="text-[10px] border border-accent/20 text-accent rounded-lg px-3 py-1.5 hover:bg-accent hover:text-surface-page transition">
+                                                className="text-[10px] border border-border-default text-text-secondary rounded-lg px-3 py-1.5 hover:bg-surface-hover hover:text-text-primary transition">
                                             👤 Ver perfil
                                         </button>
                                         {selected.readByClientAt ? (
@@ -582,7 +576,7 @@ export default function BandejaPage() {
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2 mb-2">
                                             <button onClick={() => setSlideDebtor(selected.debtor)}
-                                                    className="text-xs font-semibold text-text-secondary hover:text-accent transition">
+                                                    className="text-xs font-semibold text-text-secondary hover:text-text-primary hover:underline transition">
                                                 {selected.debtor?.name}
                                             </button>
                                             <span className="text-[9px] text-text-tertiary">
@@ -635,10 +629,10 @@ export default function BandejaPage() {
                                                 <button
                                                     onClick={handleSendReply}
                                                     disabled={!replyText.trim() || sending}
-                                                    className="bg-accent text-surface-page px-5 py-1.5 rounded-xl text-xs font-semibold hover:bg-accent-hover transition disabled:opacity-30 flex items-center gap-1.5">
+                                                    className="bg-accent text-accent-fg px-5 py-1.5 rounded-xl text-xs font-semibold hover:bg-accent-hover transition disabled:opacity-30 flex items-center gap-1.5">
                                                     {sending ? (
                                                         <>
-                                                            <div className="w-3 h-3 border border-surface-page border-t-transparent rounded-full animate-spin"></div>
+                                                            <div className="w-3 h-3 border border-accent-fg border-t-transparent rounded-full animate-spin"></div>
                                                             Enviando...
                                                         </>
                                                     ) : "Enviar respuesta →"}

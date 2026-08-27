@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { nanoid } from "nanoid";
+import { getOrCreateUser } from "@/lib/getOrCreateUser";
 
 // BULK CREATE debtors
 export async function POST(req) {
@@ -26,15 +27,14 @@ export async function POST(req) {
             );
         }
 
-        // Get user from database
-        const user = await prisma.user.findUnique({
-            where: { clerkId: userId },
-        });
+        // Get (or self-heal) user from database — same bare-lookup bug as the
+        // admin status route: a stale stored clerkId 404s a real user here.
+        const user = await getOrCreateUser();
 
         if (!user) {
             return NextResponse.json(
-                { message: "User not found" },
-                { status: 404 }
+                { message: "User sync failed" },
+                { status: 500 }
             );
         }
 

@@ -208,7 +208,7 @@ function Composer({ clients }) {
                 {["SMS", "EMAIL"].map(c => (
                     <button key={c} onClick={() => setChannel(c)}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${focusRing} ring-offset-surface-raised ${
-                                channel === c ? "bg-accent text-surface-page" : "text-text-secondary hover:text-text-primary"
+                                channel === c ? "bg-surface-hover text-text-primary" : "text-text-secondary hover:text-text-primary"
                             }`}>
                         {c === "SMS" ? "SMS" : "Correo"}
                     </button>
@@ -225,7 +225,7 @@ function Composer({ clients }) {
                                className={`w-full border border-border-default rounded-xl px-3 py-2 text-sm bg-surface-page text-text-primary focus:outline-none focus:border-accent ${focusRing} ring-offset-surface-raised`} />
                         <label className="flex items-center gap-2 text-xs text-text-secondary">
                             <input type="checkbox" checked={allFilteredSelected} onChange={toggleAllFiltered}
-                                   className={`rounded accent-accent ${focusRing} ring-offset-surface-raised`} />
+                                   className={`rounded accent-text-primary ${focusRing} ring-offset-surface-raised`} />
                             Seleccionar todos los visibles ({filteredDebtors.length})
                         </label>
                     </div>
@@ -235,7 +235,7 @@ function Composer({ clients }) {
                         ) : filteredDebtors.map(d => (
                             <label key={d.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-hover cursor-pointer">
                                 <input type="checkbox" checked={selectedIds.has(d.id)} onChange={() => toggleOne(d.id)}
-                                       className={`rounded accent-accent flex-shrink-0 ${focusRing} ring-offset-surface-raised`} />
+                                       className={`rounded accent-text-primary flex-shrink-0 ${focusRing} ring-offset-surface-raised`} />
                                 <div className="min-w-0 flex-1">
                                     <p className="text-sm text-text-primary font-medium truncate">{d.name}</p>
                                     <p className="text-xs text-text-tertiary truncate">{d.clientName} · {d.telephone || "sin teléfono"} · {d.email || "sin email"}</p>
@@ -277,11 +277,11 @@ function Composer({ clients }) {
                                         <label key={t.id}
                                                className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition ${
                                                    templateId === t.id
-                                                       ? t.restricted ? "border-danger bg-danger-bg" : "border-accent bg-accent-bg"
-                                                       : "border-border-default hover:border-accent/30"
+                                                       ? t.restricted ? "border-danger bg-danger-bg" : "border-text-primary bg-surface-hover"
+                                                       : "border-border-default hover:border-text-tertiary"
                                                }`}>
                                             <input type="radio" name="template" checked={templateId === t.id} onChange={() => setTemplateId(t.id)}
-                                                   className={`mt-0.5 accent-accent ${focusRing} ring-offset-surface-raised`} />
+                                                   className={`mt-0.5 accent-text-primary ${focusRing} ring-offset-surface-raised`} />
                                             <div className="min-w-0">
                                                 <p className="text-sm font-medium text-text-primary flex items-center gap-2">
                                                     {t.label}
@@ -328,7 +328,7 @@ function Composer({ clients }) {
                     <button
                         onClick={handleSendClick}
                         disabled={sending || breakdown.willSend === 0 || (channel === "EMAIL" && (!subject || !body))}
-                        className={`w-full bg-accent text-surface-page py-3 rounded-xl text-sm font-bold hover:opacity-90 transition disabled:opacity-40 ${focusRing} ring-offset-surface-page`}>
+                        className={`w-full bg-accent text-accent-fg py-3 rounded-xl text-sm font-bold hover:opacity-90 transition disabled:opacity-40 ${focusRing} ring-offset-surface-page`}>
                         {sending ? "Enviando..." : `Enviar a ${breakdown.willSend} destinatario(s)`}
                     </button>
                 </div>
@@ -461,7 +461,7 @@ export default function NotificacionesPage() {
                     {[{ id: "enviar", label: "Enviar" }, { id: "historial", label: "Historial" }].map(t => (
                         <button key={t.id} onClick={() => setTab(t.id)}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium transition ${focusRing} ring-offset-surface-raised ${
-                                    tab === t.id ? "bg-accent text-surface-page" : "text-text-secondary hover:text-text-primary"
+                                    tab === t.id ? "bg-surface-hover text-text-primary" : "text-text-secondary hover:text-text-primary"
                                 }`}>
                             {t.label}
                         </button>

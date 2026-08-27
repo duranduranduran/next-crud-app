@@ -36,7 +36,17 @@ const themeInitScript = `
 
 export default function RootLayout({ children }) {
     return (
-        <html lang="en">
+        // suppressHydrationWarning: the no-flash script above sets
+        // data-theme on this element BEFORE React hydrates, on purpose —
+        // that's what prevents a flash of the wrong theme, and it's the
+        // whole reason the script exists. Server-rendered markup has no
+        // data-theme attribute at all (the server doesn't know the
+        // client's stored preference or system setting), so React's
+        // hydration diff always sees a mismatch here. suppressHydrationWarning
+        // only silences the warning for this element's own attributes —
+        // it does not disable hydration mismatch detection anywhere else
+        // in the tree, and does not change the no-flash behavior at all.
+        <html lang="en" suppressHydrationWarning>
         <head>
             <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         </head>

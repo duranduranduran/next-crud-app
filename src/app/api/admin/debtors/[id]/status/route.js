@@ -71,6 +71,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import { getOrCreateUser } from "@/lib/getOrCreateUser";
 
 export async function PATCH(req, { params }) {
     // 1. Auth
@@ -122,13 +123,15 @@ export async function PATCH(req, { params }) {
             return NextResponse.json({ message: "Debtor not found" }, { status: 404 });
         }
 
-        // 6. Find DB user by clerkId
-        const dbUser = await prisma.user.findUnique({
-            where: { clerkId: userId },
-        });
+        // 6. Find (or self-heal) the DB user. A bare findUnique({where:{clerkId}})
+        // 404s if the stored clerkId is out of sync with what Clerk's current
+        // session reports — getOrCreateUser upserts by email instead, so a
+        // real admin row that exists but has a stale clerkId gets its clerkId
+        // corrected here rather than the request failing.
+        const dbUser = await getOrCreateUser();
 
         if (!dbUser) {
-            return NextResponse.json({ message: "User not found" }, { status: 404 });
+            return NextResponse.json({ message: "User sync failed" }, { status: 500 });
         }
 
         // 7. Update debtor + log in one transaction

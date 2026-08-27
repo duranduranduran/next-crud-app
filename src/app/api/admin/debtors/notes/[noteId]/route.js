@@ -42,6 +42,7 @@ export const runtime = "nodejs";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getOrCreateUser } from "@/lib/getOrCreateUser";
 
 export async function DELETE(req, { params }) {
     // 1. Auth (Clerk v5)
@@ -76,13 +77,12 @@ export async function DELETE(req, { params }) {
             return NextResponse.json({ error: "Note not found" }, { status: 404 });
         }
 
-        // Find DB user by clerkId
-        const dbUser = await prisma.user.findUnique({
-            where: { clerkId: userId },
-        });
+        // Find (or self-heal) DB user — bare clerkId lookup 404s a real user
+        // whose stored clerkId is stale, same bug as the admin status route.
+        const dbUser = await getOrCreateUser();
 
         if (!dbUser) {
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
+            return NextResponse.json({ error: "User sync failed" }, { status: 500 });
         }
 
         // Delete note + log in one transaction
