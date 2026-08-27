@@ -14,7 +14,7 @@ export default function SectionHeading({ index, kicker, title, description, cent
                         className="text-sm font-mono text-text-tertiary tabular-nums"
                     />
                 )}
-                <span className="text-xs font-semibold tracking-[0.2em] uppercase text-text-tertiary">
+                <span className="text-xs font-mono font-semibold tracking-[0.2em] uppercase text-text-tertiary">
                     {kicker}
                 </span>
             </div>

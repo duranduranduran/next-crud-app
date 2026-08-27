@@ -1,10 +1,11 @@
 'use client';
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import MarketingShell from "../components/marketing/MarketingShell";
 import SectionHeading from "../components/marketing/SectionHeading";
-import { Reveal, SplitHeadline } from "../components/marketing/fx";
+import WindowBox, { KeyChip } from "../components/marketing/WindowBox";
+import { Reveal, SplitCharHeadline, useBatchReveal, useMagnetic } from "../components/marketing/fx";
 
 const plans = [
     {
@@ -118,6 +119,94 @@ function CrossIcon() {
     );
 }
 
+function MagneticLink({ href, className, children }) {
+    const ref = useMagnetic(0.3, 10);
+    return (
+        <Link ref={ref} href={href} className={className}>
+            {children}
+        </Link>
+    );
+}
+
+function PlansGrid({ annual }) {
+    const containerRef = useRef(null);
+    useBatchReveal(containerRef, "[data-batch-plan]", { y: 24, stagger: 0.08 });
+
+    return (
+        <div ref={containerRef} className="grid md:grid-cols-2 xl:grid-cols-4 gap-6">
+            {plans.map((plan) => (
+                <div
+                    key={plan.id}
+                    data-batch-plan
+                    className={`relative p-7 flex flex-col bg-surface-raised ${plan.highlight ? "border-2" : ""}`}
+                    style={{
+                        border: plan.highlight ? "2.5px solid var(--color-frame)" : "1.5px solid var(--color-frame)",
+                        boxShadow: plan.highlight ? "6px 6px 0 0 var(--color-frame-shadow)" : "4px 4px 0 0 var(--color-frame-shadow)",
+                    }}
+                >
+                    {plan.badge && (
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                            <span
+                                className="bg-accent text-accent-fg text-xs font-mono font-bold px-4 py-1 whitespace-nowrap"
+                                style={{ border: "1.5px solid var(--color-frame)" }}
+                            >
+                                {plan.badge}
+                            </span>
+                        </div>
+                    )}
+
+                    <p className="text-xs font-mono font-bold tracking-widest text-text-tertiary mb-3">{plan.name}</p>
+
+                    <div className="mb-2">
+                        {plan.price ? (
+                            <div className="flex items-end gap-1">
+                                <span className="text-5xl font-extrabold font-mono text-text-primary">
+                                    ${annual ? Math.round(plan.price * 0.8) : plan.price}
+                                </span>
+                                <span className="text-text-tertiary mb-2">/mes</span>
+                            </div>
+                        ) : (
+                            <p className="text-4xl font-extrabold text-text-primary">A consultar</p>
+                        )}
+                    </div>
+
+                    <p className="text-sm font-semibold text-text-secondary mb-6 pb-6" style={{ borderBottom: "1px solid var(--color-border-subtle)" }}>
+                        {plan.debtors}
+                    </p>
+
+                    <ul className="space-y-3 flex-1 mb-6">
+                        {plan.features.map((feature, i) => (
+                            <li key={i} className="flex items-center gap-3 text-sm">
+                                {feature.included ? <CheckIcon /> : <CrossIcon />}
+                                <span className={feature.included ? "text-text-primary" : "text-text-tertiary"}>
+                                    {feature.label}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+
+                    {plan.note && (
+                        <p className="text-xs text-text-secondary mb-4 text-center">{plan.note}</p>
+                    )}
+
+                    <Link
+                        href={plan.id === "enterprise" ? "/about" : "/sign-up"}
+                        className={`w-full text-center py-3 font-mono text-sm uppercase tracking-wide font-bold transition-all duration-200 flex items-center justify-center gap-2 ${
+                            plan.highlight
+                                ? "bg-accent text-accent-fg hover:opacity-90"
+                                : "text-text-primary hover:bg-surface-hover"
+                        }`}
+                        style={!plan.highlight ? { border: "1.5px solid var(--color-frame)" } : undefined}
+                    >
+                        {plan.id === "enterprise" ? "Contactar" : "Empezar ahora"}
+                        <span aria-hidden="true">→</span>
+                    </Link>
+                </div>
+            ))}
+        </div>
+    );
+}
+
 export default function PlanesPage() {
     const [annual, setAnnual] = useState(false);
 
@@ -125,8 +214,8 @@ export default function PlanesPage() {
         <MarketingShell>
             {/* HEADER */}
             <section className="px-6 md:px-8 pt-16 md:pt-24 pb-14 text-center max-w-3xl mx-auto">
-                <p className="text-xs font-semibold tracking-[0.2em] text-text-tertiary uppercase mb-5">Precios</p>
-                <SplitHeadline
+                <p className="text-sm font-mono font-medium tracking-widest text-text-secondary uppercase mb-4">Precios</p>
+                <SplitCharHeadline
                     text="Un plan para cada tamaño de cartera"
                     as="h1"
                     className="text-4xl md:text-5xl font-extrabold leading-tight tracking-tight text-text-primary mb-6"
@@ -135,97 +224,32 @@ export default function PlanesPage() {
                     Sin contratos largos. Sin sorpresas. Cancela cuando quieras.
                 </p>
 
-                <div className="inline-flex items-center gap-4 border border-border-default rounded-xl px-5 py-3">
-                    <span className={`text-sm font-medium ${!annual ? "text-text-primary" : "text-text-tertiary"}`}>Mensual</span>
+                <div className="inline-flex items-center gap-4 px-5 py-3" style={{ border: "1.5px solid var(--color-frame)" }}>
+                    <span className={`text-sm font-mono font-medium ${!annual ? "text-text-primary" : "text-text-tertiary"}`}>Mensual</span>
                     <button
                         type="button"
                         role="switch"
                         aria-checked={annual}
                         aria-label="Alternar facturación anual"
                         onClick={() => setAnnual(!annual)}
-                        className="relative w-12 h-6 rounded-full cursor-pointer transition-colors duration-300"
-                        style={{ background: annual ? "var(--color-accent)" : "var(--color-accent-bg)" }}
+                        className="relative w-12 h-6 cursor-pointer transition-colors duration-300"
+                        style={{ background: annual ? "var(--color-accent)" : "var(--color-accent-bg)", border: "1.5px solid var(--color-frame)" }}
                     >
                         <span
-                            className="absolute top-1 w-4 h-4 bg-surface-raised rounded-full transition-all duration-300"
-                            style={{ left: annual ? "28px" : "4px" }}
+                            className="absolute top-0.5 w-4 h-4 bg-surface-raised transition-all duration-300"
+                            style={{ left: annual ? "26px" : "3px", border: "1px solid var(--color-frame)" }}
                         />
                     </button>
-                    <span className={`text-sm font-medium ${annual ? "text-text-primary" : "text-text-tertiary"}`}>
+                    <span className={`text-sm font-mono font-medium ${annual ? "text-text-primary" : "text-text-tertiary"}`}>
                         Anual
-                        <span className="ml-2 text-xs bg-brand-mint text-accent px-2 py-0.5 rounded-full font-bold">-20%</span>
+                        <span className="ml-2 text-xs bg-brand-mint text-brand-mint-fg px-2 py-0.5 font-mono font-bold">-20%</span>
                     </span>
                 </div>
             </section>
 
-            {/* PLANS GRID */}
+            {/* PLANS GRID (ScrollTrigger.batch) */}
             <section className="px-6 md:px-8 pb-20 max-w-6xl mx-auto">
-                <Reveal stagger={0.08} className="grid md:grid-cols-2 xl:grid-cols-4 gap-6">
-                    {plans.map((plan) => (
-                        <div
-                            key={plan.id}
-                            className={`relative rounded-2xl p-7 flex flex-col ${
-                                plan.highlight
-                                    ? "border-2 border-accent bg-surface-raised shadow-xl"
-                                    : "border border-border-default bg-surface-raised"
-                            }`}
-                        >
-                            {plan.badge && (
-                                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                                    <span className="bg-accent text-accent-fg text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
-                                        {plan.badge}
-                                    </span>
-                                </div>
-                            )}
-
-                            <p className="text-xs font-bold tracking-widest text-text-tertiary mb-3">{plan.name}</p>
-
-                            <div className="mb-2">
-                                {plan.price ? (
-                                    <div className="flex items-end gap-1">
-                                        <span className="text-5xl font-extrabold text-text-primary">
-                                            ${annual ? Math.round(plan.price * 0.8) : plan.price}
-                                        </span>
-                                        <span className="text-text-tertiary mb-2">/mes</span>
-                                    </div>
-                                ) : (
-                                    <p className="text-4xl font-extrabold text-text-primary">A consultar</p>
-                                )}
-                            </div>
-
-                            <p className="text-sm font-semibold text-text-secondary mb-6 pb-6 border-b border-border-subtle">
-                                {plan.debtors}
-                            </p>
-
-                            <ul className="space-y-3 flex-1 mb-6">
-                                {plan.features.map((feature, i) => (
-                                    <li key={i} className="flex items-center gap-3 text-sm">
-                                        {feature.included ? <CheckIcon /> : <CrossIcon />}
-                                        <span className={feature.included ? "text-text-primary" : "text-text-tertiary"}>
-                                            {feature.label}
-                                        </span>
-                                    </li>
-                                ))}
-                            </ul>
-
-                            {plan.note && (
-                                <p className="text-xs text-text-secondary mb-4 text-center">{plan.note}</p>
-                            )}
-
-                            <Link
-                                href={plan.id === "enterprise" ? "/about" : "/sign-up"}
-                                className={`w-full text-center py-3 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 ${
-                                    plan.highlight
-                                        ? "bg-accent text-accent-fg hover:opacity-90"
-                                        : "border border-border-default text-text-primary hover:bg-surface-hover"
-                                }`}
-                            >
-                                {plan.id === "enterprise" ? "Contactar" : "Empezar ahora"}
-                                <span aria-hidden="true">→</span>
-                            </Link>
-                        </div>
-                    ))}
-                </Reveal>
+                <PlansGrid annual={annual} />
 
                 <p className="text-center text-sm text-text-secondary mt-10">
                     Todos los planes incluyen soporte por email · Datos seguros y encriptados · Cancela en cualquier momento
@@ -233,16 +257,23 @@ export default function PlanesPage() {
             </section>
 
             {/* FAQ */}
-            <section className="border-t border-border-subtle px-6 md:px-8 py-20 md:py-28 max-w-3xl mx-auto">
+            <section className="px-6 md:px-8 py-20 md:py-28 max-w-3xl mx-auto" style={{ borderTop: "1.5px solid var(--color-frame)" }}>
                 <Reveal>
                     <SectionHeading index="01" kicker="Preguntas frecuentes" title="Lo que suelen preguntarnos" center />
                 </Reveal>
                 <Reveal stagger={0.06} className="space-y-4 mt-14">
                     {FAQS.map((faq, i) => (
-                        <details key={i} className="group border border-border-default rounded-xl overflow-hidden">
+                        <details
+                            key={i}
+                            className="group bg-surface-raised overflow-hidden"
+                            style={{ border: "1.5px solid var(--color-frame)" }}
+                        >
                             <summary className="p-6 flex items-center justify-between cursor-pointer list-none">
                                 <span className="font-bold text-text-primary pr-4">{faq.q}</span>
-                                <span className="w-6 h-6 rounded-full border border-border-default flex items-center justify-center flex-shrink-0 text-text-tertiary transition-transform duration-300 group-open:rotate-180">
+                                <span
+                                    className="w-6 h-6 flex items-center justify-center flex-shrink-0 text-text-secondary transition-transform duration-300 group-open:rotate-180"
+                                    style={{ border: "1.5px solid var(--color-frame)" }}
+                                >
                                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                                         <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                                     </svg>
@@ -255,12 +286,18 @@ export default function PlanesPage() {
             </section>
 
             {/* CTA */}
-            <Reveal as="section" className="px-6 md:px-8 pb-24 text-center">
-                <h2 className="text-3xl font-bold text-text-primary mb-6">¿Listo para recuperar tu liquidez?</h2>
-                <Link href="/sign-up" className="bg-accent text-accent-fg px-10 py-4 rounded-xl font-bold hover:opacity-90 transition inline-block">
-                    Crear Cuenta Gratis
-                </Link>
-            </Reveal>
+            <section className="px-6 md:px-8 pb-24 text-center">
+                <WindowBox title="Recupera · Crear cuenta" className="max-w-md mx-auto" contentClassName="text-center">
+                    <h2 className="text-2xl font-bold text-text-primary mb-6">¿Listo para recuperar tu liquidez?</h2>
+                    <MagneticLink
+                        href="/sign-up"
+                        className="inline-flex items-center gap-2.5 bg-accent text-accent-fg px-10 py-4 font-mono text-sm uppercase tracking-wide font-bold"
+                    >
+                        <KeyChip letter="↵" />
+                        Crear Cuenta Gratis
+                    </MagneticLink>
+                </WindowBox>
+            </section>
         </MarketingShell>
     );
 }

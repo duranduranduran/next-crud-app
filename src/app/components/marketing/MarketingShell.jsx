@@ -39,8 +39,13 @@ export default function MarketingShell({ children }) {
         <div
             id={MARKETING_ROOT_ID}
             data-theme="light"
+            data-surface="marketing"
             suppressHydrationWarning
             className="min-h-screen bg-surface-page text-text-primary overflow-x-hidden"
+            style={{
+                borderLeft: "3px solid var(--color-frame)",
+                borderRight: "3px solid var(--color-frame)",
+            }}
         >
             <script dangerouslySetInnerHTML={{ __html: MARKETING_THEME_INIT_SCRIPT }} />
             <MarketingHeader theme={theme} onToggleTheme={toggleTheme} />

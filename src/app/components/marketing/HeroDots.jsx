@@ -40,7 +40,7 @@ export default function HeroDots({ className = "" }) {
             {dots.map((d, i) => (
                 <span
                     key={i}
-                    className={`absolute w-1 h-1 bg-accent rounded-full ${reduced ? "" : d.variant}`}
+                    className={`absolute w-1 h-1 bg-accent ${reduced ? "" : d.variant}`}
                     style={{
                         top: `${d.top}%`,
                         left: `${d.left}%`,

@@ -106,6 +106,17 @@
     --color-brand-mint-bg: rgba(33, 254, 131, 0.12);
     --color-brand-yellow: #FFFF76;
 
+    /* Text/icon color for content sitting ON a SOLID mint or yellow fill
+       (a button, a retro keyboard-hint chip) — distinct from the two colors
+       above, which tint TEXT on a neutral surface. Both mint and yellow are
+       high-luminance in both themes (fixed, not theme-scoped), so the fg
+       that reads on them is always near-black, never --color-accent: in
+       dark theme accent resolves near-white, which on bright mint measures
+       ~1.15:1 — invisible. That was a real bug on the landing CTA button
+       before these tokens existed; fixed alongside adding them. */
+    --color-brand-mint-fg: #0A0A0B;
+    --color-brand-yellow-fg: #0A0A0B;
+
     /* Scrim — a hover/press dim overlay on photographic content (avatars,
        document thumbnails). Deliberately fixed black in both themes, same
        as Material's scrim token: it darkens arbitrary imagery, which a
@@ -273,6 +284,67 @@
     --color-success-bg: rgba(21, 128, 61, 0.10);
     --color-neutral-event: #B45309;
     --color-neutral-event-bg: rgba(180, 83, 9, 0.10);
+}
+
+/*
+ * MARKETING RETRO WINDOW-CHROME — scoped under [data-surface="marketing"].
+ * That attribute is set in exactly one place in the whole codebase:
+ * MarketingShell's root div (see src/app/components/marketing/
+ * MarketingShell.jsx), which is the shared wrapper for /, /about, and
+ * /planes ONLY. Admin, client, auth, and /p/[token] never render
+ * MarketingShell, so they never get the attribute — this vocabulary
+ * cannot leak into them by construction, not just by convention (unlike,
+ * say, a component accidentally reusing --radius-lg, this requires the
+ * marketing-only ancestor attribute to resolve to anything at all).
+ *
+ * --color-frame is the hard 1.5px border AND title-bar rule color.
+ * --color-frame-shadow is the zero-blur offset box-shadow color. These
+ * are the SAME value in light theme (a solid graphic shadow, the classic
+ * brutalist choice) but DELIBERATELY DIFFERENT in dark theme:
+ *
+ * Mirroring light theme's "shadow = border color" rule in dark theme
+ * would make the shadow near-white (#EDEDEF, the dark-theme frame color)
+ * — a GLOW, not a shadow. That's the "inverted mistake" this was checked
+ * against. A shadow's job is to read as recessed/behind the box, and it
+ * has to stay recessed regardless of theme.
+ *
+ * The complication: dark theme's surface-page (#0A0A0B) is already
+ * within 10 units of pure black, so there's almost no room for a shadow
+ * that's simply "darker than the page" — pure #000 against #0A0A0B is
+ * only a 1.10:1 luminance ratio, essentially imperceptible on its own.
+ * The fix isn't a brighter shadow (that's the glow trap again) — it's
+ * accepting that the shadow reads primarily through its OFFSET SILHOUETTE
+ * against the bright frame tracing the box's true outline, the same way a
+ * shadow in a dim room is legible by shape more than by being darker than
+ * black. Dark theme keeps a light frame (legible outline) with a genuinely
+ * black shadow (#000, darker than surface-page/raised even if only
+ * slightly) rather than inverting shadow-color to match frame-color.
+ */
+[data-surface="marketing"] {
+    --radius-frame: 0px;
+}
+[data-surface="marketing"][data-theme="light"] {
+    --color-frame: #18181B;
+    --color-frame-shadow: #18181B;
+}
+[data-surface="marketing"][data-theme="dark"] {
+    --color-frame: #EDEDEF;
+    --color-frame-shadow: #000000;
+}
+
+/* Reusable hard-shadow window mechanism — centralized here rather than
+   repeating the box-shadow value at every call site (same reasoning as
+   .debtor-stack-* below: one mechanism, defined once). -sm is for smaller
+   nested chrome (chips, badges); the base size is for full window boxes. */
+[data-surface="marketing"] .frame-box {
+    border: 1.5px solid var(--color-frame);
+    border-radius: var(--radius-frame);
+    box-shadow: 6px 6px 0 0 var(--color-frame-shadow);
+}
+[data-surface="marketing"] .frame-box-sm {
+    border: 1.5px solid var(--color-frame);
+    border-radius: var(--radius-frame);
+    box-shadow: 3px 3px 0 0 var(--color-frame-shadow);
 }
 
 /*
